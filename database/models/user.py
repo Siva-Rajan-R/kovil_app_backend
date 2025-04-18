@@ -1,0 +1,16 @@
+from sqlalchemy import String,Integer,ForeignKey,Column,Enum,DateTime
+from enums.backend_enums import UserRole
+from database.main import Base,Engine
+from datetime import datetime,timezone
+
+class Users(Base):
+    __tablename__="users"
+    id=Column(String,primary_key=True)
+    name=Column(String,nullable=False)
+    mobile_number=Column(String,nullable=False)
+    email=Column(String,nullable=False)
+    role=Column(Enum(UserRole),default=UserRole.USER,nullable=False)
+    password=Column(String,nullable=False)
+    created_at=Column(DateTime,default=datetime.now(timezone.utc))
+
+Base.metadata.create_all(Engine)
