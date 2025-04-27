@@ -1,9 +1,8 @@
 from database.models.user import Users,UserRole
-from sqlalchemy import select,exists,or_
+from sqlalchemy import exists,or_
 from sqlalchemy.orm import Session
 from pydantic import EmailStr
 from fastapi.exceptions import HTTPException
-import uuid
 from security.hashing import hash_data,verify_hash
 from security.jwt_token import JwtTokenCreation
 from security.uuid_creation import create_unique_id

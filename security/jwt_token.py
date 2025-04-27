@@ -3,8 +3,8 @@ from datetime import datetime,timezone,timedelta
 from fastapi.exceptions import HTTPException
 from security.syme import encrypt,decrypt
 import os
-from dotenv import load_dotenv
-load_dotenv()
+# from dotenv import load_dotenv
+# load_dotenv()
 from icecream import ic
 
 JWT_TOKEN_EXPIRY_IN_MINUTES=int(os.getenv("JWT_TOKEN_EXPIRY_IN_MINUTES"))

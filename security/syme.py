@@ -1,7 +1,7 @@
 from cryptography.fernet import Fernet
 import os
-from dotenv import load_dotenv
-load_dotenv()
+# from dotenv import load_dotenv
+# load_dotenv()
 from fastapi.exceptions import HTTPException
 import json
 from icecream import ic
