@@ -1,8 +1,14 @@
 from pydantic import BaseModel,EmailStr
 from datetime import date,time
 from enums import backend_enums
-from typing import Optional
 
+
+class AddEventNameSchema(BaseModel):
+    event_name:str
+    event_amount:int
+
+class DeleteEventNameSchema(BaseModel):
+    event_name_id:int
 
 class AddEventSchema(BaseModel):
     event_name:str
@@ -12,7 +18,7 @@ class AddEventSchema(BaseModel):
     event_end_at:time
     client_name:str
     client_mobile_number:str
-    client_email:Optional[EmailStr]
+    client_city:str
     total_amount:int
     paid_amount:int
     payment_status:backend_enums.PaymetStatus=backend_enums.PaymetStatus.NOT_PAID
@@ -20,7 +26,3 @@ class AddEventSchema(BaseModel):
 
 class DeleteEventSchema(BaseModel):
     event_id:str
-
-class UpdateEventStatusSchema(BaseModel):
-    event_id:str
-    event_status:backend_enums.EventStatus=backend_enums.EventStatus.PENDING

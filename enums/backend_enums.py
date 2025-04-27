@@ -16,4 +16,4 @@ class PaymentMode(Enum):
 class EventStatus(Enum):
     COMPLETED="completed"
     PENDING="pending"
-    CANCLED="cancled"
+    CANCELED="canceled"

@@ -1,6 +1,7 @@
-from database.models.event import Events,Clients,Payments,EventsStatus
+from database.models.event import Events,Clients,Payments,EventsStatus,EventNames,EventStatusImages
+from fastapi import UploadFile
 from sqlalchemy.orm import Session
-from sqlalchemy import select
+from sqlalchemy import select,func
 from enums import backend_enums
 from security.uuid_creation import create_unique_id
 from datetime import date,time
@@ -8,6 +9,8 @@ from pydantic import EmailStr
 from fastapi.exceptions import HTTPException
 from database.operations.user_auth import UserVerification
 from typing import Optional
+from datetime import datetime
+from icecream import ic
 
 class __AddEventInputs:
     def __init__(
@@ -21,7 +24,7 @@ class __AddEventInputs:
             event_end_at:time,
             client_name:str,
             client_mobile_number:str,
-            client_email:Optional[EmailStr],
+            client_city:str,
             total_amount:int,
             paid_amount:int,
             payment_status:backend_enums.PaymetStatus,
@@ -36,11 +39,16 @@ class __AddEventInputs:
         self.event_end_at=event_end_at
         self.client_name=client_name
         self.client_mobile_number=client_mobile_number
-        self.client_email=client_email
+        self.client_city=client_city
         self.total_amount=total_amount
         self.paid_amount=paid_amount
         self.payment_status=payment_status
         self.payment_mode=payment_mode
+
+class __AddEventNameInputs:
+    def __init__(self,session:Session,user_id:str):
+        self.session=session
+        self.user_id=user_id
 
 class __DeleteEventInputs:
     def __init__(self,session:Session,user_id:str,event_id:str):
@@ -49,69 +57,151 @@ class __DeleteEventInputs:
         self.event_id=event_id
 
 class __UpdateEventStatusInputs:
-    def __init__(self,session:Session,user_id:str,event_id:str,event_status:backend_enums.EventStatus):
+    def __init__(
+            self,
+            session:Session,
+            user_id:str,
+            event_id:str,
+            event_status:backend_enums.EventStatus,
+            feedback:str,
+            tips:str,
+            poojai:str,
+            abisegam:str,
+            helper:str,
+            poo:str,
+            read:str,
+            prepare:str,
+            tips_shared:str,
+            tips_given_to:str,
+            image:Optional[UploadFile],
+            image_url_path:str
+        ):
         self.session=session
         self.user_id=user_id
         self.event_id=event_id
         self.event_status=event_status
+        self.feedback=feedback
+        self.tips=tips
+        self.poojai=poojai
+        self.abisegam=abisegam
+        self.helper=helper
+        self.poo=poo
+        self.read=read
+        self.prepare=prepare
+        self.tips_shared=tips_shared
+        self.tips_given_to=tips_given_to
+        self.image=image
+        self.image_url_path=image_url_path
 
 class EventVerification:
     def __init__(self,session:Session):
         self.session=session
 
     async def is_event_exists_by_id(self,event_id:str):
-        if self.session.execute(select(Events.id).where(Events.id==event_id)).scalar_one_or_none():
-            return True
+        event=self.session.execute(select(Events).where(Events.id==event_id)).scalar_one_or_none()
+        if event:
+            return event
         raise HTTPException(
             status_code=404,
             detail="event not found"
         )
-    
+
+class AddEventName(__AddEventNameInputs):
+    async def add_event_name(self,event_name:str,event_amount:str):
+        try:
+            with self.session.begin():
+                user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
+                if user.role==backend_enums.UserRole.ADMIN:
+                    added_event_name=EventNames(
+                        name=event_name,
+                        amount=event_amount
+                    )
+                    self.session.add(added_event_name)
+                    return "successfully event name added"
+                raise HTTPException(
+                    status_code=401,
+                    detail='you are not allowed to make any changes'
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail="something went wrong while adding event name"
+            )
+        
+    async def delete_event_name(self,event_name_id):
+        try:
+            with self.session.begin():
+                user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
+                if user.role==backend_enums.UserRole.ADMIN:
+                    en_to_delete=self.session.query(EventNames).filter(EventNames.id==event_name_id).first()
+                    self.session.delete(en_to_delete)
+
+                    return 'successfully event name deleted'
+                raise HTTPException(
+                    status_code=401,
+                    detail='you are not allowed to make any changes'
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"something went wrong while adding event name {e}"
+            )
+                    
 class AddEvent(__AddEventInputs):
     async def add_event(self):
         try:
             with self.session.begin():
                 user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
                 if user.role==backend_enums.UserRole.ADMIN:
-                    event_id=await create_unique_id(self.event_name)
-                    event=Events(
-                        id=event_id,
-                        name=self.event_name,
-                        description=self.event_description,
-                        date=self.event_date,
-                        start_at=self.event_start_at,
-                        end_at=self.event_end_at
-                    )
+                    if self.session.query(EventNames).filter(EventNames.name==self.event_name).first():
+                        event_id=await create_unique_id(self.event_name)
+                        event=Events(
+                            id=event_id,
+                            name=self.event_name,
+                            description=self.event_description,
+                            date=self.event_date,
+                            start_at=self.event_start_at,
+                            end_at=self.event_end_at
+                        )
 
-                    client=Clients(
-                        name=self.client_name,
-                        mobile_number=self.client_mobile_number,
-                        email=self.client_email,
-                        event_id=event_id
-                    )
+                        client=Clients(
+                            name=self.client_name,
+                            mobile_number=self.client_mobile_number,
+                            city=self.client_city,
+                            event_id=event_id
+                        )
 
-                    payment=Payments(
-                        total_amount=self.total_amount,
-                        paid_amount=self.paid_amount,
-                        status=self.payment_status,
-                        mode=self.payment_mode,
-                        event_id=event_id
-                    )
+                        payment=Payments(
+                            total_amount=self.total_amount,
+                            paid_amount=self.paid_amount,
+                            status=self.payment_status,
+                            mode=self.payment_mode,
+                            event_id=event_id
+                        )
 
-                    event_status=EventsStatus(
-                        status=backend_enums.EventStatus.PENDING,
-                        event_id=event_id,
-                        added_by=self.user_id
-                    )
+                        event_status=EventsStatus(
+                            status=backend_enums.EventStatus.PENDING,
+                            event_id=event_id,
+                            added_by=user.name
+                        )
 
-                    combined_event_details=[event,client,payment,event_status]
-                    self.session.add_all(combined_event_details)
+                        combined_event_details=[event,client,payment,event_status]
+                        self.session.add_all(combined_event_details)
 
-                    return "successfully event added"
+                        return "successfully event added"
+                    raise HTTPException(
+                    status_code=404,
+                    detail=f"there is no event name {self.event_name}"
+                )
                 raise HTTPException(
                     status_code=401,
                     detail="you are not allowed to make any changes"
                 )
+                
         
         except HTTPException:
             raise
@@ -149,13 +239,51 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
     async def update_event_status(self):
         try:
             with self.session.begin():
-                await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
+                user=await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
                 await EventVerification(session=self.session).is_event_exists_by_id(self.event_id)
-                self.session.query(EventsStatus).filter(EventsStatus.event_id==self.event_id).update(
-                    {
-                        EventsStatus.status:self.event_status,
-                        EventsStatus.updated_by:self.user_id
-                    }
+                update_dict={
+                    EventsStatus.status:self.event_status,
+                    EventsStatus.updated_by:user.name,
+                    EventsStatus.feedback:self.feedback,
+                    EventsStatus.tips:self.tips,
+                    EventsStatus.poojai:self.poojai,
+                    EventsStatus.abisegam:self.abisegam,
+                    EventsStatus.helper:self.helper,
+                    EventsStatus.poo:self.poo,
+                    EventsStatus.read:self.read,
+                    EventsStatus.prepare:self.prepare,
+                    EventsStatus.tips_shared:self.tips_shared,
+                    EventsStatus.tips_given_to:self.tips_given_to,
+                    EventsStatus.updated_at:datetime.now().time(),
+                    EventsStatus.updated_date:datetime.now().date()
+                }
+                event_status_query=self.session.query(EventsStatus).filter(EventsStatus.event_id==self.event_id)
+                event_status=event_status_query.one_or_none()
+                ic(backend_enums.EventStatus.PENDING,backend_enums.EventStatus.PENDING.name,backend_enums.EventStatus.PENDING.value,self.event_status,event_status.image_url)
+                if self.image and not event_status.image_url:
+                    image_id=await create_unique_id(self.feedback)
+                    ei_to_add=EventStatusImages(
+                        id=image_id,
+                        image=self.image.file.read(),
+                        event_sts_id=self.session.query(func.max(EventsStatus.id)).scalar()+1
+                    )
+                    self.session.add(ei_to_add)
+                    update_dict[EventsStatus.image_url]=self.image_url_path+image_id
+                    
+                elif self.event_status==backend_enums.EventStatus.CANCELED or self.event_status==backend_enums.EventStatus.PENDING:
+                    print("hello from ")
+                    self.session.query(EventStatusImages).filter(EventStatusImages.event_sts_id==event_status.id).delete()
+                    update_dict[EventsStatus.image_url]=None
+
+                else:
+                    self.session.query(EventStatusImages).filter(EventStatusImages.event_sts_id==event_status.id).update(
+                        {
+                            EventStatusImages.image:self.image.file.read()
+                        }
+                    )
+
+                event_status_query.update(
+                    update_dict
                 )
 
                 return "event status updated successfully"
@@ -163,7 +291,29 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
             raise
 
         except Exception as e:
+            print(e)
             raise HTTPException(
                 status_code=500,
                 detail=f"something went wrong while updating event status {e}"
+            )
+        
+class GetEventStatusImage:
+    def __init__(self,session:Session,image_id:str):
+        self.session=session
+        self.image_id=image_id
+    async def get_image(self):
+        try:
+            image=self.session.query(EventStatusImages).filter(EventStatusImages.id==self.image_id).first()
+            if image:
+                return image.image
+            raise HTTPException(
+                status_code=404,
+                detail="image not found"
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"something went wrong while fetching image {e}"
             )

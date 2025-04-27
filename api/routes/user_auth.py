@@ -29,12 +29,12 @@ async def register(request:Request,bgt:BackgroundTasks,register_inputs:user_auth
         name=register_inputs.name,
         email=register_inputs.email,
         number=register_inputs.mobile_number,
-        href=f"{request.base_url}register-accept/{link_id}",
+        href=f"{request.base_url}register/accept/{link_id}",
         isforgot=False
     )
     return JSONResponse(
         status_code=201,
-        content=f"registered successfully waiting for admin conformation {link_id}"
+        content={"detail":"registered successfully waiting for admin conformation"}
     )
 
 @router.get("/register/accept/{link_id}")
@@ -99,12 +99,12 @@ async def forgot(request:Request,forgot_inputs:user_auth.UserForgotSchema,bgt:Ba
         name=user.name,
         email=user.email,
         number=user.mobile_number,
-        href=f"{request.base_url}forgot-accept/{link_id}",
+        href=f"{request.base_url}forgot/accept/{link_id}",
         isforgot=True
     )
     return JSONResponse(
         status_code=200,
-        content=f"new password changed successfully waiting for your conformation {link_id}"
+        content={"detail":"new password changed successfully waiting for your conformation"}
     )
 
 

@@ -7,6 +7,10 @@ import uuid
 from security.hashing import hash_data,verify_hash
 from security.jwt_token import JwtTokenCreation
 from security.uuid_creation import create_unique_id
+from datetime import datetime,timedelta
+import os
+
+JWT_TOKEN_EXPIRY_IN_DAYS=int(os.getenv("JWT_TOKEN_EXPIRY_IN_DAYS"))
 
 
 class __UserRegisterationInputs:
@@ -56,7 +60,7 @@ class UserRegisteration(__UserRegisterationInputs):
     async def register(self):
         try:
             with self.session.begin():
-                #await self.is_user_not_exists()
+                await UserVerification(self.session).is_user_not_exists(email=self.email,mobile_number=self.mobile_number)
                 user_id=await create_unique_id(self.email)
                 user=Users(
                     id=user_id,
@@ -86,13 +90,17 @@ class UserLogin(__UserLoginInputs):
             user=await UserVerification(session=self.session).is_user_exists(email_or_no=self.email_or_no)
             await verify_hash(hashed_data=user.password,plain_data=self.password)
             data["id"]=user.id
+            user_role=user.role.name
+            print(user_role)
             jwt_token=JwtTokenCreation(
                 data=data
             )
 
             return {
                 "access_token":await jwt_token.access_token(),
-                "refresh_token":await jwt_token.refresh_token()
+                "refresh_token":await jwt_token.refresh_token(),
+                "role":user_role,
+                "refresh_token_exp_date":str((datetime.now()+timedelta(days=JWT_TOKEN_EXPIRY_IN_DAYS)).date())
             }
         
         except HTTPException:

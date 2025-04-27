@@ -27,6 +27,7 @@ async def revoke(request:Request):
         raise
     
     except Exception as e:
+        print(e)
         raise HTTPException(
             status_code=500,
             detail=f"something went wrong on token verification {e}"

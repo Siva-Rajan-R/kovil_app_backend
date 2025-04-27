@@ -51,18 +51,34 @@ class ParticularEvent(__ParticularEventInputs):
         try:
             user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
             select_statement_columns=[
+                Events.id.label("event_id"),
                 Events.name.label("event_name"),
                 Events.description.label("event_description"),
                 Events.start_at.label("event_start_at"),
                 Events.end_at.label("event_end_at"),
+                Events.date.label('event_date'),
                 Clients.name.label("client_name"),
-                Clients.email.label("client_email"),
+                Clients.city.label("client_city"),
                 Clients.mobile_number.label("client_mobile_number"),
-                Payments.status.label("payement_status"),
+                Payments.status.label("payment_status"),
                 Payments.mode.label("payment_mode"),
                 EventsStatus.status.label("event_status"),
                 EventsStatus.added_by.label("event_added_by"),
-                EventsStatus.updated_by.label("event_updated_by")
+                EventsStatus.updated_by,
+                EventsStatus.feedback,
+                EventsStatus.tips,
+                EventsStatus.poojai,
+                EventsStatus.abisegam,
+                EventsStatus.helper,
+                EventsStatus.poo,
+                EventsStatus.read,
+                EventsStatus.prepare,
+                EventsStatus.tips_shared,
+                EventsStatus.tips_given_to,
+                EventsStatus.image_url,
+                EventsStatus.updated_date,
+                EventsStatus.updated_at
+
             ]
 
             if user.role==UserRole.ADMIN:

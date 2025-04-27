@@ -62,7 +62,7 @@ class GetUsers:
                 return {"users":users}
             raise HTTPException(
                     status_code=401,
-                    detail="you are not allowed to make any changes"
+                    detail="you are not allowed to get this information"
                 )
         except HTTPException:
             raise

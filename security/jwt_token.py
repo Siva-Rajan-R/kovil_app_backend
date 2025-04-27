@@ -87,10 +87,13 @@ class JwtTokenVerification:
         
     async def get_new_access_token(self,refresh_token:str,data:dict):
         try:
-            decoded_data=decoded_data=jwt.decode(refresh_token,key=REFRESH_TOKEN_JWT_KEY,algorithms=JWT_ALGORITHM)
+            print(refresh_token)
+            decoded_data=jwt.decode(refresh_token,key=REFRESH_TOKEN_JWT_KEY,algorithms=JWT_ALGORITHM)
+            
             decrypted_data=await decrypt(decoded_data["data"])
             data.update({"id":decrypted_data["id"]})
             if decrypted_data==data:
+                
                 return await JwtTokenCreation(decrypted_data).access_token()
             raise HTTPException(
                 status_code=401,
@@ -101,6 +104,7 @@ class JwtTokenVerification:
             raise
 
         except Exception as e:
+            print(e)
             raise HTTPException(
                 status_code=500,
                 detail=f"something went wrong while getting new access token {e}"
