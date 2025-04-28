@@ -1,7 +1,7 @@
 from argon2 import PasswordHasher,exceptions as phexceptions
 import os
-# from dotenv import load_dotenv
-# load_dotenv() 
+from dotenv import load_dotenv
+load_dotenv() 
 from fastapi.exceptions import HTTPException
 
 HASHING_TIME_COST=os.getenv("HASHING_TIME_COST")

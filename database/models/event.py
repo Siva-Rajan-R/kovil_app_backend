@@ -16,8 +16,8 @@ class Events(Base):
     name=Column(String,nullable=False)
     description=Column(String,nullable=False)
     date=Column(Date,nullable=False)
-    start_at=Column(Time,nullable=False)
-    end_at=Column(Time,nullable=False)
+    start_at=Column(String,nullable=False)
+    end_at=Column(String,nullable=False)
 
     client=relationship("Clients",back_populates="event",cascade="all, delete-orphan")
     payment=relationship("Payments",back_populates="event",cascade="all, delete-orphan")
