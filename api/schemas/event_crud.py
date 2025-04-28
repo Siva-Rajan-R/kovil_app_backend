@@ -1,6 +1,7 @@
 from pydantic import BaseModel,EmailStr
-from datetime import date,time
+from datetime import date,time,datetime
 from enums import backend_enums
+from typing import Optional
 
 
 class AddEventNameSchema(BaseModel):
@@ -14,8 +15,8 @@ class AddEventSchema(BaseModel):
     event_name:str
     event_description:str
     event_date:date
-    event_start_at:str
-    event_end_at:str
+    event_start_at:time
+    event_end_at:time
     client_name:str
     client_mobile_number:str
     client_city:str
