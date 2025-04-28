@@ -9,6 +9,7 @@ from pydantic import EmailStr
 from fastapi.exceptions import HTTPException
 from database.operations.user_auth import UserVerification
 from typing import Optional
+from utils import indian_time
 from datetime import datetime
 from icecream import ic
 
@@ -186,7 +187,8 @@ class AddEvent(__AddEventInputs):
                     event_status=EventsStatus(
                         status=backend_enums.EventStatus.PENDING,
                         event_id=event_id,
-                        added_by=user.name
+                        added_by=user.name,
+                        updated_at=await indian_time.get_india_time()
                     )
 
                     combined_event_details=[event,client,payment,event_status]
@@ -254,7 +256,7 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
                     EventsStatus.prepare:self.prepare,
                     EventsStatus.tips_shared:self.tips_shared,
                     EventsStatus.tips_given_to:self.tips_given_to,
-                    EventsStatus.updated_at:datetime.now().strftime("%I:%M %p"),
+                    EventsStatus.updated_at:await indian_time.get_india_time(),
                     EventsStatus.updated_date:datetime.now().date()
                 }
                 event_status_query=self.session.query(EventsStatus).filter(EventsStatus.event_id==self.event_id)
