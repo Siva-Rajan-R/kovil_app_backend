@@ -27,8 +27,8 @@ class __AddEventInputs:
             client_city:str,
             total_amount:int,
             paid_amount:int,
-            payment_status:backend_enums.PaymetStatus.value,
-            payment_mode:backend_enums.PaymentMode.value
+            payment_status:backend_enums.PaymetStatus,
+            payment_mode:backend_enums.PaymentMode
     ):
         self.user_id=user_id
         self.session=session
