@@ -94,7 +94,7 @@ async def update_event_status(
     prepare:str=Form(...),
     tips_shared:str=Form(...),
     tips_given_to:str=Form(...),
-    image:Optional[UploadFile]=File(None)
+    image:Optional[UploadFile]=File(...)
 ):
     fields = [event_id, feedback, tips, poojai, abisegam, helper, poo, read, prepare, tips_shared, tips_given_to]
     

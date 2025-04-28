@@ -261,6 +261,7 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
                 }
                 event_status_query=self.session.query(EventsStatus).filter(EventsStatus.event_id==self.event_id)
                 event_status=event_status_query.one_or_none()
+                ic(self.image)
                 ic(backend_enums.EventStatus.PENDING,backend_enums.EventStatus.PENDING.name,backend_enums.EventStatus.PENDING.value,self.event_status,event_status.image_url)
                 if self.image and not event_status.image_url:
                     image_id=await create_unique_id(self.feedback)
