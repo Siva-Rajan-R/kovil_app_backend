@@ -278,7 +278,7 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
                     self.session.query(EventStatusImages).filter(EventStatusImages.event_sts_id==event_status.id).delete()
                     update_dict[EventsStatus.image_url]=None
 
-                else:
+                elif self.image and event_status.image_url:
                     self.session.query(EventStatusImages).filter(EventStatusImages.event_sts_id==event_status.id).update(
                         {
                             EventStatusImages.image:self.image.file.read()
