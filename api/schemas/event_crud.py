@@ -1,6 +1,7 @@
 from pydantic import BaseModel,EmailStr
-from datetime import date,time
+from datetime import date,time,datetime
 from enums import backend_enums
+from typing import Optional
 
 
 class AddEventNameSchema(BaseModel):
@@ -13,9 +14,9 @@ class DeleteEventNameSchema(BaseModel):
 class AddEventSchema(BaseModel):
     event_name:str
     event_description:str
-    event_date:date
-    event_start_at:time
-    event_end_at:time
+    event_date:Optional[date]=datetime.now().date()
+    event_start_at:Optional[time]=datetime.now().time()
+    event_end_at:Optional[time]=datetime.now().time()
     client_name:str
     client_mobile_number:str
     client_city:str
