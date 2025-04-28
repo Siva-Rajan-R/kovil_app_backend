@@ -21,8 +21,8 @@ class AddEventSchema(BaseModel):
     client_city:str
     total_amount:int
     paid_amount:int
-    payment_status:backend_enums.PaymetStatus=backend_enums.PaymetStatus.NOT_PAID.value
-    payment_mode:backend_enums.PaymentMode=backend_enums.PaymentMode.OFFLINE.value
+    payment_status:backend_enums.PaymetStatus=backend_enums.PaymetStatus.NOT_PAID
+    payment_mode:backend_enums.PaymentMode=backend_enums.PaymentMode.OFFLINE
 
 class DeleteEventSchema(BaseModel):
     event_id:str
