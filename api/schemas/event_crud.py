@@ -26,4 +26,3 @@ class AddEventSchema(BaseModel):
 
 class DeleteEventSchema(BaseModel):
     event_id:str
-pp
