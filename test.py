@@ -1,2 +1,4 @@
-from datetime import datetime,timezone,timedelta
-print(datetime.now().time())
+from datetime import datetime
+
+updated_at = datetime.now().strftime("%I:%M %p")
+print(updated_at)

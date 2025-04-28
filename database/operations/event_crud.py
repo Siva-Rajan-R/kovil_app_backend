@@ -254,7 +254,7 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
                     EventsStatus.prepare:self.prepare,
                     EventsStatus.tips_shared:self.tips_shared,
                     EventsStatus.tips_given_to:self.tips_given_to,
-                    EventsStatus.updated_at:datetime.now().time(),
+                    EventsStatus.updated_at:datetime.now().strftime("%I:%M %p"),
                     EventsStatus.updated_date:datetime.now().date()
                 }
                 event_status_query=self.session.query(EventsStatus).filter(EventsStatus.event_id==self.event_id)

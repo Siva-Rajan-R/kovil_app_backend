@@ -63,7 +63,7 @@ class EventsStatus(Base):
     tips_shared=Column(String)
     tips_given_to=Column(String)
     updated_date=Column(Date,default=datetime.now().date())
-    updated_at=Column(Time,default=datetime.now().time())
+    updated_at=Column(String,default=datetime.now().strftime("%I:%M %p"))
 
     event_status_image=relationship("EventStatusImages",back_populates="event_status",cascade="all, delete-orphan")
     event=relationship("Events",back_populates="event_status")
@@ -76,4 +76,4 @@ class EventStatusImages(Base):
 
     event_status=relationship("EventsStatus",back_populates="event_status_image")
 
-Base.metadata.create_all(Engine)
+Base.metadata.drop_all(Engine)
