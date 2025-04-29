@@ -1,7 +1,7 @@
 from database.models.event import Events,Clients,Payments,EventsStatus,EventNames,EventStatusImages
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
-from sqlalchemy import select,func
+from sqlalchemy import select,func,desc
 from enums import backend_enums
 from security.uuid_creation import create_unique_id
 from datetime import date,time
@@ -151,6 +151,31 @@ class AddEventName(__AddEventNameInputs):
                 status_code=500,
                 detail=f"something went wrong while adding event name {e}"
             )
+    
+    async def get_event_name(self):
+        try:
+            user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
+            if user.role==backend_enums.UserRole.ADMIN:
+                event_names=self.session.execute(
+                    select(
+                        EventNames.name,
+                        EventNames.amount
+                    )
+                    .order_by(desc(EventNames.id))
+                ).mappings().all()
+
+                return {"event_names":event_names}
+            raise HTTPException(
+                status_code=401,
+                detail='you are not allowed to make any changes'
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"something went wrong while getting event name {e}"
+            )
                     
 class AddEvent(__AddEventInputs):
     async def add_event(self):
@@ -158,47 +183,47 @@ class AddEvent(__AddEventInputs):
             with self.session.begin():
                 user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
                 if user.role==backend_enums.UserRole.ADMIN:
-                    # if self.session.query(EventNames).filter(EventNames.name==self.event_name).first():
-                    event_id=await create_unique_id(self.event_name)
-                    event=Events(
-                        id=event_id,
-                        name=self.event_name,
-                        description=self.event_description,
-                        date=self.event_date,
-                        start_at=self.event_start_at,
-                        end_at=self.event_end_at
+                    if self.session.query(EventNames).filter(EventNames.name==self.event_name).first():
+                        event_id=await create_unique_id(self.event_name)
+                        event=Events(
+                            id=event_id,
+                            name=self.event_name,
+                            description=self.event_description,
+                            date=self.event_date,
+                            start_at=self.event_start_at,
+                            end_at=self.event_end_at
+                        )
+
+                        client=Clients(
+                            name=self.client_name,
+                            mobile_number=self.client_mobile_number,
+                            city=self.client_city,
+                            event_id=event_id
+                        )
+
+                        payment=Payments(
+                            total_amount=self.total_amount,
+                            paid_amount=self.paid_amount,
+                            status=self.payment_status,
+                            mode=self.payment_mode,
+                            event_id=event_id
+                        )
+
+                        event_status=EventsStatus(
+                            status=backend_enums.EventStatus.PENDING,
+                            event_id=event_id,
+                            added_by=user.name,
+                            updated_at=await indian_time.get_india_time()
+                        )
+
+                        combined_event_details=[event,client,payment,event_status]
+                        self.session.add_all(combined_event_details)
+
+                        return "successfully event added"
+                    raise HTTPException(
+                        status_code=404,
+                        detail=f"there is no event name {self.event_name}"
                     )
-
-                    client=Clients(
-                        name=self.client_name,
-                        mobile_number=self.client_mobile_number,
-                        city=self.client_city,
-                        event_id=event_id
-                    )
-
-                    payment=Payments(
-                        total_amount=self.total_amount,
-                        paid_amount=self.paid_amount,
-                        status=self.payment_status,
-                        mode=self.payment_mode,
-                        event_id=event_id
-                    )
-
-                    event_status=EventsStatus(
-                        status=backend_enums.EventStatus.PENDING,
-                        event_id=event_id,
-                        added_by=user.name,
-                        updated_at=await indian_time.get_india_time()
-                    )
-
-                    combined_event_details=[event,client,payment,event_status]
-                    self.session.add_all(combined_event_details)
-
-                    return "successfully event added"
-            #     raise HTTPException(
-            #     status_code=404,
-            #     detail=f"there is no event name {self.event_name}"
-            # )
                 raise HTTPException(
                     status_code=401,
                     detail="you are not allowed to make any changes"

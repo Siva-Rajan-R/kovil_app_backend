@@ -11,6 +11,15 @@ router=APIRouter(
     tags=["Add,Update and Delete Events and EventName"]
 )
 
+@router.get("/event/name")
+async def add_event_name(session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']
+    event_names=await AddEventName(
+        session=session,
+        user_id=user_id
+    ).get_event_name()
+
+    return event_names
 
 @router.post("/event/name")
 async def add_event_name(event_name_inp:AddEventNameSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
