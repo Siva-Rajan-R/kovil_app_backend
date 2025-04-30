@@ -245,7 +245,7 @@ class UpdateEvent(__AddEventInputs):
         try:
             with self.session.begin():
                 user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
-                if user==backend_enums.UserRole.ADMIN:
+                if user.role==backend_enums.UserRole.ADMIN:
                     self.session.query(Events).filter(Events.id==event_id).update(
                         {
                             Events.name:self.event_name,
