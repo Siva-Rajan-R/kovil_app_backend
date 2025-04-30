@@ -46,7 +46,7 @@ class __AddEventInputs:
         self.payment_status=payment_status
         self.payment_mode=payment_mode
 
-class __AddEventNameInputs:
+class __EventNameAndAmountCrudInputs:
     def __init__(self,session:Session,user_id:str):
         self.session=session
         self.user_id=user_id
@@ -107,8 +107,8 @@ class EventVerification:
             detail="event not found"
         )
 
-class AddEventName(__AddEventNameInputs):
-    async def add_event_name(self,event_name:str,event_amount:str):
+class EventNameAndAmountCrud(__EventNameAndAmountCrudInputs):
+    async def add_event_name_and_amt(self,event_name:str,event_amount:str):
         try:
             with self.session.begin():
                 user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
@@ -131,7 +131,7 @@ class AddEventName(__AddEventNameInputs):
                 detail="something went wrong while adding event name"
             )
         
-    async def delete_event_name(self,event_name_id):
+    async def delete_event_name_and_amount(self,event_name_id):
         try:
             with self.session.begin():
                 user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
@@ -152,12 +152,13 @@ class AddEventName(__AddEventNameInputs):
                 detail=f"something went wrong while adding event name {e}"
             )
     
-    async def get_event_name(self):
+    async def get_event_name_and_amount(self):
         try:
             user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
             if user.role==backend_enums.UserRole.ADMIN:
                 event_names=self.session.execute(
                     select(
+                        EventNames.id,
                         EventNames.name,
                         EventNames.amount
                     )
@@ -167,7 +168,7 @@ class AddEventName(__AddEventNameInputs):
                 return {"event_names":event_names}
             raise HTTPException(
                 status_code=401,
-                detail='you are not allowed to make any changes'
+                detail='you are not allowed to get this information'
             )
         except HTTPException:
             raise
@@ -222,7 +223,7 @@ class AddEvent(__AddEventInputs):
                         return "successfully event added"
                     raise HTTPException(
                         status_code=404,
-                        detail=f"there is no event name {self.event_name}"
+                        detail=f"There is no event name as {self.event_name}"
                     )
                 raise HTTPException(
                     status_code=401,

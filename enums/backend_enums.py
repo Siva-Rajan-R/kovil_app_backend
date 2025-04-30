@@ -12,6 +12,7 @@ class PaymetStatus(Enum):
 class PaymentMode(Enum):
     ONLINE="online"
     OFFLINE="offline"
+    PARTIALLY_ONLINE_AND_OFFLINE="partially online and offline"
 
 class EventStatus(Enum):
     COMPLETED="completed"

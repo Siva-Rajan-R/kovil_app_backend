@@ -1,4 +1,5 @@
-from database.models.user import Users,UserRole
+from database.models.user import Users
+from enums import backend_enums
 from sqlalchemy import exists,or_
 from sqlalchemy.orm import Session
 from pydantic import EmailStr
@@ -13,7 +14,7 @@ JWT_TOKEN_EXPIRY_IN_DAYS=int(os.getenv("JWT_TOKEN_EXPIRY_IN_DAYS"))
 
 
 class __UserRegisterationInputs:
-    def __init__(self,session:Session,name:str,mobile_number:str,email:EmailStr,role:UserRole,password:str):
+    def __init__(self,session:Session,name:str,mobile_number:str,email:EmailStr,role:backend_enums.UserRole,password:str):
         self.session=session
         self.name=name
         self.mobile_number=mobile_number

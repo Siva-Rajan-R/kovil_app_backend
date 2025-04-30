@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import extract,select,func,case
 from database.models.event import EventsStatus,Clients,Payments,Events
-from database.operations.user_auth import UserVerification,UserRole
+from database.operations.user_auth import UserVerification
+from enums import backend_enums
 from enums import backend_enums
 from datetime import date
 from fastapi.exceptions import HTTPException
@@ -18,7 +19,7 @@ class EventDashboard(__EventDashboardInputs):
     async def get_dashboard(self):
         try:
             user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
-            if user.role==UserRole.ADMIN:
+            if user.role==backend_enums.UserRole.ADMIN:
                 
                 today_completed=self.session.execute(
                     select(

@@ -1,9 +1,7 @@
-from fastapi import APIRouter,requests,Depends,Query
-from fastapi.responses import JSONResponse
-from database.operations.event_info import EventCalendar,ParticularEvent,Session,date
+from fastapi import APIRouter,Depends,Query
+from database.operations.event_info import EventCalendar,ParticularEvent,Session,date,EventDropDownValues
 from database.main import get_db_session
 from api.dependencies.token_verification import verify
-from api.schemas.event_info import EventCalendarSchema,ParticularEventSchema
 
 router=APIRouter(
     tags=["Get Event Informations"]
@@ -29,3 +27,9 @@ async def event_specific(date:date=Query(...),user:dict=Depends(verify),session:
     ).get_events()
 
     return events
+
+@router.get("/event/dropdown-values")
+async def get_event_dropdown_values(session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']
+    event_dd_values=await EventDropDownValues(session=session,user_id=user_id).get_dropdown_values()
+    return event_dd_values

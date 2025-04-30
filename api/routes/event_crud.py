@@ -1,7 +1,7 @@
 from fastapi import APIRouter,Depends,Request,UploadFile,File,Form,Response,HTTPException
 from enums import backend_enums
 from fastapi.responses import JSONResponse
-from database.operations.event_crud import AddEvent,DeleteEvent,UpdateEventStatus,Session,AddEventName,GetEventStatusImage
+from database.operations.event_crud import AddEvent,DeleteEvent,UpdateEventStatus,Session,EventNameAndAmountCrud,GetEventStatusImage
 from database.main import get_db_session
 from api.dependencies.token_verification import verify
 from api.schemas.event_crud import AddEventSchema,DeleteEventSchema,AddEventNameSchema,DeleteEventNameSchema
@@ -12,22 +12,22 @@ router=APIRouter(
 )
 
 @router.get("/event/name")
-async def add_event_name(session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+async def get_event_name_and_amount(session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
-    event_names=await AddEventName(
+    event_names=await EventNameAndAmountCrud(
         session=session,
         user_id=user_id
-    ).get_event_name()
+    ).get_event_name_and_amount()
 
     return event_names
 
 @router.post("/event/name")
-async def add_event_name(event_name_inp:AddEventNameSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+async def add_event_name_and_amount(event_name_inp:AddEventNameSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
-    added_event_name=await AddEventName(
+    added_event_name=await EventNameAndAmountCrud(
         session=session,
         user_id=user_id
-    ).add_event_name(event_name=event_name_inp.event_name,event_amount=event_name_inp.event_amount)
+    ).add_event_name_and_amt(event_name=event_name_inp.event_name,event_amount=event_name_inp.event_amount)
 
     return JSONResponse(
         status_code=201,
@@ -35,15 +35,15 @@ async def add_event_name(event_name_inp:AddEventNameSchema,session:Session=Depen
     )
 
 @router.delete("/event/name")
-async def add_event_name(en_del_inp:DeleteEventNameSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+async def delete_event_name_and_amount(en_del_inp:DeleteEventNameSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
-    added_event_name=await AddEventName(
+    added_event_name=await EventNameAndAmountCrud(
         session=session,
         user_id=user_id
-    ).delete_event_name(event_name_id=en_del_inp.event_name_id)
+    ).delete_event_name_and_amount(event_name_id=en_del_inp.event_name_id)
 
     return JSONResponse(
-        status_code=201,
+        status_code=200,
         content=added_event_name
     )
 

@@ -51,6 +51,7 @@ class GetUsers:
             if user.role==UserRole.ADMIN:
                 users=self.session.execute(
                     select(
+                        Users.id,
                         Users.name,
                         Users.email,
                         Users.mobile_number,

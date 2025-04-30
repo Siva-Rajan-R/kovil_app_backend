@@ -1,7 +1,9 @@
 from sqlalchemy.orm import Session
-from sqlalchemy import extract,select,func
+from sqlalchemy import extract,select,func,cast, Date, Time,desc
+from enums import backend_enums
 from database.models.event import Events,Clients,Payments,EventsStatus
-from database.operations.user_auth import UserVerification,UserRole
+from database.operations.event_crud import EventNameAndAmountCrud
+from database.operations.user_auth import UserVerification
 from datetime import date
 from fastapi.exceptions import HTTPException
 from icecream import ic
@@ -19,6 +21,11 @@ class __ParticularEventInputs:
         self.session=session
         self.user_id=user_id
         self.event_date=event_date
+
+class __EventDropDownValuesInputs:
+    def __init__(self,session:Session,user_id:str):
+        self.session=session
+        self.user_id=user_id
 
 class EventCalendar(__EventsCalendarInputs):
     async def get_event_calendar(self):
@@ -81,7 +88,7 @@ class ParticularEvent(__ParticularEventInputs):
 
             ]
 
-            if user.role==UserRole.ADMIN:
+            if user.role==backend_enums.UserRole.ADMIN:
                 select_statement_columns.extend(
                     [
                         Payments.total_amount,
@@ -111,6 +118,10 @@ class ParticularEvent(__ParticularEventInputs):
                 .where(
                     Events.date==self.event_date
                 )
+                .order_by(
+                    cast(Events.date, Date),
+                    cast(Events.start_at, Time)
+                )
             ).mappings().all()
 
             ic({"events":events})
@@ -125,3 +136,19 @@ class ParticularEvent(__ParticularEventInputs):
                 status_code=500,
                 detail=f"something went wrong while fetching particular event {e}"
             )
+        
+class EventDropDownValues(__EventDropDownValuesInputs):
+    async def get_dropdown_values(self):
+        try:
+            event_names=await EventNameAndAmountCrud(session=self.session,user_id=self.user_id).get_event_name_and_amount()
+
+            return {"event_names":event_names['event_names'],"payment_status":[i.value for i in backend_enums.PaymetStatus],"payment_modes":[i.value for i in backend_enums.PaymentMode]}
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"something went wrong while getting dropdown values {e}"
+            )
+              

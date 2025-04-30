@@ -1,17 +1,17 @@
-from pydantic import BaseModel,EmailStr
+from pydantic import BaseModel,EmailStr,constr
 from enums import backend_enums
 
 class UserRegisterSchema(BaseModel):
-    name:str
-    mobile_number:str
+    name:constr(strip_whitespace=True,min_length=1)#type: ignore
+    mobile_number:constr(strip_whitespace=True,min_length=1)#type: ignore
     email:EmailStr
     role:backend_enums.UserRole
-    password:str
+    password:constr(strip_whitespace=True,min_length=1)#type: ignore
 
 class UserLoginSchema(BaseModel):
-    email_or_no:EmailStr|str
-    password:str
+    email_or_no:EmailStr|constr(strip_whitespace=True,min_length=1)#type: ignore
+    password:constr(strip_whitespace=True,min_length=1)#type: ignore
 
 class UserForgotSchema(BaseModel):
-    email_or_no:EmailStr|str
-    new_password:str
+    email_or_no:EmailStr|constr(strip_whitespace=True,min_length=1)#type: ignore
+    new_password:constr(strip_whitespace=True,min_length=1)#type: ignore
