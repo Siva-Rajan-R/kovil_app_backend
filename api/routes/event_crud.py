@@ -1,10 +1,10 @@
 from fastapi import APIRouter,Depends,Request,UploadFile,File,Form,Response,HTTPException
 from enums import backend_enums
 from fastapi.responses import JSONResponse
-from database.operations.event_crud import AddEvent,DeleteEvent,UpdateEventStatus,Session,EventNameAndAmountCrud,GetEventStatusImage
+from database.operations.event_crud import AddEvent,DeleteEvent,UpdateEvent,UpdateEventStatus,Session,EventNameAndAmountCrud,GetEventStatusImage
 from database.main import get_db_session
 from api.dependencies.token_verification import verify
-from api.schemas.event_crud import AddEventSchema,DeleteEventSchema,AddEventNameSchema,DeleteEventNameSchema
+from api.schemas.event_crud import AddEventSchema,UpdateEventSchema,DeleteEventSchema,AddEventNameSchema,DeleteEventNameSchema
 from typing import Optional
 
 router=APIRouter(
@@ -70,6 +70,31 @@ async def add_event(add_event_inputs:AddEventSchema,session:Session=Depends(get_
     return JSONResponse(
         status_code=201,
         content=added_event
+    )
+
+@router.put("/event")
+async def update_event(update_event_inputs:UpdateEventSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user["id"]
+    updated_event=await UpdateEvent(
+        user_id=user_id,
+        session=session,
+        event_name=update_event_inputs.event_name,
+        event_description=update_event_inputs.event_description,
+        event_date=update_event_inputs.event_date,
+        event_start_at=update_event_inputs.event_start_at,
+        event_end_at=update_event_inputs.event_end_at,
+        client_name=update_event_inputs.client_name,
+        client_mobile_number=update_event_inputs.client_mobile_number,
+        client_city=update_event_inputs.client_city,
+        total_amount=update_event_inputs.total_amount,
+        paid_amount=update_event_inputs.paid_amount,
+        payment_status=update_event_inputs.payment_status,
+        payment_mode=update_event_inputs.payment_mode,
+    ).update_event(event_id=update_event_inputs.event_id)
+
+    return JSONResponse(
+        status_code=200,
+        content=updated_event
     )
 
 @router.delete("/event")

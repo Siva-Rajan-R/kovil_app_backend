@@ -239,7 +239,52 @@ class AddEvent(__AddEventInputs):
                 status_code=500,
                 detail=f"something went wrong while adding event details {e}"
             )
-            
+
+class UpdateEvent(__AddEventInputs):
+    async def update_event(self,event_id:str):
+        try:
+            with self.session.begin():
+                user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
+                if user==backend_enums.UserRole.ADMIN:
+                    self.session.query(Events).filter(Events.id==event_id).update(
+                        {
+                            Events.name:self.event_name,
+                            Events.description:self.event_description,
+                            Events.date:self.event_date,
+                            Events.start_at:self.event_start_at,
+                            Events.end_at:self.event_end_at
+                        }
+                    )
+
+                    self.session.query(Clients).filter(Clients.event_id==event_id).update(
+                        {
+                            Clients.name:self.client_name,
+                            Clients.mobile_number:self.client_mobile_number,
+                            Clients.city:self.client_city
+                        }
+                    )
+
+                    self.session.query(Payments).filter(Payments.event_id==event_id).update(
+                        {
+                            Payments.total_amount:self.total_amount,
+                            Payments.paid_amount:self.paid_amount,
+                            Payments.mode:self.payment_mode,
+                            Payments.status:self.payment_status
+                        }
+                    )
+
+                    return "event details updated successfully"
+                raise HTTPException(
+                    status_code=401,
+                    detail="you are not alloed to make any changes"
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"something went wrong while updating event details {e}"
+            )
 class DeleteEvent(__DeleteEventInputs):
     async def delete_event(self):
         try:

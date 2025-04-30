@@ -27,3 +27,18 @@ class AddEventSchema(BaseModel):
 
 class DeleteEventSchema(BaseModel):
     event_id:constr(strip_whitespace=True,min_length=1)# type: ignore
+
+class UpdateEventSchema(BaseModel):
+    event_id:constr(strip_whitespace=True,min_length=1) # type: ignore
+    event_name:constr(strip_whitespace=True,min_length=1) # type: ignore
+    event_description:constr(strip_whitespace=True,min_length=1)# type: ignore
+    event_date:date
+    event_start_at:constr(strip_whitespace=True,min_length=1)# type: ignore
+    event_end_at:constr(strip_whitespace=True,min_length=1)# type: ignore
+    client_name:constr(strip_whitespace=True,min_length=1)# type: ignore
+    client_mobile_number:constr(strip_whitespace=True,min_length=1)# type: ignore
+    client_city:constr(strip_whitespace=True,min_length=1)# type: ignore
+    total_amount:int
+    paid_amount:int
+    payment_status:backend_enums.PaymetStatus
+    payment_mode:backend_enums.PaymentMode
