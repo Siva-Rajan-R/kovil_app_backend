@@ -104,7 +104,7 @@ async def forgot(request:Request,forgot_inputs:user_auth.UserForgotSchema,bgt:Ba
     )
     return JSONResponse(
         status_code=200,
-        content={"detail":"new password changed successfully waiting for your conformation"}
+        content="new password changed successfully waiting for your conformation"
     )
 
 

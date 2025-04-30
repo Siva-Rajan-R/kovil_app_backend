@@ -22,10 +22,12 @@
 # # res=requests.post("http://127.0.0.1:8000/login",json={"email_or_no":'string',"password":'string'})
 
 # print(res.content)
-from enum import Enum
-class EventStatus(Enum):
-    COMPLETED="completed"
-    PENDING="pending"
-    CANCELED="canceled"
+# from enum import Enum
+# class EventStatus(Enum):
+#     COMPLETED="completed"
+#     PENDING="pending"
+#     CANCELED="canceled"
 
-print([i.value for i in EventStatus])
+# print([i.value for i in EventStatus])
+
+print(4000<3000)
