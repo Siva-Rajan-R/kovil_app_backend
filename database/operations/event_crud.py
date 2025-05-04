@@ -339,7 +339,7 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
                     ei_to_add=EventStatusImages(
                         id=image_id,
                         image=self.image.file.read(),
-                        event_sts_id=self.session.query(func.max(EventsStatus.id)).scalar()
+                        event_sts_id=event_status.id
                     )
                     self.session.add(ei_to_add)
                     update_dict[EventsStatus.image_url]=self.image_url_path+image_id

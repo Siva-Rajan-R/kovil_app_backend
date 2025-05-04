@@ -18,3 +18,7 @@ class EventStatus(Enum):
     COMPLETED="completed"
     PENDING="pending"
     CANCELED="canceled"
+
+class FileType(Enum):
+    PDF="pdf"
+    EXCEL="excel"
