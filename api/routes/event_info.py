@@ -38,16 +38,25 @@ async def get_event_dropdown_values(session:Session=Depends(get_db_session),user
 @router.get("/event/report/email")
 async def get_events_reprot_emails(bgt:BackgroundTasks,file_type:backend_enums.FileType=Query(...),from_date:date=Query(...),to_date:date=Query(...),session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
-    bgt.add_task(
-        EventsToEmail(
+    # bgt.add_task(
+    #     EventsToEmail(
+    #         session=session,
+    #         user_id=user_id,
+    #         from_date=from_date,
+    #         to_date=to_date,
+    #         file_type=file_type,
+    #         to_email="siva967763@gmail.com"
+    #     ).get_events_email
+    # )
+
+    report=await EventsToEmail(
             session=session,
             user_id=user_id,
             from_date=from_date,
             to_date=to_date,
             file_type=file_type,
             to_email="siva967763@gmail.com"
-        ).get_events_email
-    )
+        ).get_events_email()
     
 
-    return "Sending event report..."
+    return report

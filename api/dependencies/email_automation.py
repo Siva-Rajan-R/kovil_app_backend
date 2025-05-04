@@ -67,7 +67,8 @@ async def send_events_report_as_excel(to_email:EmailStr,events:list[dict],excel_
     for index,image_data in enumerate(events):
         image_path=f"eventReport-Image-{index}.jpg"
         print(image_path)
-        msg.add_attachment(image_data['image'], maintype="image", subtype="jpg", filename=image_path)
+        if image_data.get('image'):
+            msg.add_attachment(image_data['image'], maintype="image", subtype="jpg", filename=image_path)
     print("hello")
     # Attach Excel file
     excel_path = excel_file
