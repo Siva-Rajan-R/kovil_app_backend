@@ -6,6 +6,8 @@ from email.message import EmailMessage
 import mimetypes
 from pydantic import EmailStr
 import os
+from io import BytesIO
+import pandas as pd
 
 # from dotenv import load_dotenv
 # load_dotenv()
@@ -53,51 +55,55 @@ def register_or_forgot_successfull_email(email_subject:str,email_body:str,email:
     print("Email sent successfully!")
 
 
-async def send_events_report_as_excel(to_email:EmailStr,events:list[dict],excel_file:str):
 
+
+async def send_events_report_as_excel(to_email: EmailStr, events: list[dict],excel_filename:str):
     msg = EmailMessage()
     msg['Subject'] = 'Nanmai tharuvar kovil Events report as EXCEL'
     msg['From'] = EMAIL_ADDRESS
     msg['To'] = to_email
     msg.set_content('Please find the attached images and Excel document.')
 
-    # Attach multiple images
-    # image_files = ['img1.jpg', 'img2.png']
-    print("hello1")
-    for index,image_data in enumerate(events):
-        image_path=f"eventReport-Image-{index}.jpg"
-        print(image_path)
-        if image_data.get('image'):
-            msg.add_attachment(image_data['image'], maintype="image", subtype="jpg", filename=image_path)
-    print("hello")
-    # Attach Excel file
-    excel_path = excel_file
-    with open(excel_path, 'rb') as f:
-        file_data = f.read()
-        msg.add_attachment(file_data, maintype='application', subtype='vnd.openxmlformats-officedocument.spreadsheetml.sheet', filename=excel_file)
+    # Attach images
+    for idx, event in enumerate(events):
+        if event.get('image'):
+            image_path = f"eventReport-Image-{idx}.jpg"
+            msg.add_attachment(event['image'], maintype="image", subtype="jpg", filename=image_path)
 
-    # Send the email
+    # Generate Excel in memory
+    buffer = BytesIO()
+    df = pd.DataFrame(events)
+    with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False)
+    buffer.seek(0)
+
+    msg.add_attachment(
+        buffer.read(),
+        maintype='application',
+        subtype='vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        filename=excel_filename
+    )
+
+    # Send mail
     with smtplib.SMTP_SSL(SMTP_SERVER, 465) as smtp:
         smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
         smtp.send_message(msg)
-    
-    print("Email sent successfully!")
 
-async def send_event_report_as_pdf(to_email:EmailStr,pdf_file:str):
+
+async def send_event_report_as_pdf(to_email: EmailStr, pdf_bytes: bytes,pdf_filename:str):
     msg = EmailMessage()
     msg['Subject'] = 'Nanmai tharuvar kovil Events report as PDF'
     msg['From'] = EMAIL_ADDRESS
     msg['To'] = to_email
-    msg.set_content('Please find the attached images and Excel document.')
+    msg.set_content('Please find the attached PDF document.')
 
-    pdf_path=pdf_file
-    with open(pdf_path, 'rb') as f:
-        file_data = f.read()
-        msg.add_attachment(file_data, maintype='application', subtype='pdf', filename=pdf_file)
+    msg.add_attachment(
+        pdf_bytes,
+        maintype='application',
+        subtype='pdf',
+        filename=pdf_filename
+    )
 
-    # Send the email
     with smtplib.SMTP_SSL(SMTP_SERVER, 465) as smtp:
         smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
         smtp.send_message(msg)
-    
-    print("Email sent successfully!")

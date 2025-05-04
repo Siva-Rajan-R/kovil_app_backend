@@ -4,9 +4,10 @@ from reportlab.lib.styles import getSampleStyleSheet
 from io import BytesIO
 from fastapi.exceptions import HTTPException
 
-async def generate_pdf(events_data, output_file='events_report.pdf'):
+async def generate_pdf(events_data) -> bytes:
     try:
-        doc = SimpleDocTemplate(output_file, pagesize=A4)
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=A4)
         styles = getSampleStyleSheet()
         elements = []
 
@@ -20,27 +21,23 @@ async def generate_pdf(events_data, output_file='events_report.pdf'):
             elements.append(Paragraph(f"<b>Payment:</b> {event['payment_status']} - {event['payment_mode']} ({event['paid_amount']}/{event['total_amount']})", styles["Normal"]))
             elements.append(Paragraph(f"<b>Status:</b> {event['event_status']}", styles["Normal"]))
 
-            # Binary image from DB
             if event.get("image"):
-                if event['image']!="":
-                    try:
-                        image_stream = BytesIO(event["image"])
-                        img = Image(image_stream, width=200, height=150)
-                        elements.append(Spacer(1, 10))
-                        elements.append(img)
-                    except Exception as e:
-                        elements.append(Paragraph(f"Image could not be loaded: {e}", styles["Normal"]))
+                try:
+                    image_stream = BytesIO(event["image"])
+                    img = Image(image_stream, width=200, height=150)
+                    elements.append(Spacer(1, 10))
+                    elements.append(img)
+                except Exception as e:
+                    elements.append(Paragraph(f"Image error: {e}", styles["Normal"]))
 
             elements.append(Spacer(1, 20))
             elements.append(PageBreak())
 
         doc.build(elements)
-        print(f"✅ PDF saved to: {output_file}")
-        return True
+        buffer.seek(0)
+        return buffer.read()
     except Exception as e:
         raise HTTPException(
             status_code=500,
-            detail=f"something went wrong while generating pdf {e}"
+            detail=f"something went wrong while generating pdf: {e}"
         )
-
-

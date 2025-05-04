@@ -235,15 +235,13 @@ class EventsToEmail(__EventsToEmailInputs):
                     ).mappings().all()
                 
                     if self.file_type==backend_enums.FileType.EXCEL:
-                        df = pd.DataFrame(events)
                         file_name=f"{self.from_date}-{self.to_date}_eventReport.xlsx"
-                        df.to_excel(file_name, index=False)
-
-                        await email_automation.send_events_report_as_excel(to_email=self.to_email,events=events,excel_file=file_name)
+                        await email_automation.send_events_report_as_excel(to_email=self.to_email,events=events,excel_filename=file_name)
                     else:
                         file_name=f"{self.from_date}-{self.to_date}_eventReport.pdf"
-                        if await generate_pdf(events,output_file=file_name):
-                            await email_automation.send_event_report_as_pdf(to_email=self.to_email,pdf_file=file_name)
+                        pdf_byte=await generate_pdf(events)
+                        if pdf_byte:
+                            await email_automation.send_event_report_as_pdf(to_email=self.to_email,pdf_bytes=pdf_byte,pdf_filename=file_name)
 
                     return "successfully sended"
                 raise HTTPException(
