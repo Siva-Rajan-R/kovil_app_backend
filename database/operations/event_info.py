@@ -10,6 +10,7 @@ from utils.document_generator import generate_pdf
 from icecream import ic
 import pandas as pd
 from api.dependencies import email_automation
+from pydantic import EmailStr
 
 
 class __EventsCalendarInputs:
@@ -31,12 +32,13 @@ class __EventDropDownValuesInputs:
         self.user_id=user_id
 
 class __EventsToEmailInputs:
-    def __init__(self,session:Session,user_id:str,from_date:date,to_date:date,file_type:backend_enums.FileType):
+    def __init__(self,session:Session,user_id:str,from_date:date,to_date:date,file_type:backend_enums.FileType,to_email:EmailStr):
         self.session=session
         self.user_id=user_id
         self.from_date=from_date
         self.to_date=to_date
         self.file_type=file_type
+        self.to_email=to_email
 
 class EventCalendar(__EventsCalendarInputs):
     async def get_event_calendar(self):
@@ -164,7 +166,7 @@ class EventDropDownValues(__EventDropDownValuesInputs):
             )
 
 class EventsToEmail(__EventsToEmailInputs):
-    async def get_event_emails(self):
+    async def get_events_email(self):
         try:
             with self.session.begin():
                 user=await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
@@ -237,11 +239,11 @@ class EventsToEmail(__EventsToEmailInputs):
                         file_name=f"{self.from_date}-{self.to_date}_eventReport.xlsx"
                         df.to_excel(file_name, index=False)
 
-                        await email_automation.send_events_report_as_excel("siva967763@gmail.com",events=events,excel_file=file_name)
+                        await email_automation.send_events_report_as_excel(to_email=self.to_email,events=events,excel_file=file_name)
                     else:
                         file_name=f"{self.from_date}-{self.to_date}_eventReport.pdf"
                         if await generate_pdf(events,output_file=file_name):
-                            await email_automation.send_event_report_as_pdf("siva967763@gmail.com",pdf_file=file_name)
+                            await email_automation.send_event_report_as_pdf(to_email=self.to_email,pdf_file=file_name)
 
                     return "successfully sended"
                 raise HTTPException(

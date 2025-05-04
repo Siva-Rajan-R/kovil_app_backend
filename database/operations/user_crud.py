@@ -56,7 +56,7 @@ class GetUsers:
                         Users.name,
                         Users.email,
                         Users.mobile_number,
-                        Users.role.name
+                        Users.role
                     )
                 ).mappings().all()
 

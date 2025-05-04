@@ -1,4 +1,4 @@
-from fastapi import APIRouter,Depends,Query
+from fastapi import APIRouter,Depends,Query,BackgroundTasks
 from database.operations.event_info import EventCalendar,ParticularEvent,Session,date,EventDropDownValues,EventsToEmail
 from database.main import get_db_session
 from api.dependencies.token_verification import verify
@@ -36,13 +36,18 @@ async def get_event_dropdown_values(session:Session=Depends(get_db_session),user
     return event_dd_values
 
 @router.get("/event/report/email")
-async def get_event_emails(file_type:backend_enums.FileType=Query(...),from_date:date=Query(...),to_date:date=Query(...),session:Session=Depends(get_db_session)):
-    events=await EventsToEmail(
-        session=session,
-        user_id="f5903517-ea0f-5451-8c52-61b7da430d32",
-        from_date=from_date,
-        to_date=to_date,
-        file_type=file_type
-    ).get_event_emails()
+async def get_events_reprot_emails(bgt:BackgroundTasks,file_type:backend_enums.FileType=Query(...),from_date:date=Query(...),to_date:date=Query(...),session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']
+    bgt.add_task(
+        EventsToEmail(
+            session=session,
+            user_id=user_id,
+            from_date=from_date,
+            to_date=to_date,
+            file_type=file_type,
+            to_email="siva967763@gmail.com"
+        ).get_events_email
+    )
+    
 
-    return events
+    return "Sending event report..."
