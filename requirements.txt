@@ -15,3 +15,5 @@ pydantic[email]
 python-multipart
 setuptools
 pytz
+pandas
+openpyxl
