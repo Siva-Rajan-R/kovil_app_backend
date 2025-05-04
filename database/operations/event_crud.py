@@ -52,10 +52,9 @@ class __EventNameAndAmountCrudInputs:
         self.user_id=user_id
 
 class __DeleteEventInputs:
-    def __init__(self,session:Session,user_id:str,event_id:str):
+    def __init__(self,session:Session,user_id:str):
         self.session=session
         self.user_id=user_id
-        self.event_id=event_id
 
 class __UpdateEventStatusInputs:
     def __init__(
@@ -286,15 +285,38 @@ class UpdateEvent(__AddEventInputs):
                 detail=f"something went wrong while updating event details {e}"
             )
 class DeleteEvent(__DeleteEventInputs):
-    async def delete_event(self):
+    async def delete_single_event(self,event_id:str):
         try:
             with self.session.begin():
                 user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
-                await EventVerification(session=self.session).is_event_exists_by_id(self.event_id)
+                await EventVerification(session=self.session).is_event_exists_by_id(event_id)
                 if user.role==backend_enums.UserRole.ADMIN:
-                    event=self.session.query(Events).filter(Events.id==self.event_id).first()
+                    event=self.session.query(Events).filter(Events.id==event_id).first()
                     self.session.delete(event)
                     return "event deleted successfully"
+                raise HTTPException(
+                    status_code=401,
+                    detail="you are not allowed to make any changes"
+                )
+        except HTTPException:
+            raise
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"something went wrong while deleting event {e}"
+            )
+        
+    async def delete_all_event(self,from_date:date,to_date:date):
+        try:
+            with self.session.begin():
+                user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
+                if user.role==backend_enums.UserRole.ADMIN:
+                    events=self.session.query(Events).filter(Events.date.between(from_date,to_date)).all()
+                    for event in events:
+                        self.session.delete(event)
+                        
+                    return f"{from_date} to {to_date} events deleted successfully"
                 raise HTTPException(
                     status_code=401,
                     detail="you are not allowed to make any changes"

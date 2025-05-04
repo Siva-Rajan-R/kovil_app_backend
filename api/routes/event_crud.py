@@ -1,11 +1,13 @@
-from fastapi import APIRouter,Depends,Request,UploadFile,File,Form,Response,HTTPException
+from fastapi import APIRouter,Depends,Request,UploadFile,File,Form,Response,HTTPException,BackgroundTasks
 from enums import backend_enums
 from fastapi.responses import JSONResponse
 from database.operations.event_crud import AddEvent,DeleteEvent,UpdateEvent,UpdateEventStatus,Session,EventNameAndAmountCrud,GetEventStatusImage
+from database.operations.event_info import EventsToEmail
 from database.main import get_db_session
 from api.dependencies.token_verification import verify
-from api.schemas.event_crud import AddEventSchema,UpdateEventSchema,DeleteEventSchema,AddEventNameSchema,DeleteEventNameSchema
+from api.schemas.event_crud import AddEventSchema,UpdateEventSchema,DeleteAllEventSchema,DeleteSingleEventSchema,AddEventNameSchema,DeleteEventNameSchema,GetEventsEmailschema
 from typing import Optional
+from database.operations.user_auth import UserVerification
 
 router=APIRouter(
     tags=["Add,Update and Delete Events and EventName"]
@@ -98,18 +100,31 @@ async def update_event(update_event_inputs:UpdateEventSchema,session:Session=Dep
     )
 
 @router.delete("/event")
-async def delete_event(delete_event_inputs:DeleteEventSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+async def delete_single_event(delete_event_inputs:DeleteSingleEventSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user["id"]
     deleted_event=await DeleteEvent(
         session=session,
-        user_id=user_id,
-        event_id=delete_event_inputs.event_id
-    ).delete_event()
+        user_id=user_id
+    ).delete_single_event(event_id=delete_event_inputs.event_id)
 
     return JSONResponse(
         status_code=200,
         content=deleted_event
     )
+
+@router.delete("/event/all")
+async def delete_all_event(bgt:BackgroundTasks,delete_event_inputs:DeleteAllEventSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user["id"]
+    bgt.add_task(
+        DeleteEvent(
+        session=session,
+        user_id=user_id
+        ).delete_all_event,
+        from_date=delete_event_inputs.from_date,
+        to_date=delete_event_inputs.to_date
+    )
+
+    return f"{delete_event_inputs.from_date} to {delete_event_inputs.to_date} events deleting..."
 
 @router.put("/event/status")
 async def update_event_status(
@@ -174,3 +189,35 @@ async def get_event_status_image(image_id:str,session:Session=Depends(get_db_ses
         status_code=200,
         media_type='image/jpg'
     )
+
+
+@router.post("/event/report/email")
+async def get_events_reprot_emails(event_email_inputs:GetEventsEmailschema,bgt:BackgroundTasks,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']
+    user=await UserVerification(session=session).is_user_exists_by_id(id=user_id)
+    emails=[user.email]
+    if event_email_inputs.send_to!=None:
+        emails.append(event_email_inputs.send_to)
+    for email in emails:
+        bgt.add_task(
+            EventsToEmail(
+                session=session,
+                user_id=user_id,
+                from_date=event_email_inputs.from_date,
+                to_date=event_email_inputs.to_date,
+                file_type=event_email_inputs.file_type,
+                to_email=email
+            ).get_events_email
+        )
+
+    # report=await EventsToEmail(
+    #         session=session,
+    #         user_id=user_id,
+    #         from_date=event_email_inputs.from_date,
+    #         to_date=event_email_inputs.to_date,
+    #         file_type=event_email_inputs.file_type,
+    #         to_email="siva967763@gmail.com"
+    #     ).get_events_email()
+    
+
+    return "Sending event report..."
