@@ -10,6 +10,12 @@ class EventNames(Base):
     name=Column(String,nullable=False)
     amount=Column(Integer,nullable=False)
 
+class NeivethiyamNames(Base):
+    __tablename__="neivethiyam_names"
+    id=Column(Integer,primary_key=True,autoincrement=True)
+    name=Column(String,nullable=False)
+    amount=Column(Integer,nullable=False)
+
 class Events(Base):
     __tablename__="events"
     id=Column(String,primary_key=True)

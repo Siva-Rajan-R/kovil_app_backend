@@ -1,11 +1,11 @@
 from fastapi import APIRouter,Depends,Request,UploadFile,File,Form,Response,HTTPException,BackgroundTasks
 from enums import backend_enums
 from fastapi.responses import JSONResponse
-from database.operations.event_crud import AddEvent,DeleteEvent,UpdateEvent,UpdateEventStatus,Session,EventNameAndAmountCrud,GetEventStatusImage
+from database.operations.event_crud import AddEvent,DeleteEvent,UpdateEvent,UpdateEventStatus,Session,EventNameAndAmountCrud,GetEventStatusImage,NeivethiyamNameAndAmountCrud
 from database.operations.event_info import EventsToEmail
 from database.main import get_db_session
 from api.dependencies.token_verification import verify
-from api.schemas.event_crud import AddEventSchema,UpdateEventSchema,DeleteAllEventSchema,DeleteSingleEventSchema,AddEventNameSchema,DeleteEventNameSchema,GetEventsEmailschema
+from api.schemas.event_crud import AddEventSchema,UpdateEventSchema,DeleteAllEventSchema,DeleteSingleEventSchema,AddEventNameSchema,DeleteEventNameSchema,GetEventsEmailschema,AddNeivethiyamNameSchema,DeleteNeivethiyamNameSchema
 from typing import Optional
 from database.operations.user_auth import UserVerification
 
@@ -47,6 +47,43 @@ async def delete_event_name_and_amount(en_del_inp:DeleteEventNameSchema,session:
     return JSONResponse(
         status_code=200,
         content=added_event_name
+    )
+
+#neivethiyam
+@router.get("/neivethiyam/name")
+async def get_neivethiyam_name_and_amount(session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']
+    neivethiyam_names=await NeivethiyamNameAndAmountCrud(
+        session=session,
+        user_id=user_id
+    ).get_neivethiyam_name_and_amount()
+
+    return neivethiyam_names
+
+@router.post("/neivethiyam/name")
+async def add_neivethiyam_name_and_amount(neivethiyam_name_inp:AddNeivethiyamNameSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']
+    added_neivethiyam_name=await NeivethiyamNameAndAmountCrud(
+        session=session,
+        user_id=user_id
+    ).add_neivethiyam_name_and_amt(neivethiyam_name=neivethiyam_name_inp.neivethiyam_name,neivethiyam_amount=neivethiyam_name_inp.neivethiyam_amount)
+
+    return JSONResponse(
+        status_code=201,
+        content=added_neivethiyam_name
+    )
+
+@router.delete("/neivethiyam/name")
+async def delete_neivethiyam_name_and_amount(en_del_inp:DeleteNeivethiyamNameSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']
+    added_neivethiyam_name=await NeivethiyamNameAndAmountCrud(
+        session=session,
+        user_id=user_id
+    ).delete_neivethiyam_name_and_amount(neivethiyam_name_id=en_del_inp.neivethiyam_name_id)
+
+    return JSONResponse(
+        status_code=200,
+        content=added_neivethiyam_name
     )
 
 @router.post("/event")

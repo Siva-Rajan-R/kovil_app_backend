@@ -8,8 +8,15 @@ class AddEventNameSchema(BaseModel):
     event_name:constr(strip_whitespace=True,min_length=1)# type: ignore
     event_amount:int
 
+class AddNeivethiyamNameSchema(BaseModel):
+    neivethiyam_name:constr(strip_whitespace=True,min_length=1)# type: ignore
+    neivethiyam_amount:int
+
 class DeleteEventNameSchema(BaseModel):
     event_name_id:int
+
+class DeleteNeivethiyamNameSchema(BaseModel):
+    neivethiyam_name_id:int
 
 class AddEventSchema(BaseModel):
     event_name:constr(strip_whitespace=True,min_length=1) # type: ignore

@@ -1,4 +1,4 @@
-from database.models.event import Events,Clients,Payments,EventsStatus,EventNames,EventStatusImages
+from database.models.event import Events,Clients,Payments,EventsStatus,EventNames,EventStatusImages,NeivethiyamNames
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
 from sqlalchemy import select,func,desc
@@ -46,7 +46,7 @@ class __AddEventInputs:
         self.payment_status=payment_status
         self.payment_mode=payment_mode
 
-class __EventNameAndAmountCrudInputs:
+class __EventAndNeivethiyamNameAndAmountCrudInputs:
     def __init__(self,session:Session,user_id:str):
         self.session=session
         self.user_id=user_id
@@ -106,8 +106,8 @@ class EventVerification:
             detail="event not found"
         )
 
-class EventNameAndAmountCrud(__EventNameAndAmountCrudInputs):
-    async def add_event_name_and_amt(self,event_name:str,event_amount:str):
+class EventNameAndAmountCrud(__EventAndNeivethiyamNameAndAmountCrudInputs):
+    async def add_event_name_and_amt(self,event_name:str,event_amount:int):
         try:
             with self.session.begin():
                 user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
@@ -165,6 +165,77 @@ class EventNameAndAmountCrud(__EventNameAndAmountCrudInputs):
                 ).mappings().all()
 
                 return {"event_names":event_names}
+            raise HTTPException(
+                status_code=401,
+                detail='you are not allowed to get this information'
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"something went wrong while getting event name {e}"
+            )
+        
+class NeivethiyamNameAndAmountCrud(__EventAndNeivethiyamNameAndAmountCrudInputs):
+    async def add_neivethiyam_name_and_amt(self,neivethiyam_name:str,neivethiyam_amount:int):
+        try:
+            with self.session.begin():
+                user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
+                if user.role==backend_enums.UserRole.ADMIN:
+                    added_event_name=NeivethiyamNames(
+                        name=neivethiyam_name,
+                        amount=neivethiyam_amount
+                    )
+                    self.session.add(added_event_name)
+                    return "successfully neivethiyam name added"
+                raise HTTPException(
+                    status_code=401,
+                    detail='you are not allowed to make any changes'
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail="something went wrong while adding event name"
+            )
+        
+    async def delete_neivethiyam_name_and_amount(self,neivethiyam_name_id):
+        try:
+            with self.session.begin():
+                user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
+                if user.role==backend_enums.UserRole.ADMIN:
+                    nv_to_delete=self.session.query(NeivethiyamNames).filter(NeivethiyamNames.id==neivethiyam_name_id).first()
+                    self.session.delete(nv_to_delete)
+
+                    return 'successfully neivethiyam name deleted'
+                raise HTTPException(
+                    status_code=401,
+                    detail='you are not allowed to make any changes'
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"something went wrong while adding event name {e}"
+            )
+    
+    async def get_neivethiyam_name_and_amount(self):
+        try:
+            user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
+            if user.role==backend_enums.UserRole.ADMIN:
+                neivethiyam_names=self.session.execute(
+                    select(
+                        NeivethiyamNames.id,
+                        NeivethiyamNames.name,
+                        NeivethiyamNames.amount
+                    )
+                    .order_by(desc(NeivethiyamNames.id))
+                ).mappings().all()
+
+                return {"neivethiyam_names":neivethiyam_names}
             raise HTTPException(
                 status_code=401,
                 detail='you are not allowed to get this information'
