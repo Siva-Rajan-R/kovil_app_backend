@@ -10,7 +10,7 @@ def not_found():
     </body>
     """
 
-def register_accept_greet(name:str,email:EmailStr,number:str):
+def register_accept_greet(name:str,email:EmailStr,number:str,role:str):
     return f"""
             <html>
             <body>
@@ -43,6 +43,10 @@ def register_accept_greet(name:str,email:EmailStr,number:str):
                     <div>
                     <span style="color: #34e0f7;">Mobile Number: </span>
                     <strong style="color: white;">{number}</strong>
+                    </div>
+                    <div>
+                    <span style="color: #34e0f7;">Role: </span>
+                    <strong style="color: white;">{role}</strong>
                     </div>
                 </div>
                 </div>

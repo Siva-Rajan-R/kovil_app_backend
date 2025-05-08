@@ -1,5 +1,5 @@
 from pydantic import EmailStr
-def accept_or_forgot_email(name:str,email:EmailStr,number:str,href:str):
+def accept_or_forgot_email(name:str,email:EmailStr,number:str,role:str,href:str):
     return f"""
     <html>
     <div style="min-height:100vh;display:flex;justify-content:center;align-items:center;width:100%;margin:0;padding:20px 0;background:#f5f5f5;">
@@ -16,7 +16,20 @@ def accept_or_forgot_email(name:str,email:EmailStr,number:str,href:str):
           </h1>
           
           <table cellpadding="0" cellspacing="0" style="width:100%;border-top:1px solid white;margin:20px 0;"></table>
-
+          <tr>
+              <td style="padding:16px 0;">
+                <table cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="padding-right:15px;color:#34e0f7;font-weight:bold;font-family:Arial,sans-serif;">
+                      <h2><b>Employee Name:</b></h2>
+                    </td>
+                    <td style="color:white;font-family:Arial,sans-serif;">
+                      <h2><b>{name}</b></h2>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
           <table cellpadding="0" cellspacing="0" style="width:100%;">
             <tr>
               <td style="padding:16px 0;border-bottom:1px solid rgba(255,255,255,0.1);">
@@ -52,10 +65,10 @@ def accept_or_forgot_email(name:str,email:EmailStr,number:str,href:str):
                 <table cellpadding="0" cellspacing="0">
                   <tr>
                     <td style="padding-right:15px;color:#34e0f7;font-weight:bold;font-family:Arial,sans-serif;">
-                      <h2><b>Employee Name:</b></h2>
+                      <h2><b>Applied Role:</b></h2>
                     </td>
                     <td style="color:white;font-family:Arial,sans-serif;">
-                      <h2><b>{name}</b></h2>
+                      <h2><b>{role}</b></h2>
                     </td>
                   </tr>
                 </table>

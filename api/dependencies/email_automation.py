@@ -17,8 +17,8 @@ EMAIL_ADDRESS = os.getenv("EMAIL_ADDRESS")
 EMAIL_PASSWORD = os.getenv("EMAIL_PASSWORD")
 ADMIN_EMAIL=os.getenv("ADMIN_EMAIL")
 
-async def accept_or_forgot_email(email_subject:str,name:str,email:EmailStr,number:str,href:str,isforgot:bool=False):
-    html_content = email_content.accept_or_forgot_email(name=name,email=email,number=number,href=href)
+async def accept_or_forgot_email(email_subject:str,name:str,email:EmailStr,number:str,role:str,href:str,isforgot:bool=False):
+    html_content = email_content.accept_or_forgot_email(name=name,email=email,number=number,role=role,href=href)
 
     msg = MIMEMultipart()
     msg["From"] = EMAIL_ADDRESS

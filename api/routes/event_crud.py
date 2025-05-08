@@ -89,6 +89,7 @@ async def delete_neivethiyam_name_and_amount(en_del_inp:DeleteNeivethiyamNameSch
 @router.post("/event")
 async def add_event(add_event_inputs:AddEventSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user["id"]
+    print(add_event_inputs.neivethiyam_id)
     added_event=await AddEvent(
         user_id=user_id,
         session=session,
@@ -104,6 +105,7 @@ async def add_event(add_event_inputs:AddEventSchema,session:Session=Depends(get_
         paid_amount=add_event_inputs.paid_amount,
         payment_status=add_event_inputs.payment_status,
         payment_mode=add_event_inputs.payment_mode,
+        neivethiyam_id=add_event_inputs.neivethiyam_id
     ).add_event()
 
     return JSONResponse(
@@ -129,6 +131,7 @@ async def update_event(update_event_inputs:UpdateEventSchema,session:Session=Dep
         paid_amount=update_event_inputs.paid_amount,
         payment_status=update_event_inputs.payment_status,
         payment_mode=update_event_inputs.payment_mode,
+        neivethiyam_id=update_event_inputs.neivethiyam_id
     ).update_event(event_id=update_event_inputs.event_id)
 
     return JSONResponse(

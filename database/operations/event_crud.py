@@ -1,4 +1,4 @@
-from database.models.event import Events,Clients,Payments,EventsStatus,EventNames,EventStatusImages,NeivethiyamNames
+from database.models.event import Events,Clients,Payments,EventsStatus,EventNames,EventStatusImages,NeivethiyamNames,EventsNeivethiyam
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
 from sqlalchemy import select,func,desc
@@ -29,7 +29,8 @@ class __AddEventInputs:
             total_amount:int,
             paid_amount:int,
             payment_status:backend_enums.PaymetStatus,
-            payment_mode:backend_enums.PaymentMode
+            payment_mode:backend_enums.PaymentMode,
+            neivethiyam_id:Optional[int]=None
     ):
         self.user_id=user_id
         self.session=session
@@ -45,6 +46,7 @@ class __AddEventInputs:
         self.paid_amount=paid_amount
         self.payment_status=payment_status
         self.payment_mode=payment_mode
+        self.neivethiyam_id=neivethiyam_id
 
 class __EventAndNeivethiyamNameAndAmountCrudInputs:
     def __init__(self,session:Session,user_id:str):
@@ -105,6 +107,42 @@ class EventVerification:
             status_code=404,
             detail="event not found"
         )
+    
+class NeivethiyamNameVerification:
+    def __init__(self,session:Session):
+        self.session=session
+    
+    async def is_neivethiyam_exists_by_id(self,neivethiyam_id):
+        neivethiyam=self.session.execute(select(NeivethiyamNames.id).where(NeivethiyamNames.id==neivethiyam_id)).scalar_one_or_none()
+        if neivethiyam:
+            return neivethiyam
+        raise HTTPException(
+            status_code=404,
+            detail="neivethiyam id not found"
+        )
+    
+class EventNameVerification:
+    def __init__(self,session:Session):
+        self.session=session
+    
+    async def is_event_name_exists_by_id(self,event_name_id):
+        event_name=self.session.execute(select(EventNames.id).where(EventNames.id==event_name_id)).scalar_one_or_none()
+        if event_name:
+            return event_name
+        raise HTTPException(
+            status_code=404,
+            detail="event name id not found"
+        )
+    
+    async def is_event_name_exists_by_name(self,event_name):
+        event_name=self.session.execute(select(EventNames.id).where(EventNames.name==event_name)).scalar_one_or_none()
+        if event_name:
+            return event_name
+        raise HTTPException(
+            status_code=404,
+            detail="event name not found"
+        )
+
 
 class EventNameAndAmountCrud(__EventAndNeivethiyamNameAndAmountCrudInputs):
     async def add_event_name_and_amt(self,event_name:str,event_amount:int):
@@ -136,7 +174,13 @@ class EventNameAndAmountCrud(__EventAndNeivethiyamNameAndAmountCrudInputs):
                 user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
                 if user.role==backend_enums.UserRole.ADMIN:
                     en_to_delete=self.session.query(EventNames).filter(EventNames.id==event_name_id).first()
-                    self.session.delete(en_to_delete)
+                    if en_to_delete:
+                        self.session.delete(en_to_delete)
+                    else:
+                        raise HTTPException(
+                            status_code=404,
+                            detail="event name id not found"
+                        )
 
                     return 'successfully event name deleted'
                 raise HTTPException(
@@ -207,7 +251,13 @@ class NeivethiyamNameAndAmountCrud(__EventAndNeivethiyamNameAndAmountCrudInputs)
                 user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
                 if user.role==backend_enums.UserRole.ADMIN:
                     nv_to_delete=self.session.query(NeivethiyamNames).filter(NeivethiyamNames.id==neivethiyam_name_id).first()
-                    self.session.delete(nv_to_delete)
+                    if nv_to_delete:
+                        self.session.delete(nv_to_delete)
+                    else:
+                        raise HTTPException(
+                            status_code=404,
+                            detail="neivethiyam id not found"
+                        )
 
                     return 'successfully neivethiyam name deleted'
                 raise HTTPException(
@@ -254,47 +304,54 @@ class AddEvent(__AddEventInputs):
             with self.session.begin():
                 user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
                 if user.role==backend_enums.UserRole.ADMIN:
-                    if self.session.query(EventNames).filter(EventNames.name==self.event_name).first():
-                        event_id=await create_unique_id(self.event_name)
-                        event=Events(
-                            id=event_id,
-                            name=self.event_name,
-                            description=self.event_description,
-                            date=self.event_date,
-                            start_at=self.event_start_at,
-                            end_at=self.event_end_at
-                        )
-
-                        client=Clients(
-                            name=self.client_name,
-                            mobile_number=self.client_mobile_number,
-                            city=self.client_city,
-                            event_id=event_id
-                        )
-
-                        payment=Payments(
-                            total_amount=self.total_amount,
-                            paid_amount=self.paid_amount,
-                            status=self.payment_status,
-                            mode=self.payment_mode,
-                            event_id=event_id
-                        )
-
-                        event_status=EventsStatus(
-                            status=backend_enums.EventStatus.PENDING,
-                            event_id=event_id,
-                            added_by=user.name,
-                            updated_at=await indian_time.get_india_time()
-                        )
-
-                        combined_event_details=[event,client,payment,event_status]
-                        self.session.add_all(combined_event_details)
-
-                        return "successfully event added"
-                    raise HTTPException(
-                        status_code=404,
-                        detail=f"There is no event name as {self.event_name}"
+                    await EventNameVerification(session=self.session).is_event_name_exists_by_name(self.event_name)
+                    event_id=await create_unique_id(self.event_name)
+                    event=Events(
+                        id=event_id,
+                        name=self.event_name,
+                        description=self.event_description,
+                        date=self.event_date,
+                        start_at=self.event_start_at,
+                        end_at=self.event_end_at
                     )
+
+                    client=Clients(
+                        name=self.client_name,
+                        mobile_number=self.client_mobile_number,
+                        city=self.client_city,
+                        event_id=event_id
+                    )
+
+                    payment=Payments(
+                        total_amount=self.total_amount,
+                        paid_amount=self.paid_amount,
+                        status=self.payment_status,
+                        mode=self.payment_mode,
+                        event_id=event_id
+                    )
+                        
+                    event_status=EventsStatus(
+                        status=backend_enums.EventStatus.PENDING,
+                        event_id=event_id,
+                        added_by=user.name,
+                        updated_at=await indian_time.get_india_time()
+                    )
+
+                    combined_event_details=[event,client,payment,event_status]
+
+                    if self.neivethiyam_id:
+                        await NeivethiyamNameVerification(session=self.session).is_neivethiyam_exists_by_id(self.neivethiyam_id)
+                        event_neivethiyam=EventsNeivethiyam(
+                            neivethiyam_id=self.neivethiyam_id,
+                            event_id=event_id
+                        )
+
+                        combined_event_details.append(event_neivethiyam)
+
+                    self.session.add_all(combined_event_details)
+
+                    return "successfully event added"
+
                 raise HTTPException(
                     status_code=401,
                     detail="you are not allowed to make any changes"
@@ -316,6 +373,8 @@ class UpdateEvent(__AddEventInputs):
             with self.session.begin():
                 user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
                 if user.role==backend_enums.UserRole.ADMIN:
+                    await EventVerification(session=self.session).is_event_exists_by_id(event_id)
+
                     self.session.query(Events).filter(Events.id==event_id).update(
                         {
                             Events.name:self.event_name,
@@ -342,6 +401,25 @@ class UpdateEvent(__AddEventInputs):
                             Payments.status:self.payment_status
                         }
                     )
+                    ic("from dbop",self.neivethiyam_id)
+                    if self.neivethiyam_id!=None:
+                        await NeivethiyamNameVerification(session=self.session).is_neivethiyam_exists_by_id(self.neivethiyam_id)
+                        query_to_update=self.session.query(EventsNeivethiyam).filter(EventsNeivethiyam.event_id==event_id)
+                        if query_to_update.first():
+                            query_to_update.update(
+                                {
+                                    EventsNeivethiyam.neivethiyam_id:self.neivethiyam_id
+                                }
+                            )
+                        else:
+                            self.session.add(
+                                EventsNeivethiyam(
+                                    neivethiyam_id=self.neivethiyam_id,
+                                    event_id=event_id
+                                )
+                            )
+                    else:
+                        self.session.query(EventsNeivethiyam).filter(EventsNeivethiyam.event_id==event_id).delete()
 
                     return "event details updated successfully"
                 raise HTTPException(

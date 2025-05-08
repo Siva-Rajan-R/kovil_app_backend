@@ -15,6 +15,7 @@ class NeivethiyamNames(Base):
     id=Column(Integer,primary_key=True,autoincrement=True)
     name=Column(String,nullable=False)
     amount=Column(Integer,nullable=False)
+    price = Column(Integer, nullable=True)
 
 class Events(Base):
     __tablename__="events"
@@ -28,6 +29,15 @@ class Events(Base):
     client=relationship("Clients",back_populates="event",cascade="all, delete-orphan")
     payment=relationship("Payments",back_populates="event",cascade="all, delete-orphan")
     event_status=relationship("EventsStatus",back_populates="event",cascade="all, delete-orphan")
+    event_neivethiyam=relationship("EventsNeivethiyam",back_populates="event",cascade="all, delete-orphan")
+    
+class EventsNeivethiyam(Base):
+    __tablename__="events_neivethiyam"
+    id=Column(Integer,primary_key=True,autoincrement=True)
+    neivethiyam_id=Column(Integer,ForeignKey("neivethiyam_names.id"),nullable=False)
+    event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False)
+
+    event=relationship("Events",back_populates="event_neivethiyam")
 
 class Clients(Base):
     __tablename__="clients"

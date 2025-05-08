@@ -1,8 +1,8 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import extract,select,func,cast, Date, Time,desc
 from enums import backend_enums
-from database.models.event import Events,Clients,Payments,EventsStatus,EventStatusImages
-from database.operations.event_crud import EventNameAndAmountCrud
+from database.models.event import Events,Clients,Payments,EventsStatus,EventStatusImages,EventsNeivethiyam,NeivethiyamNames
+from database.operations.event_crud import EventNameAndAmountCrud,NeivethiyamNameAndAmountCrud
 from database.operations.user_auth import UserVerification
 from datetime import date
 from fastapi.exceptions import HTTPException
@@ -97,7 +97,10 @@ class ParticularEvent(__ParticularEventInputs):
                 EventsStatus.tips_given_to,
                 EventsStatus.image_url,
                 EventsStatus.updated_date,
-                EventsStatus.updated_at
+                EventsStatus.updated_at,
+                NeivethiyamNames.id.label("neivethiyam_id"),
+                NeivethiyamNames.name.label("neivethiyam_name"),
+                
 
             ]
 
@@ -105,7 +108,8 @@ class ParticularEvent(__ParticularEventInputs):
                 select_statement_columns.extend(
                     [
                         Payments.total_amount,
-                        Payments.paid_amount
+                        Payments.paid_amount,
+                        NeivethiyamNames.amount.label("neivethiyam_amount"),
                     ]
                 )
 
@@ -114,14 +118,19 @@ class ParticularEvent(__ParticularEventInputs):
                 .join(
                     Clients,Events.id==Clients.event_id,
                     isouter=True,
-                    
-                    
+                )
+                .join(
+                    EventsNeivethiyam, Events.id == EventsNeivethiyam.event_id, 
+                    isouter=True 
+                )
+                .join(
+                    NeivethiyamNames,EventsNeivethiyam.neivethiyam_id==NeivethiyamNames.id,
+                    isouter=True,
                 )
                 .join(
                     Payments,Events.id==Payments.event_id,
                     isouter=True,
-                    
-                    
+
                 )
                 .join(
                     EventsStatus,Events.id==EventsStatus.event_id,
@@ -154,8 +163,8 @@ class EventDropDownValues(__EventDropDownValuesInputs):
     async def get_dropdown_values(self):
         try:
             event_names=await EventNameAndAmountCrud(session=self.session,user_id=self.user_id).get_event_name_and_amount()
-
-            return {"event_names":event_names['event_names'],"payment_status":[i.value for i in backend_enums.PaymetStatus],"payment_modes":[i.value for i in backend_enums.PaymentMode]}
+            neivethiyam_names=await NeivethiyamNameAndAmountCrud(session=self.session,user_id=self.user_id).get_neivethiyam_name_and_amount()
+            return {"event_names":event_names['event_names'],"neivethiyam_names":neivethiyam_names["neivethiyam_names"],"payment_status":[i.value for i in backend_enums.PaymetStatus],"payment_modes":[i.value for i in backend_enums.PaymentMode]}
             
         except HTTPException:
             raise
@@ -172,7 +181,6 @@ class EventsToEmail(__EventsToEmailInputs):
                 user=await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
                 if user.role==backend_enums.UserRole.ADMIN:
                     select_statement_columns=[
-                        Events.id.label("event_id"),
                         Events.name.label("event_name"),
                         Events.description.label("event_description"),
                         Events.start_at.label("event_start_at"),
@@ -200,7 +208,9 @@ class EventsToEmail(__EventsToEmailInputs):
                         EventsStatus.updated_at,
                         Payments.total_amount,
                         Payments.paid_amount,
-                        EventStatusImages.image
+                        EventStatusImages.image,
+                        NeivethiyamNames.name.label("neivethiyam_name"),
+                        NeivethiyamNames.amount.label("neivethiyam_amount")
                     ]
 
                     events=self.session.execute(
@@ -212,8 +222,14 @@ class EventsToEmail(__EventsToEmailInputs):
                         .join(
                             Payments,Events.id==Payments.event_id,
                             isouter=True,
-                            
-                            
+                        )
+                        .join(
+                            EventsNeivethiyam, Events.id == EventsNeivethiyam.event_id, 
+                            isouter=True 
+                        )
+                        .join(
+                            NeivethiyamNames,EventsNeivethiyam.neivethiyam_id==NeivethiyamNames.id,
+                            isouter=True,
                         )
                         .join(
                             EventsStatus,Events.id==EventsStatus.event_id,

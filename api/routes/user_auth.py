@@ -29,6 +29,7 @@ async def register(request:Request,bgt:BackgroundTasks,register_inputs:user_auth
         name=register_inputs.name,
         email=register_inputs.email,
         number=register_inputs.mobile_number,
+        role=register_inputs.role,
         href=f"{request.base_url}register/accept/{link_id}",
         isforgot=False
     )
@@ -58,7 +59,7 @@ async def register_accept(link_id:str,bgt:BackgroundTasks,session:Session=Depend
             email=registered_user_data.email
         )
         return Response(
-            content=report.register_accept_greet(registered_user_data.name,registered_user_data.email,registered_user_data.mobile_number),
+            content=report.register_accept_greet(registered_user_data.name,registered_user_data.email,registered_user_data.mobile_number,registered_user_data.role),
             media_type="text/html",
             status_code=200
         )
