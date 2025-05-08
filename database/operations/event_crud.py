@@ -242,7 +242,7 @@ class NeivethiyamNameAndAmountCrud(__EventAndNeivethiyamNameAndAmountCrudInputs)
         except Exception as e:
             raise HTTPException(
                 status_code=500,
-                detail="something went wrong while adding event name"
+                detail="something went wrong while adding neivethiyam name"
             )
         
     async def delete_neivethiyam_name_and_amount(self,neivethiyam_name_id):
@@ -269,7 +269,7 @@ class NeivethiyamNameAndAmountCrud(__EventAndNeivethiyamNameAndAmountCrudInputs)
         except Exception as e:
             raise HTTPException(
                 status_code=500,
-                detail=f"something went wrong while adding event name {e}"
+                detail=f"something went wrong while deleting neivethiyam name {e}"
             )
     
     async def get_neivethiyam_name_and_amount(self):
@@ -295,7 +295,7 @@ class NeivethiyamNameAndAmountCrud(__EventAndNeivethiyamNameAndAmountCrudInputs)
         except Exception as e:
             raise HTTPException(
                 status_code=500,
-                detail=f"something went wrong while getting event name {e}"
+                detail=f"something went wrong while getting neivethiyam name {e}"
             )
                     
 class AddEvent(__AddEventInputs):

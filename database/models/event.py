@@ -15,7 +15,6 @@ class NeivethiyamNames(Base):
     id=Column(Integer,primary_key=True,autoincrement=True)
     name=Column(String,nullable=False)
     amount=Column(Integer,nullable=False)
-    price = Column(Integer, nullable=True)
 
 class Events(Base):
     __tablename__="events"
