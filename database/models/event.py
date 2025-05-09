@@ -29,6 +29,7 @@ class Events(Base):
     payment=relationship("Payments",back_populates="event",cascade="all, delete-orphan")
     event_status=relationship("EventsStatus",back_populates="event",cascade="all, delete-orphan")
     event_neivethiyam=relationship("EventsNeivethiyam",back_populates="event",cascade="all, delete-orphan")
+    event_contact_desc=relationship("EventsContactDescription",back_populates="event",cascade="all, delete-orphan")
     
 class EventsNeivethiyam(Base):
     __tablename__="events_neivethiyam"
@@ -90,5 +91,13 @@ class EventStatusImages(Base):
     event_sts_id=Column(Integer,ForeignKey("events_status.id",ondelete="CASCADE"))
 
     event_status=relationship("EventsStatus",back_populates="event_status_image")
+
+class EventsContactDescription(Base):
+    __tablename__="events_contact_description"
+    id=Column(Integer,primary_key=True,autoincrement=True)
+    description=Column(String,nullable=False)
+    event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False)
+
+    event=relationship("Events",back_populates="event_contact_desc")
 
 Base.metadata.create_all(Engine)

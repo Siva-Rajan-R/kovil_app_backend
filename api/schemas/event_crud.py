@@ -61,3 +61,10 @@ class GetEventsEmailschema(BaseModel):
     to_date:date
     file_type:backend_enums.FileType
     send_to:Optional[EmailStr]=None
+
+class AddContactDescriptionSchema(BaseModel):
+    event_id:constr(strip_whitespace=True,min_length=1) # type: ignore
+    contact_description:constr(strip_whitespace=True,min_length=2) # type: ignore
+
+class DeleteContactDescriptionSchema(BaseModel):
+    contact_desc_id:constr(strip_whitespace=True,min_length=1) # type: ignore

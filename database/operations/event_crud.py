@@ -1,4 +1,6 @@
-from database.models.event import Events,Clients,Payments,EventsStatus,EventNames,EventStatusImages,NeivethiyamNames,EventsNeivethiyam
+from database.models.event import (
+    Events,Clients,Payments,EventsStatus,EventNames,EventStatusImages,NeivethiyamNames,EventsNeivethiyam,EventsContactDescription
+)
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
 from sqlalchemy import select,func,desc
@@ -94,6 +96,11 @@ class __UpdateEventStatusInputs:
         self.tips_given_to=tips_given_to
         self.image=image
         self.image_url_path=image_url_path
+
+class __ContactDescriptionInputs:
+    def __init__(self,session:Session,user_id:str):
+        self.session=session
+        self.user_id=user_id
 
 class EventVerification:
     def __init__(self,session:Session):
@@ -562,3 +569,76 @@ class GetEventStatusImage:
                 status_code=500,
                 detail=f"something went wrong while fetching image {e}"
             )
+
+class ContactDescription(__ContactDescriptionInputs):
+
+    async def add_description(self,event_id:str,contact_description:str):
+        try:
+            with self.session.begin():
+                await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
+                await EventVerification(session=self.session).is_event_exists_by_id(event_id=event_id)
+
+                cont_desc=EventsContactDescription(
+                    description=contact_description,
+                    event_id=event_id
+                )
+
+                self.session.add(cont_desc)
+
+                return "call description added successfully"
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"something went wrong while adding contact description {e}"
+            )
+        
+    async def delete_description(self,contact_desc_id:int):
+        try:
+            with self.session.begin():
+                await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
+                query_to_del=self.session.query(EventsContactDescription).filter(EventsContactDescription.id==contact_desc_id)
+                if query_to_del.one_or_none():
+                    query_to_del.delete()
+
+                    return "contact description deleted successfully"
+                
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"contact description not found"
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail="something went wrong while deleting contact description {e}"
+            )
+        
+    async def get_description(self,event_id:str):
+        try:
+            with self.session.begin():
+                await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
+                await EventVerification(session=self.session).is_event_exists_by_id(event_id=event_id)
+
+                query_to_get=self.session.execute(
+                    select(
+                        EventsContactDescription.id,
+                        EventsContactDescription.description
+                    ).where(
+                        EventsContactDescription.event_id==event_id
+                    )
+                ).mappings().all()
+                
+
+                return query_to_get
+                
+        except HTTPException:
+            raise
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail="something went wrong while deleting contact description {e}"
+            )
+                    

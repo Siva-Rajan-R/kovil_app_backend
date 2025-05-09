@@ -1,11 +1,11 @@
-from fastapi import APIRouter,Depends,Request,UploadFile,File,Form,Response,HTTPException,BackgroundTasks
+from fastapi import APIRouter,Depends,Request,UploadFile,File,Form,Response,HTTPException,BackgroundTasks,Query
 from enums import backend_enums
 from fastapi.responses import JSONResponse
-from database.operations.event_crud import AddEvent,DeleteEvent,UpdateEvent,UpdateEventStatus,Session,EventNameAndAmountCrud,GetEventStatusImage,NeivethiyamNameAndAmountCrud
+from database.operations.event_crud import AddEvent,DeleteEvent,UpdateEvent,UpdateEventStatus,Session,EventNameAndAmountCrud,GetEventStatusImage,NeivethiyamNameAndAmountCrud,ContactDescription
 from database.operations.event_info import EventsToEmail
 from database.main import get_db_session
 from api.dependencies.token_verification import verify
-from api.schemas.event_crud import AddEventSchema,UpdateEventSchema,DeleteAllEventSchema,DeleteSingleEventSchema,AddEventNameSchema,DeleteEventNameSchema,GetEventsEmailschema,AddNeivethiyamNameSchema,DeleteNeivethiyamNameSchema
+from api.schemas.event_crud import AddEventSchema,UpdateEventSchema,DeleteAllEventSchema,DeleteSingleEventSchema,AddEventNameSchema,DeleteEventNameSchema,GetEventsEmailschema,AddNeivethiyamNameSchema,DeleteNeivethiyamNameSchema,AddContactDescriptionSchema,DeleteContactDescriptionSchema
 from typing import Optional
 from database.operations.user_auth import UserVerification
 
@@ -261,3 +261,39 @@ async def get_events_reprot_emails(event_email_inputs:GetEventsEmailschema,bgt:B
     
 
     return "Sending event report..."
+
+@router.post("/event/contact-description")
+async def add_contact_desc(cont_desc_inp:AddContactDescriptionSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']
+    added_cont_desc=await ContactDescription(
+        session=session,
+        user_id=user_id
+    ).add_description(event_id=cont_desc_inp.event_id,contact_description=cont_desc_inp.contact_description)
+
+    return JSONResponse(
+        status_code=201,
+        content=added_cont_desc
+    )
+
+@router.delete("/event/contact-description")
+async def delete_contact_desc(cont_desc_inp:DeleteContactDescriptionSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']
+    deleted_cont_desc=await ContactDescription(
+        session=session,
+        user_id=user_id
+    ).delete_description(contact_desc_id=cont_desc_inp.contact_desc_id)
+
+    return JSONResponse(
+        status_code=201,
+        content=deleted_cont_desc
+    )
+
+@router.get("/event/contact-description")
+async def add_event_name_and_amount(event_id:str=Query(...),session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']
+    fetched_cont_desc=await ContactDescription(
+        session=session,
+        user_id=user_id
+    ).get_description(event_id=event_id)
+
+    return fetched_cont_desc

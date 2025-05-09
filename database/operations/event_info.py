@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import extract,select,func,cast, Date, Time,desc
 from enums import backend_enums
-from database.models.event import Events,Clients,Payments,EventsStatus,EventStatusImages,EventsNeivethiyam,NeivethiyamNames
+from database.models.event import Events,Clients,Payments,EventsStatus,EventStatusImages,EventsNeivethiyam,NeivethiyamNames,EventsContactDescription
 from database.operations.event_crud import EventNameAndAmountCrud,NeivethiyamNameAndAmountCrud
 from database.operations.user_auth import UserVerification
 from datetime import date
@@ -100,8 +100,8 @@ class ParticularEvent(__ParticularEventInputs):
                 EventsStatus.updated_at,
                 NeivethiyamNames.id.label("neivethiyam_id"),
                 NeivethiyamNames.name.label("neivethiyam_name"),
-                
-
+                EventsContactDescription.id("contact_description_id"),
+                EventsContactDescription.description("contact_description")
             ]
 
             if user.role==backend_enums.UserRole.ADMIN:
@@ -130,7 +130,10 @@ class ParticularEvent(__ParticularEventInputs):
                 .join(
                     Payments,Events.id==Payments.event_id,
                     isouter=True,
-
+                )
+                .join(
+                    EventsContactDescription,Events.id==EventsContactDescription.event_id,
+                    isouter=True,
                 )
                 .join(
                     EventsStatus,Events.id==EventsStatus.event_id,
