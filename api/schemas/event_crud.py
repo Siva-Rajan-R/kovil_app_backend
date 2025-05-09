@@ -67,4 +67,4 @@ class AddContactDescriptionSchema(BaseModel):
     contact_description:constr(strip_whitespace=True,min_length=2) # type: ignore
 
 class DeleteContactDescriptionSchema(BaseModel):
-    contact_desc_id:constr(strip_whitespace=True,min_length=1) # type: ignore
+    contact_desc_id:int

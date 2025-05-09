@@ -263,17 +263,14 @@ async def get_events_reprot_emails(event_email_inputs:GetEventsEmailschema,bgt:B
     return "Sending event report..."
 
 @router.post("/event/contact-description")
-async def add_contact_desc(cont_desc_inp:AddContactDescriptionSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+async def add_or_update_contact_desc(cont_desc_inp:AddContactDescriptionSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
-    added_cont_desc=await ContactDescription(
+    added_updated_cont_desc=await ContactDescription(
         session=session,
         user_id=user_id
     ).add_description(event_id=cont_desc_inp.event_id,contact_description=cont_desc_inp.contact_description)
 
-    return JSONResponse(
-        status_code=201,
-        content=added_cont_desc
-    )
+    return added_updated_cont_desc
 
 @router.delete("/event/contact-description")
 async def delete_contact_desc(cont_desc_inp:DeleteContactDescriptionSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
@@ -284,12 +281,12 @@ async def delete_contact_desc(cont_desc_inp:DeleteContactDescriptionSchema,sessi
     ).delete_description(contact_desc_id=cont_desc_inp.contact_desc_id)
 
     return JSONResponse(
-        status_code=201,
+        status_code=200,
         content=deleted_cont_desc
     )
 
 @router.get("/event/contact-description")
-async def add_event_name_and_amount(event_id:str=Query(...),session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+async def get_contact_desc(event_id:str=Query(...),session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
     fetched_cont_desc=await ContactDescription(
         session=session,

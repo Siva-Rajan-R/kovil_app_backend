@@ -2,6 +2,7 @@ from database.models.event import (
     Events,Clients,Payments,EventsStatus,EventNames,EventStatusImages,NeivethiyamNames,EventsNeivethiyam,EventsContactDescription
 )
 from fastapi import UploadFile
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import select,func,desc
 from enums import backend_enums
@@ -575,17 +576,40 @@ class ContactDescription(__ContactDescriptionInputs):
     async def add_description(self,event_id:str,contact_description:str):
         try:
             with self.session.begin():
-                await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
+                user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
                 await EventVerification(session=self.session).is_event_exists_by_id(event_id=event_id)
+                query_to_add_update=self.session.query(EventsContactDescription).filter(EventsContactDescription.event_id==event_id)
+                if not query_to_add_update.one_or_none():
+                    cont_desc=EventsContactDescription(
+                        description=contact_description,
+                        event_id=event_id,
+                        updated_by=user.name,
+                        updated_date=datetime.now().date(),
+                        updated_at=await indian_time.get_india_time()
+                    )
 
-                cont_desc=EventsContactDescription(
-                    description=contact_description,
-                    event_id=event_id
-                )
+                    self.session.add(cont_desc)
 
-                self.session.add(cont_desc)
+                    return JSONResponse(
+                        status_code=201,
+                        content="call description added successfully"
+                    )
+                
+                else:
+                    query_to_add_update.update(
+                        {
+                            EventsContactDescription.description:contact_description,
+                            EventsContactDescription.updated_by:user.name,
+                            EventsContactDescription.updated_date:datetime.now().date(),
+                            EventsContactDescription.updated_at:await indian_time.get_india_time()
+                        }
+                    )
 
-                return "call description added successfully"
+                    return JSONResponse(
+                        status_code=200,
+                        content="call description updated successfully"
+                    )
+                
         except HTTPException:
             raise
         except Exception as e:
@@ -625,7 +649,10 @@ class ContactDescription(__ContactDescriptionInputs):
                 query_to_get=self.session.execute(
                     select(
                         EventsContactDescription.id,
-                        EventsContactDescription.description
+                        EventsContactDescription.description,
+                        EventsContactDescription.updated_by,
+                        EventsContactDescription.updated_at,
+                        EventsContactDescription.updated_date
                     ).where(
                         EventsContactDescription.event_id==event_id
                     )

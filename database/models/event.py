@@ -97,7 +97,10 @@ class EventsContactDescription(Base):
     id=Column(Integer,primary_key=True,autoincrement=True)
     description=Column(String,nullable=False)
     event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False)
-
+    updated_by=Column(String,nullable=False)
+    updated_at=Column(String,nullable=False)
+    updated_date=Column(String,nullable=False)
+    
     event=relationship("Events",back_populates="event_contact_desc")
 
 Base.metadata.create_all(Engine)

@@ -101,7 +101,10 @@ class ParticularEvent(__ParticularEventInputs):
                 NeivethiyamNames.id.label("neivethiyam_id"),
                 NeivethiyamNames.name.label("neivethiyam_name"),
                 EventsContactDescription.id.label("contact_description_id"),
-                EventsContactDescription.description.label("contact_description")
+                EventsContactDescription.description.label("contact_description"),
+                EventsContactDescription.updated_by.label("contact_description_updated_by"),
+                EventsContactDescription.updated_at.label("contact_description_updated_at"),
+                EventsContactDescription.updated_date.label("contact_description_updated_date")
             ]
 
             if user.role==backend_enums.UserRole.ADMIN:
