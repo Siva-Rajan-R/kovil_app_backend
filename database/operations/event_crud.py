@@ -69,15 +69,12 @@ class __UpdateEventStatusInputs:
             event_id:str,
             event_status:backend_enums.EventStatus,
             feedback:str,
-            tips:str,
-            poojai:str,
+            archagar:str,
             abisegam:str,
             helper:str,
             poo:str,
             read:str,
             prepare:str,
-            tips_shared:str,
-            tips_given_to:str,
             image:Optional[UploadFile],
             image_url_path:str
         ):
@@ -86,15 +83,12 @@ class __UpdateEventStatusInputs:
         self.event_id=event_id
         self.event_status=event_status
         self.feedback=feedback
-        self.tips=tips
-        self.poojai=poojai
+        self.archagar=archagar
         self.abisegam=abisegam
         self.helper=helper
         self.poo=poo
         self.read=read
         self.prepare=prepare
-        self.tips_shared=tips_shared
-        self.tips_given_to=tips_given_to
         self.image=image
         self.image_url_path=image_url_path
 
@@ -497,15 +491,12 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
                     EventsStatus.status:self.event_status,
                     EventsStatus.updated_by:user.name,
                     EventsStatus.feedback:self.feedback,
-                    EventsStatus.tips:self.tips,
-                    EventsStatus.poojai:self.poojai,
+                    EventsStatus.archagar:self.archagar,
                     EventsStatus.abisegam:self.abisegam,
                     EventsStatus.helper:self.helper,
                     EventsStatus.poo:self.poo,
                     EventsStatus.read:self.read,
                     EventsStatus.prepare:self.prepare,
-                    EventsStatus.tips_shared:self.tips_shared,
-                    EventsStatus.tips_given_to:self.tips_given_to,
                     EventsStatus.updated_at:await indian_time.get_india_time(),
                     EventsStatus.updated_date:datetime.now().date()
                 }

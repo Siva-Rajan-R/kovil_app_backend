@@ -8,6 +8,7 @@ from api.dependencies.token_verification import verify
 from api.schemas.event_crud import AddEventSchema,UpdateEventSchema,DeleteAllEventSchema,DeleteSingleEventSchema,AddEventNameSchema,DeleteEventNameSchema,GetEventsEmailschema,AddNeivethiyamNameSchema,DeleteNeivethiyamNameSchema,AddContactDescriptionSchema,DeleteContactDescriptionSchema
 from typing import Optional
 from database.operations.user_auth import UserVerification
+from utils.clean_ph_numbers import clean_phone_numbers
 
 router=APIRouter(
     tags=["Add,Update and Delete Events and EventName"]
@@ -90,6 +91,9 @@ async def delete_neivethiyam_name_and_amount(en_del_inp:DeleteNeivethiyamNameSch
 async def add_event(add_event_inputs:AddEventSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user["id"]
     print(add_event_inputs.neivethiyam_id)
+    if len(add_event_inputs.client_mobile_number)>10:
+        add_event_inputs.client_mobile_number=await clean_phone_numbers(add_event_inputs.client_mobile_number)
+    print(add_event_inputs.client_mobile_number)
     added_event=await AddEvent(
         user_id=user_id,
         session=session,
@@ -116,6 +120,9 @@ async def add_event(add_event_inputs:AddEventSchema,session:Session=Depends(get_
 @router.put("/event")
 async def update_event(update_event_inputs:UpdateEventSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user["id"]
+    if len(update_event_inputs.client_mobile_number)>10:
+        update_event_inputs.client_mobile_number=await clean_phone_numbers(update_event_inputs.client_mobile_number)
+        
     updated_event=await UpdateEvent(
         user_id=user_id,
         session=session,
@@ -174,18 +181,15 @@ async def update_event_status(
     event_id:str=Form(...),
     event_status:backend_enums.EventStatus=Form(backend_enums.EventStatus.PENDING),
     feedback:str=Form(...),
-    tips:str=Form(...),
-    poojai:str=Form(...),
+    archagar:str=Form(...),
     abisegam:str=Form(...),
     helper:str=Form(...),
     poo:str=Form(...),
     read:str=Form(...),
     prepare:str=Form(...),
-    tips_shared:str=Form(...),
-    tips_given_to:str=Form(...),
     image:Optional[UploadFile]=File(default=None)
 ):
-    fields = [event_id, feedback, tips, poojai, abisegam, helper, poo, read, prepare, tips_shared, tips_given_to]
+    fields = [event_id, feedback, archagar, abisegam, helper, poo, read, prepare]
     
     if any(not field.strip() for field in fields) and event_status!="":
         raise HTTPException(
@@ -199,15 +203,12 @@ async def update_event_status(
         event_id=event_id,
         event_status=event_status,
         feedback=feedback,
-        tips=tips,
-        poojai=poojai,
+        archagar=archagar,
         abisegam=abisegam,
         helper=helper,
         poo=poo,
         read=read,
         prepare=prepare,
-        tips_shared=tips_shared,
-        tips_given_to=tips_given_to,
         image_url_path=str(request.base_url)+"event/status/image/",
         image=image
     ).update_event_status()
