@@ -38,7 +38,7 @@ class WorkersCrud(__WorkersCrudInputs):
                     )
 
                     self.session.add(worker_name_toadd)
-                    return "worker name added successfully created"
+                    return "worker name added successfully"
                 
                 raise HTTPException(
                     status_code=401,
@@ -79,7 +79,7 @@ class WorkersCrud(__WorkersCrudInputs):
         except Exception as e:
             raise HTTPException(
                 status_code=500,
-                detail=f"some thins went wrong while deleting worker name {e}"
+                detail=f"some thing went wrong while deleting worker name {e}"
             )
     
     async def get_workers(self):

@@ -179,7 +179,7 @@ async def update_event_status(
     session:Session=Depends(get_db_session),
     user:dict=Depends(verify),
     event_id:str=Form(...),
-    event_status:backend_enums.EventStatus=Form(backend_enums.EventStatus.PENDING),
+    event_status:backend_enums.EventStatus=Form(...),
     feedback:str=Form(...),
     archagar:int=Form(...),
     abisegam:int=Form(...),
@@ -190,13 +190,13 @@ async def update_event_status(
     image:Optional[UploadFile]=File(default=None),
     
 ):
-    fields = [event_id, feedback, archagar, abisegam, helper, poo, read, prepare]
+    # fields = [event_id, feedback, archagar, abisegam, helper, poo, read, prepare]
     
-    if any(not field.strip() for field in fields) and event_status!="":
-        raise HTTPException(
-            status_code=422,
-            detail="input fields could not be empty"
-        )
+    # if any(not field.strip() for field in fields) and event_status!="":
+    #     raise HTTPException(
+    #         status_code=422,
+    #         detail="input fields could not be empty"
+    #     )
     user_id=user["id"]
     event_status=await UpdateEventStatus(
         session=session,
@@ -204,12 +204,12 @@ async def update_event_status(
         event_id=event_id,
         event_status=event_status,
         feedback=feedback,
-        archagar=archagar,
-        abisegam=abisegam,
-        helper=helper,
-        poo=poo,
-        read=read,
-        prepare=prepare,
+        archagar_id=archagar,
+        abisegam_id=abisegam,
+        helper_id=helper,
+        poo_id=poo,
+        read_id=read,
+        prepare_id=prepare,
         image_url_path=str(request.base_url)+"event/status/image/",
         image=image
     ).update_event_status()

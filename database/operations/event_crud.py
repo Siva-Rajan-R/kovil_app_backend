@@ -489,15 +489,16 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
                 user=await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
 
                 temp_dict={}
-                
+
                 event_status_query=self.session.query(EventsStatus).filter(EventsStatus.event_id==self.event_id)
                 event_status=event_status_query.one_or_none()
 
                 ic(self.image)
-                ic(backend_enums.EventStatus.PENDING,backend_enums.EventStatus.PENDING.name,backend_enums.EventStatus.PENDING.value,self.event_status,event_status.image_url)
+                # ic(backend_enums.EventStatus.PENDING,backend_enums.EventStatus.PENDING.name,backend_enums.EventStatus.PENDING.value,self.event_status,event_status.image_url)
 
                 for id in zip(["archagar","abisegam","helper","poo","read","prepare"],[self.archagar_id,self.abisegam_id,self.helper_id,self.poo_id,self.read_id,self.prepare_id]):
-                    query_to_update=self.session.query(Workers).filter(id==Workers.id[1])
+                    ic(id[0],id[1])
+                    query_to_update=self.session.query(Workers).filter(id[1]==Workers.id)
                     if query_to_update.one_or_none():
                         temp_dict[id[0]]=query_to_update.one_or_none().name
                         query_to_update.update(
