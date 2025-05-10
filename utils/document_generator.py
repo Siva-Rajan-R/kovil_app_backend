@@ -10,6 +10,7 @@ from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet
 from io import BytesIO
 from fastapi.exceptions import HTTPException
+from icecream import ic
 
 async def generate_pdf(events_data) -> bytes:
     try:
@@ -35,7 +36,7 @@ async def generate_pdf(events_data) -> bytes:
                 ["Mobile Number", event['client_mobile_number']],
                 ["Added By", event.get('event_added_by', 'N/A')],
                 ["Updated By", event.get('updated_by', 'N/A')],
-                ["Feedback",event.get('feedback', 'N/A')]
+                ["Feedback",event.get('feedback', 'N/A')],
                 ["Archagar", event.get('archagar', 'N/A')],
                 ["Abisegam", event.get('abisegam', 'N/A')],
                 ["Helper", event.get('helper', 'N/A')],
@@ -52,7 +53,7 @@ async def generate_pdf(events_data) -> bytes:
                 ["Neivethiyam Name", event["neivethiyam_name"]],
                 ["Neivethiyam Amount",event["neivethiyam_amount"]]
             ]
-
+            ic("success")
             table = Table(data, colWidths=[180, 320], hAlign='LEFT')
             table.setStyle(TableStyle([
                 ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#ff7043')),

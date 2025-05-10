@@ -69,9 +69,9 @@ async def send_events_report_as_excel(to_email: EmailStr, events: list[dict],exc
         if event.get('image'):
             image_path = f"eventReport-Image-{idx}.jpg"
             msg.add_attachment(event['image'], maintype="image", subtype="jpg", filename=image_path)
-
     # Generate Excel in memory
     buffer = BytesIO()
+    
     df = pd.DataFrame(events)
     with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
         df.to_excel(writer, index=False)
