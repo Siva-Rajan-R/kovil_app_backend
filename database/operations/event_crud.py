@@ -1,6 +1,7 @@
 from database.models.event import (
     Events,Clients,Payments,EventsStatus,EventNames,EventStatusImages,NeivethiyamNames,EventsNeivethiyam,EventsContactDescription
 )
+from database.models.workers import Workers
 from fastapi import UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -76,7 +77,8 @@ class __UpdateEventStatusInputs:
             read:str,
             prepare:str,
             image:Optional[UploadFile],
-            image_url_path:str
+            image_url_path:str,
+            selected_workers_id:list[int]
         ):
         self.session=session
         self.user_id=user_id
@@ -89,6 +91,7 @@ class __UpdateEventStatusInputs:
         self.poo=poo
         self.read=read
         self.prepare=prepare
+        self.selected_workers_id=selected_workers_id
         self.image=image
         self.image_url_path=image_url_path
 
@@ -487,6 +490,8 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
             with self.session.begin():
                 user=await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
                 await EventVerification(session=self.session).is_event_exists_by_id(self.event_id)
+
+                
                 update_dict={
                     EventsStatus.status:self.event_status,
                     EventsStatus.updated_by:user.name,
@@ -504,6 +509,21 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
                 event_status=event_status_query.one_or_none()
                 ic(self.image)
                 ic(backend_enums.EventStatus.PENDING,backend_enums.EventStatus.PENDING.name,backend_enums.EventStatus.PENDING.value,self.event_status,event_status.image_url)
+
+                for id in self.selected_workers_id:
+                    query_to_update=self.session.query(Workers).filter(id==Workers.id)
+                    if query_to_update.one_or_none():
+                        query_to_update.update(
+                            {
+                                Workers.no_of_participated_events:query_to_update.one_or_none().no_of_participated_events+1
+                            }
+                        )
+                    else:
+                        raise HTTPException(
+                            status_code=404,
+                            detail="Invalid worker names"
+                        )
+                    
                 if self.image and not event_status.image_url:
                     image_id=await create_unique_id(self.feedback)
                     ei_to_add=EventStatusImages(
@@ -531,6 +551,7 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
                 )
 
                 return "event status updated successfully"
+            
         except HTTPException:
             raise
 

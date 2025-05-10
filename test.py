@@ -45,3 +45,10 @@ def clean_phone_numbers(input_string):
 input_string = "1234567890-1234567890,1234567890 1234567890"
 cleaned = clean_phone_numbers(input_string)
 print("Cleaned phone numbers:", cleaned)
+a=[(1,2,3,4),(1,2)]
+print(list(a))
+b=[1,2,3,4,5]
+if b == [1,2,3,4,5,6]:
+    print(True)
+else:
+    print(False)

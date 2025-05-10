@@ -6,7 +6,7 @@ from database.operations.event_info import EventsToEmail
 from database.main import get_db_session
 from api.dependencies.token_verification import verify
 from api.schemas.event_crud import AddEventSchema,UpdateEventSchema,DeleteAllEventSchema,DeleteSingleEventSchema,AddEventNameSchema,DeleteEventNameSchema,GetEventsEmailschema,AddNeivethiyamNameSchema,DeleteNeivethiyamNameSchema,AddContactDescriptionSchema,DeleteContactDescriptionSchema
-from typing import Optional
+from typing import Optional,List
 from database.operations.user_auth import UserVerification
 from utils.clean_ph_numbers import clean_phone_numbers
 
@@ -187,11 +187,13 @@ async def update_event_status(
     poo:str=Form(...),
     read:str=Form(...),
     prepare:str=Form(...),
-    image:Optional[UploadFile]=File(default=None)
+    image:Optional[UploadFile]=File(default=None),
+    selected_workers_id:List[int] = Form(...)
+    
 ):
     fields = [event_id, feedback, archagar, abisegam, helper, poo, read, prepare]
     
-    if any(not field.strip() for field in fields) and event_status!="":
+    if any(not field.strip() for field in fields) and event_status!="" and len(selected_workers_id)!=6:
         raise HTTPException(
             status_code=422,
             detail="input fields could not be empty"
@@ -209,6 +211,7 @@ async def update_event_status(
         poo=poo,
         read=read,
         prepare=prepare,
+        selected_workers_id=selected_workers_id,
         image_url_path=str(request.base_url)+"event/status/image/",
         image=image
     ).update_event_status()
