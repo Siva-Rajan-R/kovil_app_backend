@@ -3,7 +3,7 @@ from fastapi.responses import JSONResponse
 from database.operations.workers_crud import WorkersCrud,Session
 from database.main import get_db_session
 from api.dependencies.token_verification import verify
-from api.schemas.workers_crud import WorkersCrudSchema
+from api.schemas.workers_crud import AddWorkersSchema,DeleteWorkerSchema
 from utils.clean_ph_numbers import clean_phone_numbers
 
 
@@ -12,7 +12,7 @@ router=APIRouter(
 )
 
 @router.post("/worker")
-async def add_worker(worker_inp:WorkersCrudSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+async def add_worker(worker_inp:AddWorkersSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
 
     if len(worker_inp.worker_mobile_number)>10:
@@ -20,8 +20,9 @@ async def add_worker(worker_inp:WorkersCrudSchema,session:Session=Depends(get_db
 
     added_worker=await WorkersCrud(
         session=session,
-        user_id=user_id
-    ).add_workers(worker_name=worker_inp.worker_name,worker_mobile_number=worker_inp.worker_mobile_number)
+        user_id=user_id,
+        worker_name=worker_inp.worker_name
+    ).add_workers(worker_mobile_number=worker_inp.worker_mobile_number)
 
     return JSONResponse(
         status_code=201,
@@ -29,16 +30,31 @@ async def add_worker(worker_inp:WorkersCrudSchema,session:Session=Depends(get_db
     )
 
 @router.delete("/worker")
-async def delete_worker(worker_inp:WorkersCrudSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+async def delete_worker(worker_inp:DeleteWorkerSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
     deleted_worker=await WorkersCrud(
         session=session,
         user_id=user_id,
-    ).delete_workers(worker_mobile_number=worker_inp.worker_mobile_number)
+        worker_name=worker_inp.worker_name
+    ).delete_workers()
 
     return JSONResponse(
         status_code=200,
         content=deleted_worker
+    )
+
+@router.put("/worker/reset")
+async def reset_worker(worker_inp:DeleteWorkerSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']
+    reseted_worker=await WorkersCrud(
+        session=session,
+        user_id=user_id,
+        worker_name=worker_inp.worker_name
+    ).reset_workers()
+
+    return JSONResponse(
+        status_code=200,
+        content=reseted_worker
     )
 
 @router.get("/workers")

@@ -181,22 +181,23 @@ async def update_event_status(
     event_id:str=Form(...),
     event_status:backend_enums.EventStatus=Form(...),
     feedback:str=Form(...),
-    archagar:int=Form(...),
-    abisegam:int=Form(...),
-    helper:int=Form(...),
-    poo:int=Form(...),
-    read:int=Form(...),
-    prepare:int=Form(...),
+    archagar:str=Form(...),
+    abisegam:str=Form(...),
+    helper:str=Form(...),
+    poo:str=Form(...),
+    read:str=Form(...),
+    prepare:str=Form(...),
     image:Optional[UploadFile]=File(default=None),
     
 ):
-    # fields = [event_id, feedback, archagar, abisegam, helper, poo, read, prepare]
+    fields = [event_id, feedback, archagar, abisegam, helper, poo, read, prepare]
     
-    # if any(not field.strip() for field in fields) and event_status!="":
-    #     raise HTTPException(
-    #         status_code=422,
-    #         detail="input fields could not be empty"
-    #     )
+    if any(not field.strip() for field in fields):
+        raise HTTPException(
+            status_code=422,
+            detail="input fields could not be empty"
+        )
+    
     user_id=user["id"]
     event_status=await UpdateEventStatus(
         session=session,
@@ -204,12 +205,12 @@ async def update_event_status(
         event_id=event_id,
         event_status=event_status,
         feedback=feedback,
-        archagar_id=archagar,
-        abisegam_id=abisegam,
-        helper_id=helper,
-        poo_id=poo,
-        read_id=read,
-        prepare_id=prepare,
+        archagar=archagar,
+        abisegam=abisegam,
+        helper=helper,
+        poo=poo,
+        read=read,
+        prepare=prepare,
         image_url_path=str(request.base_url)+"event/status/image/",
         image=image
     ).update_event_status()

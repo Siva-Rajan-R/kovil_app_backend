@@ -1,7 +1,7 @@
 from database.models.event import (
     Events,Clients,Payments,EventsStatus,EventNames,EventStatusImages,NeivethiyamNames,EventsNeivethiyam,EventsContactDescription
 )
-from database.models.workers import Workers
+from database.models.workers import Workers,WorkersParticipationLogs
 from fastapi import UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
@@ -70,12 +70,12 @@ class __UpdateEventStatusInputs:
             event_id:str,
             event_status:backend_enums.EventStatus,
             feedback:str,
-            archagar_id:int,
-            abisegam_id:int,
-            helper_id:int,
-            poo_id:int,
-            read_id:int,
-            prepare_id:int,
+            archagar:int,
+            abisegam:int,
+            helper:int,
+            poo:int,
+            read:int,
+            prepare:int,
             image:Optional[UploadFile],
             image_url_path:str,
         ):
@@ -84,12 +84,12 @@ class __UpdateEventStatusInputs:
         self.event_id=event_id
         self.event_status=event_status
         self.feedback=feedback
-        self.archagar_id=archagar_id
-        self.abisegam_id=abisegam_id
-        self.helper_id=helper_id
-        self.poo_id=poo_id
-        self.read_id=read_id
-        self.prepare_id=prepare_id
+        self.archagar=archagar
+        self.abisegam=abisegam
+        self.helper=helper
+        self.poo=poo
+        self.read=read
+        self.prepare=prepare
         self.image=image
         self.image_url_path=image_url_path
 
@@ -488,24 +488,36 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
             with self.session.begin():
                 user=await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
 
-                temp_dict={}
-
                 event_status_query=self.session.query(EventsStatus).filter(EventsStatus.event_id==self.event_id)
                 event_status=event_status_query.one_or_none()
-
-                ic(self.image)
+                # ic(self.session.execute(select(EventsStatus.archagar,EventsStatus.abisegam,EventsStatus.helper,EventsStatus.poo,EventsStatus.read,EventsStatus.prepare).where(EventsStatus.event_id==self.event_id)).mappings().all())
+                # ic(self.image)
                 # ic(backend_enums.EventStatus.PENDING,backend_enums.EventStatus.PENDING.name,backend_enums.EventStatus.PENDING.value,self.event_status,event_status.image_url)
-
-                for id in zip(["archagar","abisegam","helper","poo","read","prepare"],[self.archagar_id,self.abisegam_id,self.helper_id,self.poo_id,self.read_id,self.prepare_id]):
-                    ic(id[0],id[1])
-                    query_to_update=self.session.query(Workers).filter(id[1]==Workers.id)
+                add_wrk_parti_logs=[]
+                temp_log=[]
+                for workername in [self.archagar,self.abisegam,self.helper,self.poo,self.read,self.prepare]:
+                    query_to_update=self.session.query(Workers).filter(Workers.name==workername)
                     if query_to_update.one_or_none():
-                        temp_dict[id[0]]=query_to_update.one_or_none().name
-                        query_to_update.update(
-                            {
-                                Workers.no_of_participated_events:query_to_update.one_or_none().no_of_participated_events+1
-                            }
-                        )
+                        partic_log=self.session.query(WorkersParticipationLogs).filter(WorkersParticipationLogs.event_id==self.event_id,WorkersParticipationLogs.worker_id==query_to_update.one_or_none().id).first()
+                        if not partic_log:
+                            ic("sawkiyama")
+                            query_to_update.update(
+                                {
+                                    Workers.no_of_participated_events:query_to_update.one_or_none().no_of_participated_events+1
+                                }
+                            )
+                            if workername not in temp_log:
+                                print("hello")
+                                add_wrk_parti_logs.append(
+                                    WorkersParticipationLogs(
+                                        event_id=self.event_id,
+                                        worker_id=query_to_update.one_or_none().id
+                                    )
+                                )
+                            temp_log.append(workername)
+
+                            ic(add_wrk_parti_logs)
+
                     else:
                         raise HTTPException(
                             status_code=404,
@@ -516,12 +528,12 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
                     EventsStatus.status:self.event_status,
                     EventsStatus.updated_by:user.name,
                     EventsStatus.feedback:self.feedback,
-                    EventsStatus.archagar:temp_dict['archagar'],
-                    EventsStatus.abisegam:temp_dict['abisegam'],
-                    EventsStatus.helper:temp_dict['helper'],
-                    EventsStatus.poo:temp_dict['poo'],
-                    EventsStatus.read:temp_dict['read'],
-                    EventsStatus.prepare:temp_dict['prepare'],
+                    EventsStatus.archagar:self.archagar,
+                    EventsStatus.abisegam:self.abisegam,
+                    EventsStatus.helper:self.helper,
+                    EventsStatus.poo:self.poo,
+                    EventsStatus.read:self.read,
+                    EventsStatus.prepare:self.prepare,
                     EventsStatus.updated_at:await indian_time.get_india_time(),
                     EventsStatus.updated_date:datetime.now().date()
                 }
@@ -551,6 +563,8 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
                 event_status_query.update(
                     update_dict
                 )
+
+                self.session.add_all(add_wrk_parti_logs)
 
                 return "event status updated successfully"
             
