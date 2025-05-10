@@ -96,7 +96,7 @@ class WorkersCrud(__WorkersCrudInputs):
                 ).mappings().all()
                     
 
-                return workers
+                return {"workers":workers}
             
         except HTTPException:
             raise
