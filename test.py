@@ -52,3 +52,8 @@ if b == [1,2,3,4,5,6]:
     print(True)
 else:
     print(False)
+
+for i in zip([1,2,3,45],[1,6,8,9]):
+    print(i[0],i[1])
+
+print(dict(zip([1,2,3,45],[1,6,8,9])))

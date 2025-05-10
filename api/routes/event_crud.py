@@ -181,19 +181,18 @@ async def update_event_status(
     event_id:str=Form(...),
     event_status:backend_enums.EventStatus=Form(backend_enums.EventStatus.PENDING),
     feedback:str=Form(...),
-    archagar:str=Form(...),
-    abisegam:str=Form(...),
-    helper:str=Form(...),
-    poo:str=Form(...),
-    read:str=Form(...),
-    prepare:str=Form(...),
+    archagar:int=Form(...),
+    abisegam:int=Form(...),
+    helper:int=Form(...),
+    poo:int=Form(...),
+    read:int=Form(...),
+    prepare:int=Form(...),
     image:Optional[UploadFile]=File(default=None),
-    selected_workers_id:List[int] = Form(...)
     
 ):
     fields = [event_id, feedback, archagar, abisegam, helper, poo, read, prepare]
     
-    if any(not field.strip() for field in fields) and event_status!="" and len(selected_workers_id)!=6:
+    if any(not field.strip() for field in fields) and event_status!="":
         raise HTTPException(
             status_code=422,
             detail="input fields could not be empty"
@@ -211,7 +210,6 @@ async def update_event_status(
         poo=poo,
         read=read,
         prepare=prepare,
-        selected_workers_id=selected_workers_id,
         image_url_path=str(request.base_url)+"event/status/image/",
         image=image
     ).update_event_status()

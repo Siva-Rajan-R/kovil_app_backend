@@ -70,28 +70,26 @@ class __UpdateEventStatusInputs:
             event_id:str,
             event_status:backend_enums.EventStatus,
             feedback:str,
-            archagar:str,
-            abisegam:str,
-            helper:str,
-            poo:str,
-            read:str,
-            prepare:str,
+            archagar_id:int,
+            abisegam_id:int,
+            helper_id:int,
+            poo_id:int,
+            read_id:int,
+            prepare_id:int,
             image:Optional[UploadFile],
             image_url_path:str,
-            selected_workers_id:list[int]
         ):
         self.session=session
         self.user_id=user_id
         self.event_id=event_id
         self.event_status=event_status
         self.feedback=feedback
-        self.archagar=archagar
-        self.abisegam=abisegam
-        self.helper=helper
-        self.poo=poo
-        self.read=read
-        self.prepare=prepare
-        self.selected_workers_id=selected_workers_id
+        self.archagar_id=archagar_id
+        self.abisegam_id=abisegam_id
+        self.helper_id=helper_id
+        self.poo_id=poo_id
+        self.read_id=read_id
+        self.prepare_id=prepare_id
         self.image=image
         self.image_url_path=image_url_path
 
@@ -489,30 +487,19 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
         try:
             with self.session.begin():
                 user=await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
-                await EventVerification(session=self.session).is_event_exists_by_id(self.event_id)
 
+                temp_dict={}
                 
-                update_dict={
-                    EventsStatus.status:self.event_status,
-                    EventsStatus.updated_by:user.name,
-                    EventsStatus.feedback:self.feedback,
-                    EventsStatus.archagar:self.archagar,
-                    EventsStatus.abisegam:self.abisegam,
-                    EventsStatus.helper:self.helper,
-                    EventsStatus.poo:self.poo,
-                    EventsStatus.read:self.read,
-                    EventsStatus.prepare:self.prepare,
-                    EventsStatus.updated_at:await indian_time.get_india_time(),
-                    EventsStatus.updated_date:datetime.now().date()
-                }
                 event_status_query=self.session.query(EventsStatus).filter(EventsStatus.event_id==self.event_id)
                 event_status=event_status_query.one_or_none()
+
                 ic(self.image)
                 ic(backend_enums.EventStatus.PENDING,backend_enums.EventStatus.PENDING.name,backend_enums.EventStatus.PENDING.value,self.event_status,event_status.image_url)
 
-                for id in self.selected_workers_id:
-                    query_to_update=self.session.query(Workers).filter(id==Workers.id)
+                for id in zip(["archagar","abisegam","helper","poo","read","prepare"],[self.archagar_id,self.abisegam_id,self.helper_id,self.poo_id,self.read_id,self.prepare_id]):
+                    query_to_update=self.session.query(Workers).filter(id==Workers.id[1])
                     if query_to_update.one_or_none():
+                        temp_dict[id[0]]=query_to_update.one_or_none().name
                         query_to_update.update(
                             {
                                 Workers.no_of_participated_events:query_to_update.one_or_none().no_of_participated_events+1
@@ -523,6 +510,20 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
                             status_code=404,
                             detail="Invalid worker names"
                         )
+                    
+                update_dict={
+                    EventsStatus.status:self.event_status,
+                    EventsStatus.updated_by:user.name,
+                    EventsStatus.feedback:self.feedback,
+                    EventsStatus.archagar:temp_dict['archagar'],
+                    EventsStatus.abisegam:temp_dict['abisegam'],
+                    EventsStatus.helper:temp_dict['helper'],
+                    EventsStatus.poo:temp_dict['poo'],
+                    EventsStatus.read:temp_dict['read'],
+                    EventsStatus.prepare:temp_dict['prepare'],
+                    EventsStatus.updated_at:await indian_time.get_india_time(),
+                    EventsStatus.updated_date:datetime.now().date()
+                }
                     
                 if self.image and not event_status.image_url:
                     image_id=await create_unique_id(self.feedback)
