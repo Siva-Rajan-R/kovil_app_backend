@@ -483,6 +483,26 @@ class DeleteEvent(__DeleteEventInputs):
             )
 
 class UpdateEventStatus(__UpdateEventStatusInputs):
+
+    async def update_previous_state_of_workers(self,prev_worker_query,prev_worker_log_query,prev_worker):
+        if prev_worker_query and prev_worker_log_query:
+            prev_worker_log=prev_worker_log_query.one_or_none()
+            if prev_worker_log:
+                prev_worker_query.update(
+                    {
+                        Workers.no_of_participated_events:prev_worker.no_of_participated_events-1
+                    }
+                )
+                no_of_participation=prev_worker_log.no_of_participation-1
+                if no_of_participation!=0:
+                    prev_worker_log_query.update(
+                        {
+                            WorkersParticipationLogs.no_of_participation:prev_worker_log.no_of_participation-1
+                        }
+                    )
+                else:
+                    prev_worker_log_query.delete()
+
     async def update_event_status(self):
         try:
             with self.session.begin():
@@ -493,36 +513,80 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
                 # ic(self.session.execute(select(EventsStatus.archagar,EventsStatus.abisegam,EventsStatus.helper,EventsStatus.poo,EventsStatus.read,EventsStatus.prepare).where(EventsStatus.event_id==self.event_id)).mappings().all())
                 # ic(self.image)
                 # ic(backend_enums.EventStatus.PENDING,backend_enums.EventStatus.PENDING.name,backend_enums.EventStatus.PENDING.value,self.event_status,event_status.image_url)
-                add_wrk_parti_logs=[]
                 temp_log=[]
-                for workername in [self.archagar,self.abisegam,self.helper,self.poo,self.read,self.prepare]:
-                    query_to_update=self.session.query(Workers).filter(Workers.name==workername)
-                    if query_to_update.one_or_none():
-                        partic_log=self.session.query(WorkersParticipationLogs).filter(WorkersParticipationLogs.event_id==self.event_id,WorkersParticipationLogs.worker_id==query_to_update.one_or_none().id).first()
-                        if not partic_log:
-                            ic("sawkiyama")
-                            query_to_update.update(
-                                {
-                                    Workers.no_of_participated_events:query_to_update.one_or_none().no_of_participated_events+1
-                                }
-                            )
-                            if workername not in temp_log:
-                                print("hello")
-                                add_wrk_parti_logs.append(
-                                    WorkersParticipationLogs(
-                                        event_id=self.event_id,
-                                        worker_id=query_to_update.one_or_none().id
-                                    )
+                cur_worker_names=[self.archagar,self.abisegam,self.helper,self.poo,self.read,self.prepare]
+                previous_worker_names=[EventsStatus.archagar,EventsStatus.abisegam,EventsStatus.helper,EventsStatus.poo,EventsStatus.read,EventsStatus.prepare]
+                
+                for cur_and_previous_worker_name in zip(cur_worker_names,previous_worker_names):
+                    cur_worker_query=self.session.query(Workers).filter(Workers.name==cur_and_previous_worker_name[0])
+                    cur_worker=cur_worker_query.one_or_none()
+
+                    if cur_worker:
+                        cur_worker_log_query=self.session.query(WorkersParticipationLogs).filter(
+                            WorkersParticipationLogs.event_id==self.event_id,
+                            WorkersParticipationLogs.worker_id==cur_worker.id
+                        )
+
+                        cur_worker_log=cur_worker_log_query.one_or_none()
+                        
+                        prev_worker_name=self.session.query(cur_and_previous_worker_name[1]).filter(EventsStatus.event_id==self.event_id).scalar()
+                        prev_worker_query=None
+                        prev_worker_log_query=None
+                        prev_worker=None
+                        if prev_worker_name:
+                            prev_worker_query=self.session.query(Workers).filter(Workers.name==prev_worker_name)
+                            prev_worker=prev_worker_query.one_or_none()
+                            if prev_worker:
+                                prev_worker_log_query=self.session.query(WorkersParticipationLogs).filter(WorkersParticipationLogs.event_id==self.event_id,WorkersParticipationLogs.worker_id==prev_worker.id)
+                        
+                        if cur_worker_log:
+                            if cur_worker_log.no_of_participation!=len(cur_worker_names):
+
+                                #for updating cur logs and participation counts {starat} 
+                                cur_worker_log_query.update(
+                                    {
+                                        WorkersParticipationLogs.no_of_participation:cur_worker_log.no_of_participation+1
+                                    }
                                 )
-                            temp_log.append(workername)
 
-                            ic(add_wrk_parti_logs)
+                                cur_worker_query.update(
+                                    {
+                                        Workers.no_of_participated_events:cur_worker.no_of_participated_events+1
+                                    }
+                                )
+                                #{end} of cur
 
+                                #for updating prev logs and participation counts {starat}
+                                await self.update_previous_state_of_workers(
+                                    prev_worker_query=prev_worker_query,
+                                    prev_worker=prev_worker,
+                                    prev_worker_log_query=prev_worker_log_query
+                                )
+                                #{end of previous }
+                        else:
+                            ic("hello")
+                            self.session.add(
+                                WorkersParticipationLogs(
+                                    event_id=self.event_id,
+                                    worker_id=cur_worker.id,
+                                    no_of_participation=1
+                                )
+                            )
+                            cur_worker_query.update({Workers.no_of_participated_events:cur_worker.no_of_participated_events+1})
+                            ic(prev_worker_query,prev_worker_log_query)
+                            #for updating prev logs and participation counts {starat}
+                            await self.update_previous_state_of_workers(
+                                    prev_worker_query=prev_worker_query,
+                                    prev_worker=prev_worker,
+                                    prev_worker_log_query=prev_worker_log_query
+                                )
+                            #{end of previous }
                     else:
                         raise HTTPException(
                             status_code=404,
-                            detail="Invalid worker names"
+                            detail="worker name not found"
                         )
+                    
                     
                 update_dict={
                     EventsStatus.status:self.event_status,
@@ -563,8 +627,6 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
                 event_status_query.update(
                     update_dict
                 )
-
-                self.session.add_all(add_wrk_parti_logs)
 
                 return "event status updated successfully"
             

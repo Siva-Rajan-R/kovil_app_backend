@@ -57,3 +57,44 @@ for i in zip([1,2,3,45],[1,6,8,9]):
     print(i[0],i[1])
 
 print(dict(zip([1,2,3,45],[1,6,8,9])))
+
+
+query_to_update=self.session.query(Workers).filter(Workers.name==workername[1])
+                    ic(workername[1])
+                    if query_to_update.one_or_none():
+                        partic_log=self.session.query(WorkersParticipationLogs.worker_id).filter(WorkersParticipationLogs.event_id==self.event_id,WorkersParticipationLogs.worker_id==query_to_update.one_or_none().id).all()
+                        if len(partic_log)!=len(previous_names):
+                            ic(query_to_update.one_or_none().no_of_participated_events)
+                            query_to_update.update(
+                                {
+                                    Workers.no_of_participated_events:query_to_update.one_or_none().no_of_participated_events+1
+                                }
+                            )
+                            
+                            print("hello")
+                            add_wrk_parti_logs.append(
+                                WorkersParticipationLogs(
+                                    event_id=self.event_id,
+                                    worker_id=query_to_update.one_or_none().id
+                                )
+                            )
+                            
+                            wk_name=self.session.query(workername[0]).filter(EventsStatus.event_id==self.event_id).scalar()
+                            q_to_up=self.session.query(Workers).filter(Workers.name==wk_name)
+                            ic(wk_name,q_to_up.one_or_none())
+                            if q_to_up.one_or_none():
+                                q_to_up.update(
+                                    {
+                                        Workers.no_of_participated_events:q_to_up.one_or_none().no_of_participated_events-1
+                                    }
+                                )
+
+                            temp_log.append(workername[1])
+
+                            ic(add_wrk_parti_logs)
+
+                    else:
+                        raise HTTPException(
+                            status_code=404,
+                            detail="Invalid worker names"
+                        )

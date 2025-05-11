@@ -18,6 +18,7 @@ class WorkersParticipationLogs(Base):
     id=Column(Integer,primary_key=True,autoincrement=True)
     event_id=Column(String,nullable=False)
     worker_id=Column(Integer,ForeignKey("workers.id",ondelete="CASCADE"))
+    no_of_participation=Column(Integer)
 
     worker=relationship("Workers",back_populates="wrk_partic_log")
 
