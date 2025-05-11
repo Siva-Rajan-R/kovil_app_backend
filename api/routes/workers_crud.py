@@ -1,10 +1,11 @@
-from fastapi import APIRouter,Depends
+from fastapi import APIRouter,Depends,Query
 from fastapi.responses import JSONResponse
 from database.operations.workers_crud import WorkersCrud,Session
 from database.main import get_db_session
 from api.dependencies.token_verification import verify
 from api.schemas.workers_crud import AddWorkersSchema,DeleteWorkerSchema
 from utils.clean_ph_numbers import clean_phone_numbers
+from datetime import date
 
 
 router=APIRouter(
@@ -64,5 +65,15 @@ async def get_worker(session:Session=Depends(get_db_session),user:dict=Depends(v
         session=session,
         user_id=user_id,
     ).get_workers()
+
+    return fetched_worker
+
+@router.get("/workers/date")
+async def get_worker_by_date(from_date:date=Query(...),to_date:date=Query(...),session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']
+    fetched_worker=await WorkersCrud(
+        session=session,
+        user_id=user_id,
+    ).get_workers_by_date(from_date=from_date,to_date=to_date)
 
     return fetched_worker

@@ -1,4 +1,5 @@
 from database.models.workers import Workers,WorkersParticipationLogs
+from database.models.event import Events
 from sqlalchemy.orm import Session
 from sqlalchemy import select,func,desc,or_
 from enums import backend_enums
@@ -6,6 +7,7 @@ from fastapi.exceptions import HTTPException
 from database.operations.user_auth import UserVerification
 from icecream import ic
 from typing import Optional
+from datetime import date
 
 
 class __WorkersCrudInputs:
@@ -146,7 +148,7 @@ class WorkersCrud(__WorkersCrudInputs):
                         select(
                             Workers.name,
                             Workers.mobile_number,
-                            func.sum(WorkersParticipationLogs.no_of_participation).label("no_of_participated_events")
+                            func.coalesce(func.sum(WorkersParticipationLogs.no_of_participation), 0).label("no_of_participated_events")
                         )
                         .join(WorkersParticipationLogs, Workers.id == WorkersParticipationLogs.worker_id,isouter=True)
                         .group_by(Workers.id, Workers.name, Workers.mobile_number)
@@ -156,6 +158,50 @@ class WorkersCrud(__WorkersCrudInputs):
                 # Execute the query and fetch results
                 workers = self.session.execute(select_statement).mappings().all()
                 return {"workers": workers}
+            
+        except HTTPException:
+            raise
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"some thins went wrong while getting worker name {e}"
+            )
+        
+    async def get_workers_by_date(self,from_date:date,to_date:date):
+        try:
+            with self.session.begin():
+                user = await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
+                
+                # Base query to select worker names
+                select_statement = select(Workers.name)
+                
+                # If user is an admin, include mobile number and participation count
+                if user.role == backend_enums.UserRole.ADMIN:
+                    select_statement = (
+                    select(
+                        Workers.name,
+                        Workers.mobile_number,
+                        func.coalesce(func.sum(WorkersParticipationLogs.no_of_participation), 0).label("no_of_participated_events")
+                    )
+                    .outerjoin(WorkersParticipationLogs, Workers.id == WorkersParticipationLogs.worker_id)  # Keep all workers
+                    .outerjoin(Events, WorkersParticipationLogs.event_id == Events.id)
+                    .where(
+                        Events.date.between(from_date, to_date)
+                    ) 
+                    .group_by(Workers.id, Workers.name, Workers.mobile_number)
+                    .order_by(Workers.name)
+                )
+
+                # Execute the query and fetch results
+                select_statement2 = (
+                    select(func.count(Events.id).label("total_events"))
+                    .where(Events.date.between(from_date, to_date))
+                )
+
+                total_events = self.session.execute(select_statement2).scalar()
+                workers = self.session.execute(select_statement).mappings().all()
+                return {"workers": workers,"total_events":total_events}
             
         except HTTPException:
             raise
