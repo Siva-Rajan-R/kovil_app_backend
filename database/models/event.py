@@ -30,6 +30,7 @@ class Events(Base):
     event_status=relationship("EventsStatus",back_populates="event",cascade="all, delete-orphan")
     event_neivethiyam=relationship("EventsNeivethiyam",back_populates="event",cascade="all, delete-orphan")
     event_contact_desc=relationship("EventsContactDescription",back_populates="event",cascade="all, delete-orphan")
+    worker_participation_log=relationship("WorkersParticipationLogs",back_populates="event",cascade="all, delete-orphan")
     
 class EventsNeivethiyam(Base):
     __tablename__="events_neivethiyam"

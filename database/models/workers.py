@@ -1,25 +1,23 @@
-from sqlalchemy import Column,Integer,String,ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
-from database.main import Base,Engine
-
-
+from database.main import Base, Engine
 
 class Workers(Base):
-    __tablename__="workers"
-    id=Column(Integer,primary_key=True,autoincrement=True)
-    name=Column(String,nullable=False,unique=True)
-    mobile_number=Column(String,nullable=False,unique=True)
-    no_of_participated_events=Column(Integer,nullable=False,default=0)
+    __tablename__ = "workers"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String, nullable=False, unique=True)
+    mobile_number = Column(String, nullable=False, unique=True)
 
-    wrk_partic_log=relationship("WorkersParticipationLogs",back_populates="worker",cascade="all, delete-orphan")
+    wrk_partic_log = relationship("WorkersParticipationLogs", back_populates="worker", cascade="all, delete-orphan")
 
 class WorkersParticipationLogs(Base):
-    __tablename__="workers_participation_logs"
-    id=Column(Integer,primary_key=True,autoincrement=True)
-    event_id=Column(String,nullable=False)
-    worker_id=Column(Integer,ForeignKey("workers.id",ondelete="CASCADE"))
-    no_of_participation=Column(Integer)
+    __tablename__ = "workers_participation_logs"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    event_id = Column(String, ForeignKey("events.id", ondelete="CASCADE"), nullable=False)
+    worker_id = Column(Integer, ForeignKey("workers.id", ondelete="CASCADE"), nullable=False)
+    no_of_participation = Column(Integer)
 
-    worker=relationship("Workers",back_populates="wrk_partic_log")
+    worker = relationship("Workers", back_populates="wrk_partic_log")
+    event = relationship("Events",back_populates="worker_participation_log")
 
 Base.metadata.create_all(Engine)

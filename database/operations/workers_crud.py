@@ -1,4 +1,4 @@
-from database.models.workers import Workers
+from database.models.workers import Workers,WorkersParticipationLogs
 from sqlalchemy.orm import Session
 from sqlalchemy import select,func,desc,or_
 from enums import backend_enums
@@ -135,18 +135,27 @@ class WorkersCrud(__WorkersCrudInputs):
     async def get_workers(self):
         try:
             with self.session.begin():
-                user=await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
-                select_statement=select(Workers.name)
+                user = await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
+                
+                # Base query to select worker names
+                select_statement = select(Workers.name)
+                
+                # If user is an admin, include mobile number and participation count
+                if user.role == backend_enums.UserRole.ADMIN:
+                    select_statement = (
+                        select(
+                            Workers.name,
+                            Workers.mobile_number,
+                            func.sum(WorkersParticipationLogs.no_of_participation).label("no_of_participated_events")
+                        )
+                        .join(WorkersParticipationLogs, Workers.id == WorkersParticipationLogs.worker_id,isouter=True)
+                        .group_by(Workers.id, Workers.name, Workers.mobile_number)
+                        .order_by(Workers.name)
+                    )
 
-                if user.role==backend_enums.UserRole.ADMIN:
-                    select_statement=select(Workers.name,Workers.mobile_number,Workers.no_of_participated_events)
-
-                workers=self.session.execute(
-                    select_statement.order_by(Workers.name)
-                ).mappings().all()
-                    
-
-                return {"workers":workers}
+                # Execute the query and fetch results
+                workers = self.session.execute(select_statement).mappings().all()
+                return {"workers": workers}
             
         except HTTPException:
             raise
@@ -154,5 +163,5 @@ class WorkersCrud(__WorkersCrudInputs):
         except Exception as e:
             raise HTTPException(
                 status_code=500,
-                detail=f"some thins went wrong while deleting worker name {e}"
+                detail=f"some thins went wrong while getting worker name {e}"
             )

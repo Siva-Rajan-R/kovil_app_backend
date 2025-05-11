@@ -484,15 +484,10 @@ class DeleteEvent(__DeleteEventInputs):
 
 class UpdateEventStatus(__UpdateEventStatusInputs):
 
-    async def update_previous_state_of_workers(self,prev_worker_query,prev_worker_log_query,prev_worker):
-        if prev_worker_query and prev_worker_log_query:
+    async def update_previous_state_of_workers(self,prev_worker_log_query):
+        if prev_worker_log_query:
             prev_worker_log=prev_worker_log_query.one_or_none()
             if prev_worker_log:
-                prev_worker_query.update(
-                    {
-                        Workers.no_of_participated_events:prev_worker.no_of_participated_events-1
-                    }
-                )
                 no_of_participation=prev_worker_log.no_of_participation-1
                 if no_of_participation!=0:
                     prev_worker_log_query.update(
@@ -530,12 +525,10 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
                         cur_worker_log=cur_worker_log_query.one_or_none()
                         
                         prev_worker_name=self.session.query(cur_and_previous_worker_name[1]).filter(EventsStatus.event_id==self.event_id).scalar()
-                        prev_worker_query=None
                         prev_worker_log_query=None
                         prev_worker=None
                         if prev_worker_name:
-                            prev_worker_query=self.session.query(Workers).filter(Workers.name==prev_worker_name)
-                            prev_worker=prev_worker_query.one_or_none()
+                            prev_worker=self.session.query(Workers).filter(Workers.name==prev_worker_name).one_or_none()
                             if prev_worker:
                                 prev_worker_log_query=self.session.query(WorkersParticipationLogs).filter(WorkersParticipationLogs.event_id==self.event_id,WorkersParticipationLogs.worker_id==prev_worker.id)
                         
@@ -549,17 +542,10 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
                                     }
                                 )
 
-                                cur_worker_query.update(
-                                    {
-                                        Workers.no_of_participated_events:cur_worker.no_of_participated_events+1
-                                    }
-                                )
                                 #{end} of cur
 
                                 #for updating prev logs and participation counts {starat}
                                 await self.update_previous_state_of_workers(
-                                    prev_worker_query=prev_worker_query,
-                                    prev_worker=prev_worker,
                                     prev_worker_log_query=prev_worker_log_query
                                 )
                                 #{end of previous }
@@ -572,12 +558,8 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
                                     no_of_participation=1
                                 )
                             )
-                            cur_worker_query.update({Workers.no_of_participated_events:cur_worker.no_of_participated_events+1})
-                            ic(prev_worker_query,prev_worker_log_query)
                             #for updating prev logs and participation counts {starat}
                             await self.update_previous_state_of_workers(
-                                    prev_worker_query=prev_worker_query,
-                                    prev_worker=prev_worker,
                                     prev_worker_log_query=prev_worker_log_query
                                 )
                             #{end of previous }
