@@ -272,8 +272,13 @@ class WorkersCrud(__WorkersCrudInputs):
                     )
 
                 # Execute the query and fetch results
+                select_statement2 = (
+                    select(func.count(Events.id).label("total_events"))
+                )
+
+                total_events = self.session.execute(select_statement2).scalar()
                 workers = self.session.execute(select_statement).mappings().all()
-                return {"workers": workers}
+                return {"workers": workers,"total_events":total_events}
             
         except HTTPException:
             raise
