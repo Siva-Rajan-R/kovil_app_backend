@@ -30,7 +30,7 @@ async def add_event_name_and_amount(event_name_inp:AddEventNameSchema,session:Se
     added_event_name=await EventNameAndAmountCrud(
         session=session,
         user_id=user_id
-    ).add_event_name_and_amt(event_name=event_name_inp.event_name,event_amount=event_name_inp.event_amount)
+    ).add_event_name_and_amt(event_name=event_name_inp.event_name,event_amount=event_name_inp.event_amount,is_special=event_name_inp.is_special)
 
     return JSONResponse(
         status_code=201,
