@@ -1,4 +1,4 @@
-from sqlalchemy import Column,Integer,String,ForeignKey,Date,Time,Enum,LargeBinary
+from sqlalchemy import Column,Integer,String,ForeignKey,Date,Time,Enum,LargeBinary,Boolean
 from sqlalchemy.orm import relationship
 from database.main import Base,Engine
 from enums import backend_enums
@@ -9,6 +9,7 @@ class EventNames(Base):
     id=Column(Integer,primary_key=True,autoincrement=True)
     name=Column(String,nullable=False)
     amount=Column(Integer,nullable=False)
+    is_special=Column(Boolean,nullable=False)
 
 class NeivethiyamNames(Base):
     __tablename__="neivethiyam_names"

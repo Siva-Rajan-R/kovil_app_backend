@@ -11,48 +11,21 @@ from reportlab.lib.styles import getSampleStyleSheet
 from io import BytesIO
 from fastapi.exceptions import HTTPException
 from icecream import ic
+from typing import List
 
-async def generate_pdf(events_data) -> bytes:
+async def generate_pdf(data:List[dict],pdf_fields:List[dict],is_contain_image:bool) -> bytes:
     try:
         buffer = BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=A4)
         styles = getSampleStyleSheet()
         elements = []
-
-        for event in events_data:
+        ic("hi1")
+        for i in zip(pdf_fields,data):
             title = Paragraph("<b>Event Report</b>", styles["Title"])
             elements.append(title)
             elements.append(Spacer(1, 12))
 
-            data = [
-                ["Field", "Value"],
-                ["Event Name", event['event_name']],
-                ["Date", event['event_date']],
-                ["Start Time", event['event_start_at']],
-                ["End Time", event['event_end_at']],
-                ["Description", event['event_description']],
-                ["Client Name", event['client_name']],
-                ["City", event['client_city']],
-                ["Mobile Number", event['client_mobile_number']],
-                ["Added By", event.get('event_added_by', 'N/A')],
-                ["Updated By", event.get('updated_by', 'N/A')],
-                ["Feedback",event.get('feedback', 'N/A')],
-                ["Archagar", event.get('archagar', 'N/A')],
-                ["Abisegam", event.get('abisegam', 'N/A')],
-                ["Helper", event.get('helper', 'N/A')],
-                ["Poo", event.get('poo', 'N/A')],
-                ["Read", event.get('read', 'N/A')],
-                ["Prepare", event.get('prepare', 'N/A')],
-                ["Updated Date", event.get('updated_date', 'N/A')],
-                ["Updated At", event.get('updated_at', 'N/A')],
-                ["Payment Status", event['payment_status'].value],
-                ["Payment Mode", event['payment_mode'].value],
-                ["Total Amount", event['total_amount']],
-                ["Paid Amount", event['paid_amount']],
-                ["Event Status", event['event_status'].value],
-                ["Neivethiyam Name", event["neivethiyam_name"]],
-                ["Neivethiyam Amount",event["neivethiyam_amount"]]
-            ]
+            data = i[0]
             ic("success")
             table = Table(data, colWidths=[180, 320], hAlign='LEFT')
             table.setStyle(TableStyle([
@@ -74,15 +47,15 @@ async def generate_pdf(events_data) -> bytes:
             ]))
 
             elements.append(table)
-
-            if event.get("image"):
-                try:
-                    image_stream = BytesIO(event["image"])
-                    img = Image(image_stream, width=500, height=400)
-                    elements.append(Spacer(1, 10))
-                    elements.append(img)
-                except Exception as e:
-                    elements.append(Paragraph(f"Image error: {e}", styles["Normal"]))
+            if is_contain_image:
+                if i[1].get("image"):
+                    try:
+                        image_stream = BytesIO(i[1]["image"])
+                        img = Image(image_stream, width=500, height=400)
+                        elements.append(Spacer(1, 10))
+                        elements.append(img)
+                    except Exception as e:
+                        elements.append(Paragraph(f"Image error: {e}", styles["Normal"]))
 
             elements.append(Spacer(1, 20))
             elements.append(PageBreak())

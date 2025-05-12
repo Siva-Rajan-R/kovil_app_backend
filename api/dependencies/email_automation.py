@@ -57,7 +57,7 @@ def register_or_forgot_successfull_email(email_subject:str,email_body:str,email:
 
 
 
-async def send_events_report_as_excel(to_email: EmailStr, events: list[dict],excel_filename:str):
+async def send_events_report_as_excel(to_email: EmailStr, events: list[dict],excel_filename:str,is_contains_image:bool):
     msg = EmailMessage()
     msg['Subject'] = 'Nanmai tharuvar kovil Events report as EXCEL'
     msg['From'] = EMAIL_ADDRESS
@@ -65,10 +65,11 @@ async def send_events_report_as_excel(to_email: EmailStr, events: list[dict],exc
     msg.set_content('Please find the attached images and Excel document.')
 
     # Attach images
-    for idx, event in enumerate(events):
-        if event.get('image'):
-            image_path = f"eventReport-Image-{idx}.jpg"
-            msg.add_attachment(event['image'], maintype="image", subtype="jpg", filename=image_path)
+    if is_contains_image:
+        for idx, event in enumerate(events):
+            if event.get('image'):
+                image_path = f"eventReport-Image-{idx}.jpg"
+                msg.add_attachment(event['image'], maintype="image", subtype="jpg", filename=image_path)
     # Generate Excel in memory
     buffer = BytesIO()
     

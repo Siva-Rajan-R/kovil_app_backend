@@ -6,7 +6,7 @@ from database.operations.event_crud import EventNameAndAmountCrud,NeivethiyamNam
 from database.operations.user_auth import UserVerification
 from datetime import date
 from fastapi.exceptions import HTTPException
-from utils.document_generator import generate_pdf
+from utils import document_generator,pdf_fields
 from icecream import ic
 import pandas as pd
 from api.dependencies import email_automation
@@ -252,10 +252,12 @@ class EventsToEmail(__EventsToEmailInputs):
                 
                     if self.file_type==backend_enums.FileType.EXCEL:
                         file_name=f"{self.from_date}-{self.to_date}_eventReport.xlsx"
-                        await email_automation.send_events_report_as_excel(to_email=self.to_email,events=events,excel_filename=file_name)
+                        await email_automation.send_events_report_as_excel(to_email=self.to_email,events=events,excel_filename=file_name,is_contains_image=True)
                     else:
                         file_name=f"{self.from_date}-{self.to_date}_eventReport.pdf"
-                        pdf_byte=await generate_pdf(events)
+                        ic(events[0]["event_name"])
+                        for event in events:
+                            pdf_byte=await document_generator.generate_pdf(data=events,pdf_fields=pdf_fields.events_field_data(events=events),is_contain_image=True)
                         if pdf_byte:
                             await email_automation.send_event_report_as_pdf(to_email=self.to_email,pdf_bytes=pdf_byte,pdf_filename=file_name)
 

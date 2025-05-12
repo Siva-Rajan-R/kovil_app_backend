@@ -7,6 +7,7 @@ from typing import Optional
 class AddEventNameSchema(BaseModel):
     event_name:constr(strip_whitespace=True,min_length=1)# type: ignore
     event_amount:int
+    is_special:bool
 
 class AddNeivethiyamNameSchema(BaseModel):
     neivethiyam_name:constr(strip_whitespace=True,min_length=1)# type: ignore

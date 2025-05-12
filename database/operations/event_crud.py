@@ -148,14 +148,15 @@ class EventNameVerification:
 
 
 class EventNameAndAmountCrud(__EventAndNeivethiyamNameAndAmountCrudInputs):
-    async def add_event_name_and_amt(self,event_name:str,event_amount:int):
+    async def add_event_name_and_amt(self,event_name:str,event_amount:int,is_special:bool):
         try:
             with self.session.begin():
                 user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
                 if user.role==backend_enums.UserRole.ADMIN:
                     added_event_name=EventNames(
                         name=event_name,
-                        amount=event_amount
+                        amount=event_amount,
+                        is_special=is_special
                     )
                     self.session.add(added_event_name)
                     return "successfully event name added"
@@ -206,7 +207,8 @@ class EventNameAndAmountCrud(__EventAndNeivethiyamNameAndAmountCrudInputs):
                     select(
                         EventNames.id,
                         EventNames.name,
-                        EventNames.amount
+                        EventNames.amount,
+                        EventNames.is_special
                     )
                     .order_by(desc(EventNames.id))
                 ).mappings().all()
