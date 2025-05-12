@@ -1,6 +1,6 @@
 from fastapi import APIRouter,Depends,Query
 from fastapi.responses import JSONResponse
-from database.operations.workers_crud import WorkersCrud,Session
+from database.operations.workers_crud import WorkersCrud,Session,SendWorkerInfoAsEmail
 from database.main import get_db_session
 from api.dependencies.token_verification import verify
 from api.schemas.workers_crud import AddWorkersSchema,DeleteWorkerSchema,ResetAllWorkersSchema
@@ -59,16 +59,30 @@ async def reset_worker(worker_inp:DeleteWorkerSchema,session:Session=Depends(get
     )
 
 @router.put("/worker/reset/all")
-async def reset_worker(worker_inp:ResetAllWorkersSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+async def reset_all_worker(worker_inp:ResetAllWorkersSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
     reseted_worker=await WorkersCrud(
         session=session,
         user_id=user_id,
-    ).reset_all_workers(from_date=worker_inp.from_date,to_date=worker_inp.to_date,amount=worker_inp.amount,to_email="siva967763@gmail.com")
+    ).reset_all_workers(from_date=worker_inp.from_date,to_date=worker_inp.to_date,amount=worker_inp.amount,to_email=worker_inp.to_email,isfor_reset=True)
 
     return JSONResponse(
         status_code=200,
         content=reseted_worker
+    )
+
+@router.post("/worker/report/email")
+async def worker_report_email(worker_inp:ResetAllWorkersSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']
+    email_send=await WorkersCrud(
+        session=session,
+        user_id=user_id,
+    ).reset_all_workers(from_date=worker_inp.from_date,to_date=worker_inp.to_date,amount=worker_inp.amount,to_email=worker_inp.to_email,isfor_reset=False)
+
+ 
+    return JSONResponse(
+        status_code=200,
+        content=email_send
     )
 
 @router.get("/workers")

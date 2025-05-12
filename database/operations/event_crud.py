@@ -510,7 +510,7 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
                 # ic(self.session.execute(select(EventsStatus.archagar,EventsStatus.abisegam,EventsStatus.helper,EventsStatus.poo,EventsStatus.read,EventsStatus.prepare).where(EventsStatus.event_id==self.event_id)).mappings().all())
                 # ic(self.image)
                 # ic(backend_enums.EventStatus.PENDING,backend_enums.EventStatus.PENDING.name,backend_enums.EventStatus.PENDING.value,self.event_status,event_status.image_url)
-                temp_log=[]
+                
                 cur_worker_names=[self.archagar,self.abisegam,self.helper,self.poo,self.read,self.prepare]
                 previous_worker_names=[EventsStatus.archagar,EventsStatus.abisegam,EventsStatus.helper,EventsStatus.poo,EventsStatus.read,EventsStatus.prepare]
                 
@@ -537,34 +537,39 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
                         if cur_worker_log:
                             if cur_worker_log.no_of_participation!=len(cur_worker_names):
 
-                                #for updating cur logs and participation counts {starat} 
-                                cur_worker_log_query.update(
-                                    {
-                                        WorkersParticipationLogs.no_of_participation:cur_worker_log.no_of_participation+1
-                                    }
+                                #for updating cur logs and participation counts {starat}
+                                if cur_worker_log.is_reseted==False: 
+                                    cur_worker_log_query.update(
+                                        {
+                                            WorkersParticipationLogs.no_of_participation:cur_worker_log.no_of_participation+1
+                                        }
+                                    )
+
+                                    #{end} of cur
+
+                                    #for updating prev logs and participation counts {starat}
+                                    await self.update_previous_state_of_workers(
+                                        prev_worker_log_query=prev_worker_log_query
+                                    )
+                                    #{end of previous }
+                        else:
+                            ic("hello",cur_worker_log)
+                            query_to_check=self.session.query(WorkersParticipationLogs.id).filter(WorkersParticipationLogs.event_id==self.event_id,WorkersParticipationLogs.is_reseted==True).first()
+                            ic(query_to_check)
+                            if query_to_check==None:
+                                ic("hello 8")
+                                self.session.add(
+                                    WorkersParticipationLogs(
+                                        event_id=self.event_id,
+                                        worker_id=cur_worker.id,
+                                        no_of_participation=1
+                                    )
                                 )
-
-                                #{end} of cur
-
                                 #for updating prev logs and participation counts {starat}
                                 await self.update_previous_state_of_workers(
-                                    prev_worker_log_query=prev_worker_log_query
-                                )
+                                        prev_worker_log_query=prev_worker_log_query
+                                    )
                                 #{end of previous }
-                        else:
-                            ic("hello")
-                            self.session.add(
-                                WorkersParticipationLogs(
-                                    event_id=self.event_id,
-                                    worker_id=cur_worker.id,
-                                    no_of_participation=1
-                                )
-                            )
-                            #for updating prev logs and participation counts {starat}
-                            await self.update_previous_state_of_workers(
-                                    prev_worker_log_query=prev_worker_log_query
-                                )
-                            #{end of previous }
                     else:
                         raise HTTPException(
                             status_code=404,

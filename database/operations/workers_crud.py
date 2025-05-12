@@ -161,7 +161,12 @@ class WorkersCrud(__WorkersCrudInputs):
                         WorkersParticipationLogs
                     ).filter(
                         WorkersParticipationLogs.worker_id==worker.id
-                    ).delete()
+                    ).update(
+                        {
+                            WorkersParticipationLogs.is_reseted:True,
+                            WorkersParticipationLogs.no_of_participation:0
+                        }
+                    )
 
                     return "worker reseted successfully"
                 
@@ -178,7 +183,7 @@ class WorkersCrud(__WorkersCrudInputs):
                 detail=f"something went wrong while resting worker {e}"
             )
         
-    async def reset_all_workers(self,from_date:date,to_date:date,amount:int,to_email:Optional[EmailStr]):
+    async def reset_all_workers(self,from_date:date,to_date:date,amount:int,isfor_reset:bool,to_email:Optional[EmailStr]=None):
         try:
             with self.session.begin():
                 user=await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
@@ -204,20 +209,29 @@ class WorkersCrud(__WorkersCrudInputs):
                             ).send_worker_info()
 
                         # Step 1: Get the IDs of the logs to be deleted
-                        log_ids = self.session.query(WorkersParticipationLogs.id).join(
-                            Events, WorkersParticipationLogs.event_id == Events.id
-                        ).filter(
-                            Events.date.between(from_date, to_date)
-                        ).all()
+                        if isfor_reset:
+                            log_ids = self.session.query(WorkersParticipationLogs.id).join(
+                                Events, WorkersParticipationLogs.event_id == Events.id
+                            ).filter(
+                                Events.date.between(from_date, to_date)
+                            ).all()
+                            ic(log_ids)
+                            # Step 2: Delete the logs using the IDs
+                            if log_ids:
+                                self.session.query(WorkersParticipationLogs).filter(
+                                    WorkersParticipationLogs.id.in_([log.id for log in log_ids])
+                                ).update(
+                                    {
+                                        WorkersParticipationLogs.is_reseted:True,
+                                        WorkersParticipationLogs.no_of_participation:0
+                                    }
+                                )
 
-                        # Step 2: Delete the logs using the IDs
-                        if log_ids:
-                            self.session.query(WorkersParticipationLogs).filter(
-                                WorkersParticipationLogs.id.in_([log.id for log in log_ids])
-                            ).delete(synchronize_session=False)
 
-
-                        return "all worker reseted successfully"
+                            return "all worker reseted successfully"
+                        
+                        return "worker info email sended successfully"
+                    
                     raise HTTPException(
                         status_code=404,
                         detail="None of them Participated"

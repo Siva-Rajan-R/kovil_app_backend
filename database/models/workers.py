@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey
+from sqlalchemy import Column, Integer, String, ForeignKey,Boolean
 from sqlalchemy.orm import relationship
 from database.main import Base, Engine
 
@@ -16,6 +16,7 @@ class WorkersParticipationLogs(Base):
     event_id = Column(String, ForeignKey("events.id", ondelete="CASCADE"), nullable=False)
     worker_id = Column(Integer, ForeignKey("workers.id", ondelete="CASCADE"), nullable=False)
     no_of_participation = Column(Integer)
+    is_reseted=Column(Boolean,default=False)
 
     worker = relationship("Workers", back_populates="wrk_partic_log")
     event = relationship("Events",back_populates="worker_participation_log")
