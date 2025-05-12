@@ -203,15 +203,19 @@ class WorkersCrud(__WorkersCrudInputs):
                                 amount=amount
                             ).send_worker_info()
 
-                        self.session.query(
-                            WorkersParticipationLogs
-                        ).join(
-                            WorkersParticipationLogs, Workers.id == WorkersParticipationLogs.worker_id
-                        ).join(
+                        # Step 1: Get the IDs of the logs to be deleted
+                        log_ids = self.session.query(WorkersParticipationLogs.id).join(
                             Events, WorkersParticipationLogs.event_id == Events.id
-                        ).where(
+                        ).filter(
                             Events.date.between(from_date, to_date)
-                        ).delete()
+                        ).all()
+
+                        # Step 2: Delete the logs using the IDs
+                        if log_ids:
+                            self.session.query(WorkersParticipationLogs).filter(
+                                WorkersParticipationLogs.id.in_([log.id for log in log_ids])
+                            ).delete(synchronize_session=False)
+
 
                         return "all worker reseted successfully"
                     raise HTTPException(
