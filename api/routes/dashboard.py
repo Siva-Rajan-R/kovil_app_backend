@@ -8,11 +8,12 @@ router=APIRouter(
     tags=["Get Event Dashboard"]
 )
 
-@router.get("/dashboard")
-async def get_dashboard(date:date=Query(...),session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+@router.get("/event/dashboard")
+async def get_dashboard(from_date:date=Query(...),to_date:date=Query(...),session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user["id"]
     return await EventDashboard(
         session=session,
         user_id=user_id,
-        date=date
+        from_date=from_date,
+        to_date=to_date
     ).get_dashboard()
