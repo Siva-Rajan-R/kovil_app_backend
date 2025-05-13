@@ -27,7 +27,7 @@ class EventDashboard(__EventDashboardInputs):
                         func.count(Events.id),
                         EventsStatus.status
                     )
-                    .join(EventsStatus,Events.id==EventsStatus.event_id,is_outer=True)
+                    .join(EventsStatus,Events.id==EventsStatus.event_id,isouter=True)
                     .where(
                         Events.date.between(self.from_date,self.to_date)
                     )
