@@ -34,7 +34,8 @@ class __AddEventInputs:
             paid_amount:int,
             payment_status:backend_enums.PaymetStatus,
             payment_mode:backend_enums.PaymentMode,
-            neivethiyam_id:Optional[int]=None
+            neivethiyam_id:Optional[int]=None,
+            is_special:bool | None
     ):
         self.user_id=user_id
         self.session=session
@@ -51,6 +52,7 @@ class __AddEventInputs:
         self.payment_status=payment_status
         self.payment_mode=payment_mode
         self.neivethiyam_id=neivethiyam_id
+        self.is_special=is_special
 
 class __EventAndNeivethiyamNameAndAmountCrudInputs:
     def __init__(self,session:Session,user_id:str):
@@ -78,6 +80,7 @@ class __UpdateEventStatusInputs:
             prepare:int,
             image:Optional[UploadFile],
             image_url_path:str,
+            is_special:bool | None
         ):
         self.session=session
         self.user_id=user_id
@@ -92,6 +95,7 @@ class __UpdateEventStatusInputs:
         self.prepare=prepare
         self.image=image
         self.image_url_path=image_url_path
+        self.is_special=is_special
 
 class __ContactDescriptionInputs:
     def __init__(self,session:Session,user_id:str):
@@ -318,6 +322,7 @@ class AddEvent(__AddEventInputs):
                         date=self.event_date,
                         start_at=self.event_start_at,
                         end_at=self.event_end_at
+                        is_special=self.is_special
                     )
 
                     client=Clients(
@@ -386,7 +391,8 @@ class UpdateEvent(__AddEventInputs):
                             Events.description:self.event_description,
                             Events.date:self.event_date,
                             Events.start_at:self.event_start_at,
-                            Events.end_at:self.event_end_at
+                            Events.end_at:self.event_end_at,
+                            Events.is_special:self.is_special
                         }
                     )
 
