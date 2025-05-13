@@ -35,7 +35,7 @@ class __AddEventInputs:
             payment_status:backend_enums.PaymetStatus,
             payment_mode:backend_enums.PaymentMode,
             neivethiyam_id:Optional[int]=None,
-            is_special:bool | None
+            is_special:Optional[bool]=None
     ):
         self.user_id=user_id
         self.session=session
