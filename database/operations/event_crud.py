@@ -79,8 +79,7 @@ class __UpdateEventStatusInputs:
             read:int,
             prepare:int,
             image:Optional[UploadFile],
-            image_url_path:str,
-            is_special:bool | None
+            image_url_path:str
         ):
         self.session=session
         self.user_id=user_id
@@ -95,7 +94,6 @@ class __UpdateEventStatusInputs:
         self.prepare=prepare
         self.image=image
         self.image_url_path=image_url_path
-        self.is_special=is_special
 
 class __ContactDescriptionInputs:
     def __init__(self,session:Session,user_id:str):
@@ -321,7 +319,7 @@ class AddEvent(__AddEventInputs):
                         description=self.event_description,
                         date=self.event_date,
                         start_at=self.event_start_at,
-                        end_at=self.event_end_at
+                        end_at=self.event_end_at,
                         is_special=self.is_special
                     )
 
