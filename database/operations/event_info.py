@@ -77,6 +77,7 @@ class ParticularEvent(__ParticularEventInputs):
                 Events.start_at.label("event_start_at"),
                 Events.end_at.label("event_end_at"),
                 Events.date.label('event_date'),
+                Events.is_special.label('is_special_event'),
                 Clients.name.label("client_name"),
                 Clients.city.label("client_city"),
                 Clients.mobile_number.label("client_mobile_number"),
