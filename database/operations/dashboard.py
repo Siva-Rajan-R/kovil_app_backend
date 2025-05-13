@@ -10,10 +10,11 @@ from icecream import ic
 
 
 class __EventDashboardInputs:
-    def __init__(self,session:Session,user_id:str,date:date):
+    def __init__(self,session:Session,user_id:str,from_date:date,to_date:date):
         self.session=session
         self.user_id=user_id
-        self.date=date
+        self.from_date=from_date
+        self.to_date=to_date
 
 class EventDashboard(__EventDashboardInputs):
     async def get_dashboard(self):
@@ -21,45 +22,23 @@ class EventDashboard(__EventDashboardInputs):
             user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
             if user.role==backend_enums.UserRole.ADMIN:
                 
-                today_completed=self.session.execute(
+                events_dashboard=self.session.execute(
                     select(
-                        func.count(Payments.event_id),
-                        func.sum(Payments.paid_amount).label("total_amounts")
+                        func.count(Events.event_id),
+                        EventsStatus.status
                     )
+                    .join(EventsStatus,Events.id==EventsStatus.event_id)
                     .where(
                         EventsStatus.status==backend_enums.EventStatus.COMPLETED,
-                        Events.date==self.date
-                    )
-                ).mappings().all()
-
-                today_cancled=self.session.execute(
-                    select(
-                        func.count(Payments.event_id),
-                        func.sum(Payments.paid_amount).label("total_amounts")
-                    )
-                    .where(
-                        EventsStatus.status==backend_enums.EventStatus.CANCELED,
-                        Events.date==self.date
-                    )
-                ).mappings().all()
-
-                today_pending=self.session.execute(
-                    select(
-                        func.count(Events.date),
-                        func.sum(Payments.paid_amount).label("total_amounts")
-                    )
-                    .where(
-                        EventsStatus.status==backend_enums.EventStatus.PENDING,
-                        Events.date==self.date
+                        Events.date.between(from_date,to_date)
                     )
                 ).mappings().all()
 
 
-                ic(today_completed,today_pending,today_cancled)
+
+                # ic(today_completed,today_pending,today_cancled)
                 return {
-                    "today_pendings":today_pending,
-                    "today_completed":today_completed,
-                    "today_canceled":today_cancled
+                    "events_dashboard":events_dashboard
                 }
             raise HTTPException(
                     status_code=401,
