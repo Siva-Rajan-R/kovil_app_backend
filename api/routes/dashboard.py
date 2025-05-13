@@ -11,7 +11,7 @@ router=APIRouter(
 @router.get("/dashboard")
 async def get_dashboard(date:date=Query(...),session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user["id"]
-    await EventDashboard(
+    return await EventDashboard(
         session=session,
         user_id=user_id,
         date=date

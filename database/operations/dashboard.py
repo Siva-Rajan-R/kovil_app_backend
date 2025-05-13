@@ -24,7 +24,7 @@ class EventDashboard(__EventDashboardInputs):
                 today_completed=self.session.execute(
                     select(
                         func.count(Payments.event_id),
-                        func.sum(Payments.paid_amount)
+                        func.sum(Payments.paid_amount).label("total_amounts")
                     )
                     .where(
                         EventsStatus.status==backend_enums.EventStatus.COMPLETED,
@@ -35,10 +35,10 @@ class EventDashboard(__EventDashboardInputs):
                 today_cancled=self.session.execute(
                     select(
                         func.count(Payments.event_id),
-                        func.sum(Payments.paid_amount)
+                        func.sum(Payments.paid_amount).label("total_amounts")
                     )
                     .where(
-                        EventsStatus.status==backend_enums.EventStatus.CANCLED,
+                        EventsStatus.status==backend_enums.EventStatus.CANCELED,
                         Events.date==self.date
                     )
                 ).mappings().all()
@@ -46,7 +46,7 @@ class EventDashboard(__EventDashboardInputs):
                 today_pending=self.session.execute(
                     select(
                         func.count(Events.date),
-                        func.sum(Payments.paid_amount)
+                        func.sum(Payments.paid_amount).label("total_amounts")
                     )
                     .where(
                         EventsStatus.status==backend_enums.EventStatus.PENDING,
@@ -56,7 +56,11 @@ class EventDashboard(__EventDashboardInputs):
 
 
                 ic(today_completed,today_pending,today_cancled)
-                return
+                return {
+                    "today_pendings":today_pending,
+                    "today_completed":today_completed,
+                    "today_canceled":today_cancled
+                }
             raise HTTPException(
                     status_code=401,
                     detail="you are not allowed to make any changes"
