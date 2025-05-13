@@ -29,7 +29,7 @@ class EventDashboard(__EventDashboardInputs):
                     )
                     .join(EventsStatus,Events.id==EventsStatus.event_id)
                     .where(
-                        Events.date.between(from_date,to_date)
+                        Events.date.between(self.from_date,self.to_date)
                     )
                 ).mappings().all()
 
