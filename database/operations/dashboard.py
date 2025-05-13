@@ -24,12 +24,11 @@ class EventDashboard(__EventDashboardInputs):
                 
                 events_dashboard=self.session.execute(
                     select(
-                        func.count(Events.event_id),
+                        func.count(Events.id),
                         EventsStatus.status
                     )
                     .join(EventsStatus,Events.id==EventsStatus.event_id)
                     .where(
-                        EventsStatus.status==backend_enums.EventStatus.COMPLETED,
                         Events.date.between(from_date,to_date)
                     )
                 ).mappings().all()
