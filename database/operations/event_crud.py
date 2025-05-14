@@ -328,7 +328,7 @@ class AddEvent(__AddEventInputs):
                     if not is_event_name_exists and not is_neivethiyam_name_exists:
                         raise HTTPException(
                             status_code=404,
-                            detail=f"No event or neivethiyam name found {is_event_name_exists,is_neivethiyam_name_exists,type(is_event_name_exists),type(is_neivethiyam_name_exists)}"
+                            detail=f"No event or neivethiyam name found "
                         )
                     
                     event_id=await create_unique_id(self.event_name)
@@ -365,16 +365,17 @@ class AddEvent(__AddEventInputs):
                     )
 
                     combined_event_details=[event,client,payment,event_status]
-
-                    if self.neivethiyam_id:
-                        await NeivethiyamNameVerification(session=self.session).is_neivethiyam_exists_by_id(self.neivethiyam_id)
+                    ic("hello")
+                    if is_neivethiyam_name_exists:
+                        ic("be")
+                  
                         event_neivethiyam=EventsNeivethiyam(
                             neivethiyam_id=self.neivethiyam_id,
                             event_id=event_id
                         )
 
                         combined_event_details.append(event_neivethiyam)
-
+                    ic("gee")
                     self.session.add_all(combined_event_details)
 
                     return "successfully event added"
@@ -440,8 +441,7 @@ class UpdateEvent(__AddEventInputs):
                         }
                     )
                     ic("from dbop",self.neivethiyam_id)
-                    if self.neivethiyam_id!=None:
-                        await NeivethiyamNameVerification(session=self.session).is_neivethiyam_exists_by_id(self.neivethiyam_id)
+                    if is_neivethiyam_name_exists:
                         query_to_update=self.session.query(EventsNeivethiyam).filter(EventsNeivethiyam.event_id==event_id)
                         if query_to_update.first():
                             query_to_update.update(
