@@ -126,6 +126,15 @@ class NeivethiyamNameVerification:
             detail="neivethiyam id not found"
         )
     
+    async def is_neivethiyam_exists_by_id(self,neivethiyam_name):
+        neivethiyam=self.session.execute(select(NeivethiyamNames.id).where(NeivethiyamNames.name==neivethiyam_name)).scalar_one_or_none()
+        if neivethiyam:
+            return neivethiyam
+        raise HTTPException(
+            status_code=404,
+            detail="neivethiyam id not found"
+        )
+    
 class EventNameVerification:
     def __init__(self,session:Session):
         self.session=session
@@ -311,7 +320,17 @@ class AddEvent(__AddEventInputs):
             with self.session.begin():
                 user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
                 if user.role==backend_enums.UserRole.ADMIN:
-                    await EventNameVerification(session=self.session).is_event_name_exists_by_name(self.event_name)
+
+                    is_event_name_exists=self.session.execute(select(EventNames.id).where(EventNames.name==self.event_name)).scalar_one_or_none()
+                    
+                    is_neivethiyam_name_exists=self.session.execute(select(NeivethiyamNames.id).where(NeivethiyamNames.name==self.event_name)).scalar_one_or_none()
+
+                    if not is_event_name_exists and not is_neivethiyam_name_exists:
+                        raise HTTPException(
+                            status_code=404,
+                            detail="No event or neivethiyam name found"
+                        )
+                    
                     event_id=await create_unique_id(self.event_name)
                     event=Events(
                         id=event_id,
@@ -382,7 +401,17 @@ class UpdateEvent(__AddEventInputs):
                 user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
                 if user.role==backend_enums.UserRole.ADMIN:
                     await EventVerification(session=self.session).is_event_exists_by_id(event_id)
+                    
+                    is_event_name_exists=self.session.execute(select(EventNames.id).where(EventNames.name==self.event_name)).scalar_one_or_none()
+                    
+                    is_neivethiyam_name_exists=self.session.execute(select(NeivethiyamNames.id).where(NeivethiyamNames.name==self.event_name)).scalar_one_or_none()
 
+                    if not is_event_name_exists and not is_neivethiyam_name_exists:
+                        raise HTTPException(
+                            status_code=404,
+                            detail="No event or neivethiyam name found"
+                        )
+                    
                     self.session.query(Events).filter(Events.id==event_id).update(
                         {
                             Events.name:self.event_name,
