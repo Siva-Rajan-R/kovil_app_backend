@@ -324,11 +324,11 @@ class AddEvent(__AddEventInputs):
                     is_event_name_exists=self.session.execute(select(EventNames.id).where(EventNames.name==self.event_name)).scalar_one_or_none()
                     
                     is_neivethiyam_name_exists=self.session.execute(select(NeivethiyamNames.id).where(NeivethiyamNames.id==self.neivethiyam_id)).scalar_one_or_none()
-
+                    ic(is_event_name_exists,is_neivethiyam_name_exists)
                     if not is_event_name_exists and not is_neivethiyam_name_exists:
                         raise HTTPException(
                             status_code=404,
-                            detail="No event or neivethiyam name found"
+                            detail=f"No event or neivethiyam name found {is_event_name_exists,is_neivethiyam_name_exists,type(is_event_name_exists),type(is_neivethiyam_name_exists)}"
                         )
                     
                     event_id=await create_unique_id(self.event_name)
