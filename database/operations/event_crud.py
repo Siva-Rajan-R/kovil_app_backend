@@ -323,7 +323,7 @@ class AddEvent(__AddEventInputs):
 
                     is_event_name_exists=self.session.execute(select(EventNames.id).where(EventNames.name==self.event_name)).scalar_one_or_none()
                     
-                    is_neivethiyam_name_exists=self.session.execute(select(NeivethiyamNames.id).where(NeivethiyamNames.name==self.event_name)).scalar_one_or_none()
+                    is_neivethiyam_name_exists=self.session.execute(select(NeivethiyamNames.id).where(NeivethiyamNames.id==self.neivethiyam_id)).scalar_one_or_none()
 
                     if not is_event_name_exists and not is_neivethiyam_name_exists:
                         raise HTTPException(
@@ -404,7 +404,7 @@ class UpdateEvent(__AddEventInputs):
                     
                     is_event_name_exists=self.session.execute(select(EventNames.id).where(EventNames.name==self.event_name)).scalar_one_or_none()
                     
-                    is_neivethiyam_name_exists=self.session.execute(select(NeivethiyamNames.id).where(NeivethiyamNames.name==self.event_name)).scalar_one_or_none()
+                    is_neivethiyam_name_exists=self.session.execute(select(NeivethiyamNames.id).where(NeivethiyamNames.id==self.neivethiyam_id)).scalar_one_or_none()
 
                     if not is_event_name_exists and not is_neivethiyam_name_exists:
                         raise HTTPException(
