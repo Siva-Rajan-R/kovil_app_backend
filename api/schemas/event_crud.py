@@ -34,6 +34,7 @@ class AddEventSchema(BaseModel):
     payment_mode:backend_enums.PaymentMode=backend_enums.PaymentMode.OFFLINE
     neivethiyam_id:Optional[int]=None
     is_special:Optional[bool]=None
+    neivethiyam_kg:Optional[int]=None
 
 class DeleteSingleEventSchema(BaseModel):
     event_id:constr(strip_whitespace=True,min_length=1)# type: ignore
@@ -58,6 +59,7 @@ class UpdateEventSchema(BaseModel):
     payment_mode:backend_enums.PaymentMode
     neivethiyam_id:Optional[int]=None
     is_special:bool | None
+    neivethiyam_kg:int
 
 class GetEventsEmailschema(BaseModel):
     from_date:date

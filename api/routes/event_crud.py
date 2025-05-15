@@ -110,7 +110,8 @@ async def add_event(add_event_inputs:AddEventSchema,session:Session=Depends(get_
         payment_status=add_event_inputs.payment_status,
         payment_mode=add_event_inputs.payment_mode,
         neivethiyam_id=add_event_inputs.neivethiyam_id,
-        is_special=add_event_inputs.is_special
+        is_special=add_event_inputs.is_special,
+        padi_kg=add_event_inputs.neivethiyam_kg
     ).add_event()
 
     return JSONResponse(
@@ -140,7 +141,8 @@ async def update_event(update_event_inputs:UpdateEventSchema,session:Session=Dep
         payment_status=update_event_inputs.payment_status,
         payment_mode=update_event_inputs.payment_mode,
         neivethiyam_id=update_event_inputs.neivethiyam_id,
-        is_special=update_event_inputs.is_special
+        is_special=update_event_inputs.is_special,
+        padi_kg=update_event_inputs.neivethiyam_kg
     ).update_event(event_id=update_event_inputs.event_id)
 
     return JSONResponse(

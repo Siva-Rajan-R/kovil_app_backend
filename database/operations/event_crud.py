@@ -35,7 +35,8 @@ class __AddEventInputs:
             payment_status:backend_enums.PaymetStatus,
             payment_mode:backend_enums.PaymentMode,
             neivethiyam_id:Optional[int]=None,
-            is_special:Optional[bool]=None
+            is_special:Optional[bool]=None,
+            padi_kg:Optional[int]=None
     ):
         self.user_id=user_id
         self.session=session
@@ -53,6 +54,7 @@ class __AddEventInputs:
         self.payment_mode=payment_mode
         self.neivethiyam_id=neivethiyam_id
         self.is_special=is_special
+        self.padi_kg=padi_kg
 
 class __EventAndNeivethiyamNameAndAmountCrudInputs:
     def __init__(self,session:Session,user_id:str):
@@ -371,7 +373,8 @@ class AddEvent(__AddEventInputs):
                   
                         event_neivethiyam=EventsNeivethiyam(
                             neivethiyam_id=self.neivethiyam_id,
-                            event_id=event_id
+                            event_id=event_id,
+                            padi_kg=self.padi_kg
                         )
 
                         combined_event_details.append(event_neivethiyam)
@@ -453,7 +456,8 @@ class UpdateEvent(__AddEventInputs):
                             self.session.add(
                                 EventsNeivethiyam(
                                     neivethiyam_id=self.neivethiyam_id,
-                                    event_id=event_id
+                                    event_id=event_id,
+                                    padi_kg=self.padi_kg
                                 )
                             )
                     else:

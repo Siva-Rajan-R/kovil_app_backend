@@ -98,6 +98,7 @@ class ParticularEvent(__ParticularEventInputs):
                 EventsStatus.updated_at,
                 NeivethiyamNames.id.label("neivethiyam_id"),
                 NeivethiyamNames.name.label("neivethiyam_name"),
+                EventsNeivethiyam.padi_kg,
                 EventsContactDescription.id.label("contact_description_id"),
                 EventsContactDescription.description.label("contact_description"),
                 EventsContactDescription.updated_by.label("contact_description_updated_by"),

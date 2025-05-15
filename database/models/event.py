@@ -16,6 +16,7 @@ class NeivethiyamNames(Base):
     id=Column(Integer,primary_key=True,autoincrement=True)
     name=Column(String,nullable=False)
     amount=Column(Integer,nullable=False)
+    
 
 class Events(Base):
     __tablename__="events"
@@ -39,6 +40,7 @@ class EventsNeivethiyam(Base):
     id=Column(Integer,primary_key=True,autoincrement=True)
     neivethiyam_id=Column(Integer,ForeignKey("neivethiyam_names.id"),nullable=False)
     event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False)
+    padi_kg=Column(Integer,nullable=False)
 
     event=relationship("Events",back_populates="event_neivethiyam")
 
