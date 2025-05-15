@@ -24,12 +24,12 @@ class EventDashboard(__EventDashboardInputs):
                 
                 events_dashboard=self.session.execute(
                     select(
-                        func.count(Events.id),
+                        func.coalesce(func.count(Events.id),0),
                         EventsStatus.status,
-                        func.sum(Payments.total_amount).label("total_amount")
+                        func.coalesce(func.sum(Payments.total_amount).label("total_amount"),0)
                     )
-                    .join(EventsStatus,Events.id==EventsStatus.event_id,isouter=True)
-                    .join(Payments,Events.id==Payments.event_id,isouter=True)
+                    .join(EventsStatus,Events.id==EventsStatus.event_id,isouter=True,full=True)
+                    .join(Payments,Events.id==Payments.event_id,isouter=True,full=True)
                     .where(
                         Events.date.between(self.from_date,self.to_date)
                     )
