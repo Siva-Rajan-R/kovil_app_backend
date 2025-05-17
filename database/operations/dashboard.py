@@ -24,9 +24,9 @@ class EventDashboard(__EventDashboardInputs):
                 
                 events_dashboard=self.session.execute(
                     select(
-                        func.coalesce(func.count(Events.id),0),
+                        func.coalesce(func.count(Events.id),0).label("count"),
                         EventsStatus.status,
-                        func.coalesce(func.sum(Payments.total_amount).label("total_amount"),0)
+                        func.coalesce(func.sum(Payments.total_amount),0).label("total_amount")
                     )
                     .join(EventsStatus,Events.id==EventsStatus.event_id,isouter=True,full=True)
                     .join(Payments,Events.id==Payments.event_id,isouter=True,full=True)
