@@ -449,7 +449,8 @@ class UpdateEvent(__AddEventInputs):
                         if query_to_update.first():
                             query_to_update.update(
                                 {
-                                    EventsNeivethiyam.neivethiyam_id:self.neivethiyam_id
+                                    EventsNeivethiyam.neivethiyam_id:self.neivethiyam_id,
+                                    EventsNeivethiyam.padi_kg:self.padi_kg
                                 }
                             )
                         else:
