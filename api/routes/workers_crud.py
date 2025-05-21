@@ -64,7 +64,7 @@ async def reset_all_worker(worker_inp:ResetAllWorkersSchema,session:Session=Depe
     reseted_worker=await WorkersCrud(
         session=session,
         user_id=user_id,
-    ).reset_all_workers(from_date=worker_inp.from_date,to_date=worker_inp.to_date,amount=worker_inp.amount,to_email=worker_inp.to_email,isfor_reset=True)
+    ).reset_all_workers(from_date=worker_inp.from_date,to_date=worker_inp.to_date,amount=worker_inp.amount,to_email=worker_inp.send_to,isfor_reset=True)
 
     return JSONResponse(
         status_code=200,
