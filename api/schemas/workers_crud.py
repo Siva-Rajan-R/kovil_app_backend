@@ -14,4 +14,4 @@ class ResetAllWorkersSchema(BaseModel):
     from_date:date
     to_date:date
     amount:int
-    to_email:Optional[EmailStr]=None
+    send_to:Optional[EmailStr]=None

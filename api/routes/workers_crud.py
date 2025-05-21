@@ -77,7 +77,7 @@ async def worker_report_email(worker_inp:ResetAllWorkersSchema,session:Session=D
     email_send=await WorkersCrud(
         session=session,
         user_id=user_id,
-    ).reset_all_workers(from_date=worker_inp.from_date,to_date=worker_inp.to_date,amount=worker_inp.amount,to_email=worker_inp.to_email,isfor_reset=False)
+    ).reset_all_workers(from_date=worker_inp.from_date,to_date=worker_inp.to_date,amount=worker_inp.amount,to_email=worker_inp.send_to,isfor_reset=False)
 
  
     return JSONResponse(
