@@ -1,5 +1,5 @@
 from database.models.event import (
-    Events,Clients,Payments,EventsStatus,EventNames,EventStatusImages,NeivethiyamNames,EventsNeivethiyam,EventsContactDescription
+    Events,Clients,Payments,EventsCompletedStatus,EventsPendingCanceledStatus,EventNames,EventStatusImages,NeivethiyamNames,EventsNeivethiyam,EventsContactDescription
 )
 from database.models.workers import Workers,WorkersParticipationLogs
 from fastapi import UploadFile
@@ -66,7 +66,7 @@ class __DeleteEventInputs:
         self.session=session
         self.user_id=user_id
 
-class __UpdateEventStatusInputs:
+class __UpdateEventCompletedStatusInputs:
     def __init__(
             self,
             session:Session,
@@ -96,6 +96,21 @@ class __UpdateEventStatusInputs:
         self.prepare=prepare
         self.image=image
         self.image_url_path=image_url_path
+
+class __UpdateEventPendingCompletedInputs:
+    def __init__(
+        self,
+        session:Session,
+        user_id:str,
+        event_id:str,
+        event_status:backend_enums.EventStatus,
+        description:str
+    ):
+        self.session=session
+        self.user_id=user_id
+        self.event_id=event_id
+        self.event_status=event_status
+        self.description=description
 
 class __ContactDescriptionInputs:
     def __init__(self,session:Session,user_id:str):
@@ -341,7 +356,10 @@ class AddEvent(__AddEventInputs):
                         date=self.event_date,
                         start_at=self.event_start_at,
                         end_at=self.event_end_at,
-                        is_special=self.is_special
+                        is_special=self.is_special,
+                        status=backend_enums.EventStatus.PENDING,
+                        added_by=user.name,
+                        updated_by=user.name
                     )
 
                     client=Clients(
@@ -359,14 +377,8 @@ class AddEvent(__AddEventInputs):
                         event_id=event_id
                     )
                         
-                    event_status=EventsStatus(
-                        status=backend_enums.EventStatus.PENDING,
-                        event_id=event_id,
-                        added_by=user.name,
-                        updated_at=await indian_time.get_india_time()
-                    )
 
-                    combined_event_details=[event,client,payment,event_status]
+                    combined_event_details=[event,client,payment]
                     ic("hello")
                     if is_neivethiyam_name_exists:
                         ic("be")
@@ -522,7 +534,7 @@ class DeleteEvent(__DeleteEventInputs):
                 detail=f"something went wrong while deleting event {e}"
             )
 
-class UpdateEventStatus(__UpdateEventStatusInputs):
+class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
 
     async def update_previous_state_of_workers(self,prev_worker_log_query):
         if prev_worker_log_query:
@@ -542,120 +554,145 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
         try:
             with self.session.begin():
                 user=await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
+                await EventVerification(session=self.session).is_event_exists_by_id(event_id=self.event_id)
+                if self.event_status==backend_enums.EventStatus.COMPLETED:
+                    event_status_query=self.session.query(EventsCompletedStatus).filter(EventsCompletedStatus.event_id==self.event_id)
+                    event_status=event_status_query.one_or_none()
+                    # ic(self.session.execute(select(EventsStatus.archagar,EventsStatus.abisegam,EventsStatus.helper,EventsStatus.poo,EventsStatus.read,EventsStatus.prepare).where(EventsStatus.event_id==self.event_id)).mappings().all())
+                    # ic(self.image)
+                    # ic(backend_enums.EventStatus.PENDING,backend_enums.EventStatus.PENDING.name,backend_enums.EventStatus.PENDING.value,self.event_status,event_status.image_url)
+                    
+                    cur_worker_names=[self.archagar,self.abisegam,self.helper,self.poo,self.read,self.prepare]
+                    previous_worker_names=[EventsCompletedStatus.archagar,EventsCompletedStatus.abisegam,EventsCompletedStatus.helper,EventsCompletedStatus.poo,EventsCompletedStatus.read,EventsCompletedStatus.prepare]
+                    
+                    for cur_and_previous_worker_name in zip(cur_worker_names,previous_worker_names):
+                        cur_worker_query=self.session.query(Workers).filter(Workers.name==cur_and_previous_worker_name[0])
+                        cur_worker=cur_worker_query.one_or_none()
 
-                event_status_query=self.session.query(EventsStatus).filter(EventsStatus.event_id==self.event_id)
-                event_status=event_status_query.one_or_none()
-                # ic(self.session.execute(select(EventsStatus.archagar,EventsStatus.abisegam,EventsStatus.helper,EventsStatus.poo,EventsStatus.read,EventsStatus.prepare).where(EventsStatus.event_id==self.event_id)).mappings().all())
-                # ic(self.image)
-                # ic(backend_enums.EventStatus.PENDING,backend_enums.EventStatus.PENDING.name,backend_enums.EventStatus.PENDING.value,self.event_status,event_status.image_url)
-                
-                cur_worker_names=[self.archagar,self.abisegam,self.helper,self.poo,self.read,self.prepare]
-                previous_worker_names=[EventsStatus.archagar,EventsStatus.abisegam,EventsStatus.helper,EventsStatus.poo,EventsStatus.read,EventsStatus.prepare]
-                
-                for cur_and_previous_worker_name in zip(cur_worker_names,previous_worker_names):
-                    cur_worker_query=self.session.query(Workers).filter(Workers.name==cur_and_previous_worker_name[0])
-                    cur_worker=cur_worker_query.one_or_none()
+                        if cur_worker:
+                            cur_worker_log_query=self.session.query(WorkersParticipationLogs).filter(
+                                WorkersParticipationLogs.event_id==self.event_id,
+                                WorkersParticipationLogs.worker_id==cur_worker.id
+                            )
 
-                    if cur_worker:
-                        cur_worker_log_query=self.session.query(WorkersParticipationLogs).filter(
-                            WorkersParticipationLogs.event_id==self.event_id,
-                            WorkersParticipationLogs.worker_id==cur_worker.id
-                        )
+                            cur_worker_log=cur_worker_log_query.one_or_none()
+                            
+                            prev_worker_name=self.session.query(cur_and_previous_worker_name[1]).filter(EventsCompletedStatus.event_id==self.event_id).scalar()
+                            prev_worker_log_query=None
+                            prev_worker=None
+                            if prev_worker_name:
+                                prev_worker=self.session.query(Workers).filter(Workers.name==prev_worker_name).one_or_none()
+                                if prev_worker:
+                                    prev_worker_log_query=self.session.query(WorkersParticipationLogs).filter(WorkersParticipationLogs.event_id==self.event_id,WorkersParticipationLogs.worker_id==prev_worker.id)
+                            
+                            if cur_worker_log:
+                                if cur_worker_log.no_of_participation!=len(cur_worker_names):
 
-                        cur_worker_log=cur_worker_log_query.one_or_none()
-                        
-                        prev_worker_name=self.session.query(cur_and_previous_worker_name[1]).filter(EventsStatus.event_id==self.event_id).scalar()
-                        prev_worker_log_query=None
-                        prev_worker=None
-                        if prev_worker_name:
-                            prev_worker=self.session.query(Workers).filter(Workers.name==prev_worker_name).one_or_none()
-                            if prev_worker:
-                                prev_worker_log_query=self.session.query(WorkersParticipationLogs).filter(WorkersParticipationLogs.event_id==self.event_id,WorkersParticipationLogs.worker_id==prev_worker.id)
-                        
-                        if cur_worker_log:
-                            if cur_worker_log.no_of_participation!=len(cur_worker_names):
+                                    #for updating cur logs and participation counts {starat}
+                                    if cur_worker_log.is_reseted==False: 
+                                        cur_worker_log_query.update(
+                                            {
+                                                WorkersParticipationLogs.no_of_participation:cur_worker_log.no_of_participation+1
+                                            }
+                                        )
 
-                                #for updating cur logs and participation counts {starat}
-                                if cur_worker_log.is_reseted==False: 
-                                    cur_worker_log_query.update(
-                                        {
-                                            WorkersParticipationLogs.no_of_participation:cur_worker_log.no_of_participation+1
-                                        }
+                                        #{end} of cur
+
+                                        #for updating prev logs and participation counts {starat}
+                                        await self.update_previous_state_of_workers(
+                                            prev_worker_log_query=prev_worker_log_query
+                                        )
+                                        #{end of previous }
+                            else:
+                                ic("hello",cur_worker_log)
+                                query_to_check=self.session.query(WorkersParticipationLogs.id).filter(WorkersParticipationLogs.event_id==self.event_id,WorkersParticipationLogs.is_reseted==True).first()
+                                ic(query_to_check)
+                                if query_to_check==None:
+                                    ic("hello 8")
+                                    self.session.add(
+                                        WorkersParticipationLogs(
+                                            event_id=self.event_id,
+                                            worker_id=cur_worker.id,
+                                            no_of_participation=1
+                                        )
                                     )
-
-                                    #{end} of cur
-
                                     #for updating prev logs and participation counts {starat}
                                     await self.update_previous_state_of_workers(
-                                        prev_worker_log_query=prev_worker_log_query
-                                    )
+                                            prev_worker_log_query=prev_worker_log_query
+                                        )
                                     #{end of previous }
                         else:
-                            ic("hello",cur_worker_log)
-                            query_to_check=self.session.query(WorkersParticipationLogs.id).filter(WorkersParticipationLogs.event_id==self.event_id,WorkersParticipationLogs.is_reseted==True).first()
-                            ic(query_to_check)
-                            if query_to_check==None:
-                                ic("hello 8")
-                                self.session.add(
-                                    WorkersParticipationLogs(
-                                        event_id=self.event_id,
-                                        worker_id=cur_worker.id,
-                                        no_of_participation=1
-                                    )
-                                )
-                                #for updating prev logs and participation counts {starat}
-                                await self.update_previous_state_of_workers(
-                                        prev_worker_log_query=prev_worker_log_query
-                                    )
-                                #{end of previous }
-                    else:
-                        raise HTTPException(
-                            status_code=404,
-                            detail="worker name not found"
+                            raise HTTPException(
+                                status_code=404,
+                                detail="worker name not found"
+                            )
+                        
+                        
+                    update_dict={
+                        EventsCompletedStatus.feedback:self.feedback,
+                        EventsCompletedStatus.archagar:self.archagar,
+                        EventsCompletedStatus.abisegam:self.abisegam,
+                        EventsCompletedStatus.helper:self.helper,
+                        EventsCompletedStatus.poo:self.poo,
+                        EventsCompletedStatus.read:self.read,
+                        EventsCompletedStatus.prepare:self.prepare,
+                        EventsCompletedStatus.updated_at:await indian_time.get_india_time(),
+                        EventsCompletedStatus.updated_date:datetime.now().date()
+                    }
+                    image_url=None 
+                    if self.image and not event_status.image_url:
+                        image_id=await create_unique_id(self.feedback)
+                        ei_to_add=EventStatusImages(
+                            id=image_id,
+                            image=self.image.file.read(),
+                            event_sts_id=event_status.id
                         )
-                    
-                    
-                update_dict={
-                    EventsStatus.status:self.event_status,
-                    EventsStatus.updated_by:user.name,
-                    EventsStatus.feedback:self.feedback,
-                    EventsStatus.archagar:self.archagar,
-                    EventsStatus.abisegam:self.abisegam,
-                    EventsStatus.helper:self.helper,
-                    EventsStatus.poo:self.poo,
-                    EventsStatus.read:self.read,
-                    EventsStatus.prepare:self.prepare,
-                    EventsStatus.updated_at:await indian_time.get_india_time(),
-                    EventsStatus.updated_date:datetime.now().date()
-                }
-                    
-                if self.image and not event_status.image_url:
-                    image_id=await create_unique_id(self.feedback)
-                    ei_to_add=EventStatusImages(
-                        id=image_id,
-                        image=self.image.file.read(),
-                        event_sts_id=event_status.id
-                    )
-                    self.session.add(ei_to_add)
-                    update_dict[EventsStatus.image_url]=self.image_url_path+image_id
-                    
-                elif self.event_status==backend_enums.EventStatus.CANCELED or self.event_status==backend_enums.EventStatus.PENDING:
-                    print("hello from ")
-                    self.session.query(EventStatusImages).filter(EventStatusImages.event_sts_id==event_status.id).delete()
-                    update_dict[EventsStatus.image_url]=None
+                        self.session.add(ei_to_add)
+                        image_url=self.image_url_path+image_id
+                        update_dict[EventsCompletedStatus.image_url]=image_url
 
-                elif self.image and event_status.image_url:
-                    self.session.query(EventStatusImages).filter(EventStatusImages.event_sts_id==event_status.id).update(
+                    elif self.image and event_status.image_url:
+                        self.session.query(EventStatusImages).filter(EventStatusImages.event_sts_id==event_status.id).update(
+                            {
+                                EventStatusImages.image:self.image.file.read()
+                            }
+                        )
+
+                    if event_status:
+                        event_status_query.update(
+                            update_dict
+                        )
+                    else:
+                        event_sts_to_add=EventsCompletedStatus(
+                            event_id=self.event_id,
+                            feedback=self.feedback,
+                            archagar=self.archagar,
+                            abisegam=self.abisegam,
+                            helper=self.helper,
+                            poo=self.poo,
+                            read=self.read,
+                            prepare=self.prepare,
+                            updated_at=await indian_time.get_india_time(),
+                            updated_date=datetime.now().date(),
+                            image_url=image_url
+                        )
+
+                        self.session.add(event_sts_to_add)
+
+                    self.session.query(Events).filter(Events.id==self.event_id).update(
                         {
-                            EventStatusImages.image:self.image.file.read()
+                            Events.status:self.event_status,
+                            Events.updated_by:user.name
                         }
                     )
 
-                event_status_query.update(
-                    update_dict
+                    self.session.query(EventsPendingCanceledStatus).filter(EventsPendingCanceledStatus.event_id==self.event_id).delete()
+                    return "event completed status updated successfully"
+                
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"invalid event status {self.event_status.value}"
                 )
-
-                return "event status updated successfully"
             
         except HTTPException:
             raise
@@ -664,7 +701,68 @@ class UpdateEventStatus(__UpdateEventStatusInputs):
             print(e)
             raise HTTPException(
                 status_code=500,
-                detail=f"something went wrong while updating event status {e}"
+                detail=f"something went wrong while updating event completed status {e}"
+            )
+
+class UpdateEventPendingCompletedStatus(__UpdateEventPendingCompletedInputs):
+    async def update_event_status(self):
+        try:
+            with self.session.begin():
+                user=await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
+                await EventVerification(session=self.session).is_event_exists_by_id(event_id=self.event_id)
+                event_status_query=self.session.query(EventsCompletedStatus).filter(EventsCompletedStatus.event_id==self.event_id)
+                event_status=event_status_query.one_or_none()
+
+                if self.event_status==backend_enums.EventStatus.CANCELED or self.event_status==backend_enums.EventStatus.PENDING:
+                    print("hi from")
+                    if event_status:
+                        self.session.delete(event_status)
+                        wrk_to_delete=self.session.query(WorkersParticipationLogs).filter(WorkersParticipationLogs.event_id==self.event_id).first()
+                        self.session.delete(wrk_to_delete)
+                    
+                    event_pen_canc_sts_query=self.session.query(EventsPendingCanceledStatus).filter(EventsPendingCanceledStatus.event_id==self.event_id)
+                    if not event_pen_canc_sts_query.one_or_none():
+                        add_desc=EventsPendingCanceledStatus(
+                            description=self.description,
+                            event_id=self.event_id,
+                            updated_at=await indian_time.get_india_time(),
+                            updated_date=datetime.now().date()
+                        )
+
+                        self.session.add(add_desc)
+                    
+                    else:
+                        event_pen_canc_sts_query.update(
+                            {
+                                EventsPendingCanceledStatus.description:self.description,
+                                EventsPendingCanceledStatus.updated_at:await indian_time.get_india_time(),
+                                EventsPendingCanceledStatus.updated_date:datetime.now().date()
+                            }
+                        )
+
+                    self.session.query(Events).filter(Events.id==self.event_id).update(
+                        {
+                            Events.status:self.event_status,
+                            Events.updated_by:user.name
+                        }
+                    )
+
+                    return f"successfully event {self.event_status.value} status updated"
+                
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"invalid event status {self.event_status.value}"
+                )
+
+        
+        except HTTPException:
+            raise
+
+        except Exception as e:
+            print(e)
+            raise HTTPException(
+                status_code=500,
+                detail=f"something went wrong while updating event {self.event_status.value} status {e}"
             )
         
 class GetEventStatusImage:

@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import extract,select,func,cast, Date, Time,desc
 from enums import backend_enums
-from database.models.event import Events,Clients,Payments,EventsStatus,EventStatusImages,EventsNeivethiyam,NeivethiyamNames,EventsContactDescription
+from database.models.event import Events,Clients,Payments,EventsCompletedStatus,EventsPendingCanceledStatus,EventStatusImages,EventsNeivethiyam,NeivethiyamNames,EventsContactDescription
 from database.operations.event_crud import EventNameAndAmountCrud,NeivethiyamNameAndAmountCrud
 from database.operations.user_auth import UserVerification
 from datetime import date
@@ -78,24 +78,27 @@ class ParticularEvent(__ParticularEventInputs):
                 Events.end_at.label("event_end_at"),
                 Events.date.label('event_date'),
                 Events.is_special.label('is_special_event'),
+                Events.status.label("event_status"),
+                Events.added_by.label("event_added_by"),
+                Events.updated_by,
                 Clients.name.label("client_name"),
                 Clients.city.label("client_city"),
                 Clients.mobile_number.label("client_mobile_number"),
                 Payments.status.label("payment_status"),
                 Payments.mode.label("payment_mode"),
-                EventsStatus.status.label("event_status"),
-                EventsStatus.added_by.label("event_added_by"),
-                EventsStatus.updated_by,
-                EventsStatus.feedback,
-                EventsStatus.archagar,
-                EventsStatus.abisegam,
-                EventsStatus.helper,
-                EventsStatus.poo,
-                EventsStatus.read,
-                EventsStatus.prepare,
-                EventsStatus.image_url,
-                EventsStatus.updated_date,
-                EventsStatus.updated_at,
+                EventsCompletedStatus.feedback,
+                EventsCompletedStatus.archagar,
+                EventsCompletedStatus.abisegam,
+                EventsCompletedStatus.helper,
+                EventsCompletedStatus.poo,
+                EventsCompletedStatus.read,
+                EventsCompletedStatus.prepare,
+                EventsCompletedStatus.image_url,
+                EventsCompletedStatus.updated_date.label("completed_updated_date"),
+                EventsCompletedStatus.updated_at.label("completed_updated_time"),
+                EventsPendingCanceledStatus.description.label("event_pending_canceled_description"),
+                EventsPendingCanceledStatus.updated_date.label("pending_canceled_updated_date"),
+                EventsPendingCanceledStatus.updated_at.label("pending_canceled_updated_at"),
                 NeivethiyamNames.id.label("neivethiyam_id"),
                 NeivethiyamNames.name.label("neivethiyam_name"),
                 EventsNeivethiyam.padi_kg,
@@ -138,9 +141,12 @@ class ParticularEvent(__ParticularEventInputs):
                     isouter=True,
                 )
                 .join(
-                    EventsStatus,Events.id==EventsStatus.event_id,
+                    EventsCompletedStatus,Events.id==EventsCompletedStatus.event_id,
+                    isouter=True
+                )
+                .join(
+                    EventsPendingCanceledStatus,Events.id==EventsPendingCanceledStatus.event_id,
                     isouter=True,
-                    
                 )
                 .where(
                     Events.date==self.event_date
@@ -196,18 +202,18 @@ class EventsToEmail(__EventsToEmailInputs):
                         Clients.mobile_number.label("client_mobile_number"),
                         Payments.status.label("payment_status"),
                         Payments.mode.label("payment_mode"),
-                        EventsStatus.status.label("event_status"),
-                        EventsStatus.added_by.label("event_added_by"),
-                        EventsStatus.updated_by,
-                        EventsStatus.feedback,
-                        EventsStatus.archagar,
-                        EventsStatus.abisegam,
-                        EventsStatus.helper,
-                        EventsStatus.poo,
-                        EventsStatus.read,
-                        EventsStatus.prepare,
-                        EventsStatus.updated_date,
-                        EventsStatus.updated_at,
+                        Events.status.label("event_status"),
+                        Events.added_by.label("event_added_by"),
+                        Events.updated_by,
+                        EventsCompletedStatus.feedback,
+                        EventsCompletedStatus.archagar,
+                        EventsCompletedStatus.abisegam,
+                        EventsCompletedStatus.helper,
+                        EventsCompletedStatus.poo,
+                        EventsCompletedStatus.read,
+                        EventsCompletedStatus.prepare,
+                        EventsCompletedStatus.updated_date,
+                        EventsCompletedStatus.updated_at,
                         Payments.total_amount,
                         Payments.paid_amount,
                         EventStatusImages.image,
@@ -234,12 +240,12 @@ class EventsToEmail(__EventsToEmailInputs):
                             isouter=True,
                         )
                         .join(
-                            EventsStatus,Events.id==EventsStatus.event_id,
+                            EventsCompletedStatus,Events.id==EventsCompletedStatus.event_id,
                             isouter=True,
                             
                         )
                         .join(
-                            EventStatusImages,EventsStatus.id==EventStatusImages.event_sts_id,
+                            EventStatusImages,EventsCompletedStatus.id==EventStatusImages.event_sts_id,
                             isouter=True
                         )
                         .where(

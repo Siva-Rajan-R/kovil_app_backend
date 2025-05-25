@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import extract,select,func,case
-from database.models.event import EventsStatus,Clients,Payments,Events
+from database.models.event import Payments,Events
 from database.operations.user_auth import UserVerification
 from enums import backend_enums
 from enums import backend_enums
@@ -25,16 +25,15 @@ class EventDashboard(__EventDashboardInputs):
                 events_dashboard=self.session.execute(
                     select(
                         func.coalesce(func.count(Events.id),0).label("count"),
-                        EventsStatus.status,
+                        Events.status,
                         func.coalesce(func.sum(Payments.total_amount),0).label("total_amount")
                     )
-                    .join(EventsStatus,Events.id==EventsStatus.event_id,isouter=True,full=True)
                     .join(Payments,Events.id==Payments.event_id,isouter=True,full=True)
                     .where(
                         Events.date.between(self.from_date,self.to_date)
                     )
                     .group_by(
-                        EventsStatus.status
+                        Events.status
                 )
                 ).mappings().all()
 

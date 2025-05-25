@@ -1,11 +1,11 @@
 from fastapi import APIRouter,Depends,Request,UploadFile,File,Form,Response,HTTPException,BackgroundTasks,Query
 from enums import backend_enums
 from fastapi.responses import JSONResponse
-from database.operations.event_crud import AddEvent,DeleteEvent,UpdateEvent,UpdateEventStatus,Session,EventNameAndAmountCrud,GetEventStatusImage,NeivethiyamNameAndAmountCrud,ContactDescription
+from database.operations.event_crud import AddEvent,DeleteEvent,UpdateEvent,UpdateEventCompletedStatus,UpdateEventPendingCompletedStatus,Session,EventNameAndAmountCrud,GetEventStatusImage,NeivethiyamNameAndAmountCrud,ContactDescription
 from database.operations.event_info import EventsToEmail
 from database.main import get_db_session
 from api.dependencies.token_verification import verify
-from api.schemas.event_crud import AddEventSchema,UpdateEventSchema,DeleteAllEventSchema,DeleteSingleEventSchema,AddEventNameSchema,DeleteEventNameSchema,GetEventsEmailschema,AddNeivethiyamNameSchema,DeleteNeivethiyamNameSchema,AddContactDescriptionSchema,DeleteContactDescriptionSchema
+from api.schemas.event_crud import AddEventSchema,UpdateEventSchema,UpdateEventPendingCanceledStatusSchema,DeleteAllEventSchema,DeleteSingleEventSchema,AddEventNameSchema,DeleteEventNameSchema,GetEventsEmailschema,AddNeivethiyamNameSchema,DeleteNeivethiyamNameSchema,AddContactDescriptionSchema,DeleteContactDescriptionSchema
 from typing import Optional,List
 from database.operations.user_auth import UserVerification
 from utils.clean_ph_numbers import clean_phone_numbers
@@ -177,8 +177,8 @@ async def delete_all_event(bgt:BackgroundTasks,delete_event_inputs:DeleteAllEven
 
     return f"{delete_event_inputs.from_date} to {delete_event_inputs.to_date} events deleting..."
 
-@router.put("/event/status")
-async def update_event_status(
+@router.put("/event/status/completed")
+async def update_event_completed_status(
     request:Request,
     session:Session=Depends(get_db_session),
     user:dict=Depends(verify),
@@ -203,7 +203,7 @@ async def update_event_status(
         )
     
     user_id=user["id"]
-    event_status=await UpdateEventStatus(
+    event_status=await UpdateEventCompletedStatus(
         session=session,
         user_id=user_id,
         event_id=event_id,
@@ -222,6 +222,22 @@ async def update_event_status(
     return JSONResponse(
         status_code=200,
         content=event_status
+    )
+
+@router.put("/event/status/pending-canceled")
+async def update_event_pending_canceled_status(status_inp:UpdateEventPendingCanceledStatusSchema,bgt:BackgroundTasks,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']
+    event_sts=await UpdateEventPendingCompletedStatus(
+        session=session,
+        user_id=user_id,
+        event_id=status_inp.event_id,
+        event_status=status_inp.event_status,
+        description=status_inp.status_description
+    ).update_event_status()
+
+    return JSONResponse(
+        status_code=200,
+        content=event_sts
     )
 
 @router.get("/event/status/image/{image_id}")

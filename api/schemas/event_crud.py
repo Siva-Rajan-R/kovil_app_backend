@@ -61,6 +61,11 @@ class UpdateEventSchema(BaseModel):
     is_special:bool | None
     neivethiyam_kg:int
 
+class UpdateEventPendingCanceledStatusSchema(BaseModel):
+    status_description:constr(strip_whitespace=True,min_length=5)# type: ignore
+    event_id:constr(strip_whitespace=True,min_length=1) # type: ignore
+    event_status:backend_enums.EventStatus
+
 class GetEventsEmailschema(BaseModel):
     from_date:date
     to_date:date
