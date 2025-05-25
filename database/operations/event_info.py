@@ -95,7 +95,7 @@ class ParticularEvent(__ParticularEventInputs):
                 EventsCompletedStatus.prepare,
                 EventsCompletedStatus.image_url,
                 EventsCompletedStatus.updated_date.label("completed_updated_date"),
-                EventsCompletedStatus.updated_at.label("completed_updated_time"),
+                EventsCompletedStatus.updated_at.label("completed_updated_at"),
                 EventsPendingCanceledStatus.description.label("event_pending_canceled_description"),
                 EventsPendingCanceledStatus.updated_date.label("pending_canceled_updated_date"),
                 EventsPendingCanceledStatus.updated_at.label("pending_canceled_updated_at"),
