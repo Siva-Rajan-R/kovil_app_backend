@@ -97,7 +97,7 @@ class __UpdateEventCompletedStatusInputs:
         self.image=image
         self.image_url_path=image_url_path
 
-class __UpdateEventPendingCompletedInputs:
+class __UpdateEventPendingCanceledInputs:
     def __init__(
         self,
         session:Session,
@@ -627,7 +627,7 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                                 detail="worker name not found"
                             )
                         
-                        
+                    ic("lo")
                     update_dict={
                         EventsCompletedStatus.feedback:self.feedback,
                         EventsCompletedStatus.archagar:self.archagar,
@@ -639,15 +639,24 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                         EventsCompletedStatus.updated_at:await indian_time.get_india_time(),
                         EventsCompletedStatus.updated_date:datetime.now().date()
                     }
-                    image_url=None 
-                    if self.image and not event_status.image_url:
+                    image_url=None
+                    image_query_to_add=None
+                    event_comp_sts_cur_id=1
+                    event_comp_sts_cur_query=self.session.query(EventsCompletedStatus.id).order_by(desc(EventsCompletedStatus.id)).first()
+                    if event_comp_sts_cur_query:
+                        ic(event_comp_sts_cur_query)
+                        event_comp_sts_cur_id=event_comp_sts_cur_query[0]+1
+                    ic("Hello ji",event_comp_sts_cur_id)
+                    if self.image and not event_status:
                         image_id=await create_unique_id(self.feedback)
                         ei_to_add=EventStatusImages(
                             id=image_id,
                             image=self.image.file.read(),
-                            event_sts_id=event_status.id
+                            event_sts_id=event_comp_sts_cur_id
                         )
-                        self.session.add(ei_to_add)
+                        image_query_to_add=ei_to_add
+                        
+                        ic("Hello ji")
                         image_url=self.image_url_path+image_id
                         update_dict[EventsCompletedStatus.image_url]=image_url
 
@@ -663,7 +672,9 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                             update_dict
                         )
                     else:
+                        ic("ulla yeahh veliyav")
                         event_sts_to_add=EventsCompletedStatus(
+                            id=event_comp_sts_cur_id,
                             event_id=self.event_id,
                             feedback=self.feedback,
                             archagar=self.archagar,
@@ -678,6 +689,8 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                         )
 
                         self.session.add(event_sts_to_add)
+                        if image_query_to_add:
+                            self.session.add(image_query_to_add)
 
                     self.session.query(Events).filter(Events.id==self.event_id).update(
                         {
@@ -704,7 +717,7 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                 detail=f"something went wrong while updating event completed status {e}"
             )
 
-class UpdateEventPendingCompletedStatus(__UpdateEventPendingCompletedInputs):
+class UpdateEventPendingCanceledStatus(__UpdateEventPendingCanceledInputs):
     async def update_event_status(self):
         try:
             with self.session.begin():
@@ -717,8 +730,7 @@ class UpdateEventPendingCompletedStatus(__UpdateEventPendingCompletedInputs):
                     print("hi from")
                     if event_status:
                         self.session.delete(event_status)
-                        wrk_to_delete=self.session.query(WorkersParticipationLogs).filter(WorkersParticipationLogs.event_id==self.event_id).first()
-                        self.session.delete(wrk_to_delete)
+                        self.session.query(WorkersParticipationLogs).filter(WorkersParticipationLogs.event_id==self.event_id).delete()
                     
                     event_pen_canc_sts_query=self.session.query(EventsPendingCanceledStatus).filter(EventsPendingCanceledStatus.event_id==self.event_id)
                     if not event_pen_canc_sts_query.one_or_none():

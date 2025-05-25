@@ -1,7 +1,7 @@
 from fastapi import APIRouter,Depends,Request,UploadFile,File,Form,Response,HTTPException,BackgroundTasks,Query
 from enums import backend_enums
 from fastapi.responses import JSONResponse
-from database.operations.event_crud import AddEvent,DeleteEvent,UpdateEvent,UpdateEventCompletedStatus,UpdateEventPendingCompletedStatus,Session,EventNameAndAmountCrud,GetEventStatusImage,NeivethiyamNameAndAmountCrud,ContactDescription
+from database.operations.event_crud import AddEvent,DeleteEvent,UpdateEvent,UpdateEventCompletedStatus,UpdateEventPendingCanceledStatus,Session,EventNameAndAmountCrud,GetEventStatusImage,NeivethiyamNameAndAmountCrud,ContactDescription
 from database.operations.event_info import EventsToEmail
 from database.main import get_db_session
 from api.dependencies.token_verification import verify
@@ -227,7 +227,7 @@ async def update_event_completed_status(
 @router.put("/event/status/pending-canceled")
 async def update_event_pending_canceled_status(status_inp:UpdateEventPendingCanceledStatusSchema,bgt:BackgroundTasks,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
-    event_sts=await UpdateEventPendingCompletedStatus(
+    event_sts=await UpdateEventPendingCanceledStatus(
         session=session,
         user_id=user_id,
         event_id=status_inp.event_id,
