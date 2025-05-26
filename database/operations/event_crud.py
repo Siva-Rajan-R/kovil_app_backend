@@ -730,7 +730,7 @@ class UpdateEventPendingCanceledStatus(__UpdateEventPendingCanceledInputs):
                     print("hi from")
                     if event_status:
                         self.session.delete(event_status)
-                        self.session.query(WorkersParticipationLogs).filter(WorkersParticipationLogs.event_id==self.event_id).delete()
+                        self.session.query(WorkersParticipationLogs).filter(WorkersParticipationLogs.event_id==self.event_id,WorkersParticipationLogs.is_reseted==False).delete()
                     
                     event_pen_canc_sts_query=self.session.query(EventsPendingCanceledStatus).filter(EventsPendingCanceledStatus.event_id==self.event_id)
                     if not event_pen_canc_sts_query.one_or_none():
