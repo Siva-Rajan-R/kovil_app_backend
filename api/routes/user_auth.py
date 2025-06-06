@@ -94,8 +94,6 @@ async def login(request:Request,bgt:BackgroundTasks,login_inputs:user_auth.UserL
         session=session,
         email_or_no=login_inputs.email_or_no,
         password=login_inputs.password,
-        fcm_token=login_inputs.fcm_token,
-        bg_task=bgt
     ).login(data=data)
 
     return JSONResponse(
