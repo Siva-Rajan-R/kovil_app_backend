@@ -60,19 +60,18 @@ async def register_accept(link_id:str,bgt:BackgroundTasks,session:Session=Depend
             email_body=f"Hi,{registered_user_data.name} Your registeration was confirmed by admin as a role of {registered_user_data.role} by nanmai tharuvar kovil",
             email=registered_user_data.email
         )
-
-        bgt.add_task(
-            PushNotificationCrud(
-                notify_title="Registeration Successfull",
-                notify_body=f"Hi,{registered_user_data.name.title()} your Registeration Successfully Approved By Admin",
-                data_payload={
-                    "screen":"login_page"
-                }
-            ).push_notifications_individually,
-            fcm_tokens=[
-                {"device_id":registered_user_data.fcm_token}
-            ]
-        )
+        ic(registered_user_data.fcm_token)
+        if registered_user_data.fcm_token:
+            bgt.add_task(
+                PushNotificationCrud(
+                    notify_title="Registeration Successfull",
+                    notify_body=f"Hi,{registered_user_data.name.title()} your Registeration Successfully Approved By Admin",
+                    data_payload={
+                        "screen":"login_page"
+                    }
+                ).push_notifications_individually_by_tokens,
+                fcm_tokens=[registered_user_data.fcm_token]
+            )
 
         return Response(
             content=report.register_accept_greet(registered_user_data.name,registered_user_data.email,registered_user_data.mobile_number,registered_user_data.role),
@@ -108,7 +107,6 @@ async def login(request:Request,bgt:BackgroundTasks,login_inputs:user_auth.UserL
 async def forgot(request:Request,forgot_inputs:user_auth.UserForgotSchema,bgt:BackgroundTasks,session:Session=Depends(get_db_session)):
     user=await UserVerification(session=session).is_user_exists(email_or_no=forgot_inputs.email_or_no)
     link_id=await create_unique_id(forgot_inputs.email_or_no)
-    forgot_inputs['user_id']=user.id
     forgot_password_waiting_list[link_id]=forgot_inputs
     ic(user.email)
     ic(forgot_inputs.email_or_no)
@@ -143,17 +141,17 @@ async def forgot_accept(link_id:str,bgt:BackgroundTasks,session:Session=Depends(
             email=forgot_password_user_data.email_or_no
         )
 
-        fcm_tokens=FirebaseCrud(user_id=forgot_password_user_data.user_id).get_fcm_tokens()
-        bgt.add_task(
-            PushNotificationCrud(
-                notify_title="Forgot Password",
-                notify_body=f"Password Changed Successfully For {forgot_password_user_data.email_or_no}",
-                data_payload={
-                    "screen":"login_page"
-                }
-            ).push_notifications_individually,
-            fcm_tokens=fcm_tokens
-        )
+        if forgot_password_user_data.fcm_token:
+            bgt.add_task(
+                PushNotificationCrud(
+                    notify_title="Forgot Password",
+                    notify_body=f"Password Changed Successfully For {forgot_password_user_data.email_or_no}",
+                    data_payload={
+                        "screen":"login_page"
+                    }
+                ).push_notifications_individually,
+                fcm_tokens=[forgot_password_user_data.fcm_token]
+            )
         
         return Response(
             content=report.forgot_accept_greet(forgot_password_user_data.email_or_no),

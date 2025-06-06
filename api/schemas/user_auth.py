@@ -17,3 +17,4 @@ class UserLoginSchema(BaseModel):
 class UserForgotSchema(BaseModel):
     email_or_no:EmailStr|constr(strip_whitespace=True,min_length=1)#type: ignore
     new_password:constr(strip_whitespace=True,min_length=1)#type: ignore
+    fcm_token:Optional[str]=None

@@ -47,4 +47,25 @@ class PushNotificationCrud:
                 status_code=500,
                 detail=f"something went wrong {e}"
             )
+    async def push_notifications_individually_by_tokens(self,fcm_tokens:list):
+        try:
+            print(fcm_tokens)
+            for token in fcm_tokens:
+                print(token)
+                message=messaging.Message(
+                    notification=messaging.Notification(
+                        title=self.notify_title,
+                        body=self.notify_body,
+                    ),
+                    token=token,
+                    data=self.data_payload
+                )
+
+                response=messaging.send(message=message)
+                print(f"...suuccesss notify... {response}")
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"something went wrong {e}"
+            )
             
