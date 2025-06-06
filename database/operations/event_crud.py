@@ -709,10 +709,10 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                     ic("event completed status updated successfully")
 
                     # ["fUKAXNhpQHCOiuFfHT8PQ-:APA91bEYqkU1qtNyE5UDeqDyi1bgI9Rfmqm1bvg2u6IJm5wgngmCjW9M0LWibAdjfY6G6OrEO0qwLrFb9cI6tVN2NafT4h-KDn2gd_1a6BPgxiFn07nbrC4"]
-                    fcm_tokens=FirebaseCrud(user.mobile_number).get_fcm_tokens()
+                    fcm_tokens=FirebaseCrud(user.id).get_fcm_tokens()
                     if fcm_tokens:
                         await PushNotificationCrud(
-                            notify_title="event completed status updated successfully".title(),
+                            notify_title="event completed status, updated successfully".title(),
                             notify_body=f"for {event.name}".title(),
                             data_payload={
                                 "screen":"event_page"
@@ -777,9 +777,9 @@ class UpdateEventPendingCanceledStatus(__UpdateEventPendingCanceledInputs):
                     )
 
                     ic(f"successfully event {self.event_status.value} status updated")
-                    fcm_tokens=FirebaseCrud(user.mobile_number).get_fcm_tokens()
+                    fcm_tokens=FirebaseCrud(user.id).get_fcm_tokens()
                     await PushNotificationCrud(
-                            notify_title=f"successfully event {self.event_status.value} status updated".title(),
+                            notify_title=f"event {self.event_status.value}, status updated scuccessfully".title(),
                             notify_body=f"for {event.name}".title(),
                             data_payload={
                                 "screen":"event_page"

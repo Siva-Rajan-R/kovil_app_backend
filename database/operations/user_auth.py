@@ -24,12 +24,10 @@ class __UserRegisterationInputs:
         self.password=password
 
 class __UserLoginInputs:
-    def __init__(self,session:Session,email_or_no:str|EmailStr,password:str,fcm_token:str|None,bg_task:BackgroundTasks):
+    def __init__(self,session:Session,email_or_no:str|EmailStr,password:str):
         self.session=session
         self.email_or_no=email_or_no
         self.password=password
-        self.fcm_token=fcm_token
-        self.bg_task=bg_task
 
 class __UserForgotInputs:
     def __init__(self,session:Session,email_or_no:str|EmailStr,new_password:str):
@@ -95,12 +93,6 @@ class UserLogin(__UserLoginInputs):
             data["id"]=user.id
             user_role=user.role.name
             print(user_role)
-
-            if self.fcm_token:
-                self.bg_task.add_task(
-                    FirebaseCrud(user_mobile_number=user.mobile_number).add_fcm_tokens,
-                    fcm_token=self.fcm_token
-                )
 
             jwt_token=JwtTokenCreation(
                 data=data

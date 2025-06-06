@@ -1,22 +1,38 @@
 from firebase_db.firebase_init import firebase_init
 from icecream import ic
+from fastapi.exceptions import HTTPException
 class FirebaseCrud:
 
-    def __init__(self,user_mobile_number:str):
+    def __init__(self,user_id:str):
         self.db=firebase_init.database()
-        self.user_mobile_number=user_mobile_number
+        self.user_id=user_id
 
-    def add_fcm_tokens(self,fcm_token:str):
-        query_value=self.get_fcm_tokens()
+    def add_fcm_tokens(self,fcm_token:str,device_id:str):
+        try:
+            self.db.child("users_fcm_tokens").child(self.user_id).child("devices").child(device_id).set(fcm_token)
 
-        if query_value:
-            query_value.append(fcm_token)
-        else:
-            query_value=[fcm_token]
-
-        self.db.child("users_fcm_tokens").child(self.user_mobile_number).set(query_value)
-
-        return "successfully added fcm token"
+            return "successfully added fcm token"
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"something went wrong while adding fcm token {e}"
+            )
     
     def get_fcm_tokens(self):
-        return self.db.child("users_fcm_tokens").child(self.user_mobile_number).get().val()
+        try:
+            return self.db.child("users_fcm_tokens").child(self.user_id).child("devices").get().val()
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"something went wrong while getting fcm token {e}"
+            )
+    
+    def delete_fcm_token(self,device_id):
+        try:
+            self.db.child("users_fcm_tokens").child(self.user_id).child("devices").child(device_id).remove()
+            return "removed token successfully"
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"something went wrong while deleting fcm token {e}"
+            )

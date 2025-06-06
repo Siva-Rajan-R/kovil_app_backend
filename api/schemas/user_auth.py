@@ -8,11 +8,11 @@ class UserRegisterSchema(BaseModel):
     email:EmailStr
     role:backend_enums.UserRole
     password:constr(strip_whitespace=True,min_length=1)#type: ignore
+    fcm_token:Optional[str]=None
 
 class UserLoginSchema(BaseModel):
     email_or_no:EmailStr|constr(strip_whitespace=True,min_length=1)#type: ignore
     password:constr(strip_whitespace=True,min_length=1)#type: ignore
-    fcm_token:Optional[str]=None
 
 class UserForgotSchema(BaseModel):
     email_or_no:EmailStr|constr(strip_whitespace=True,min_length=1)#type: ignore
