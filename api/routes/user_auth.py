@@ -64,7 +64,10 @@ async def register_accept(link_id:str,bgt:BackgroundTasks,session:Session=Depend
         bgt.add_task(
             PushNotificationCrud(
                 notify_title="Registeration Successfull",
-                notify_body=f"Hi,{registered_user_data.name.title()} your Registeration Successfully Approved By Admin"
+                notify_body=f"Hi,{registered_user_data.name.title()} your Registeration Successfully Approved By Admin",
+                data_payload={
+                    "screen":"login_page"
+                }
             ).push_notifications_individually,
             fcm_tokens=[
                 {"device_id":registered_user_data.fcm_token}
