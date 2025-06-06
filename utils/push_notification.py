@@ -1,20 +1,26 @@
 from firebase_db.operations import FirebaseCrud
-from pyfcm import FCMNotification
 from fastapi.exceptions import HTTPException
 import os,json
+from firebase_admin import messaging, credentials, initialize_app
 from dotenv import load_dotenv
 load_dotenv()
 
 fcm_cred=os.getenv("FCM_CREDENTIAL")
-with open("fcm_credential.json","w") as f:
-    json.dump(json.loads(fcm_cred), f)
+
+if not fcm_cred:
+    raise RuntimeError("Missing FIREBASE_SERVICE_ACCOUNT_JSON environment variable")
+
+cred_dict = json.loads(fcm_cred)
+
+try:
+    cred = credentials.Certificate(cred_dict)
+    default_app = initialize_app(cred)
+except ValueError:
+    raise
 
 class PushNotificationCrud:
     def __init__(self,notify_title:str,notify_body:str,data_payload:dict):
-        self.fcm_init=FCMNotification(
-            service_account_file="fcm_credential.json",
-            project_id="nanmaitharvuar-kovilapp"
-        )
+        
         self.notify_title=notify_title
         self.notify_body=notify_body
         self.data_payload=data_payload
@@ -24,14 +30,17 @@ class PushNotificationCrud:
             print(fcm_tokens)
             for token in fcm_tokens:
                 print("hello")
-                self.fcm_init.notify(
-                    fcm_token=token,
-                    notification_title=self.notify_title,
-                    notification_body=self.notify_body,
-                    data_payload=self.data_payload
+                message=messaging.Message(
+                    notification=messaging.Notification(
+                        title=self.notify_title,
+                        body=self.notify_body,
+                    ),
+                    token=token,
+                    data=self.data_payload
                 )
 
-                print("...suuccesss notify...")
+                response=messaging.send(message=message)
+                print(f"...suuccesss notify... {response}")
         except Exception as e:
             raise HTTPException(
                 status_code=500,

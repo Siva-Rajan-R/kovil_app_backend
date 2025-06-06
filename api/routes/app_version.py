@@ -17,7 +17,7 @@ version_info=os.getenv("VERSION_INFO")
 def get_app_version():
     return json.loads(version_info)
 
-@router.get("/app/notify")
+@router.post("/app/notify")
 async def get_app_notify(notify_inputs:NotifySchema):
     fcm_tokens=[
         "fUKAXNhpQHCOiuFfHT8PQ-:APA91bEYqkU1qtNyE5UDeqDyi1bgI9Rfmqm1bvg2u6IJm5wgngmCjW9M0LWibAdjfY6G6OrEO0qwLrFb9cI6tVN2NafT4h-KDn2gd_1a6BPgxiFn07nbrC4"
