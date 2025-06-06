@@ -150,7 +150,7 @@ async def forgot_accept(link_id:str,bgt:BackgroundTasks,session:Session=Depends(
                     data_payload={
                         "screen":"login_page"
                     }
-                ).push_notifications_individually,
+                ).push_notifications_individually_by_tokens,
                 fcm_tokens=[forgot_password_user_data.fcm_token]
             )
         
