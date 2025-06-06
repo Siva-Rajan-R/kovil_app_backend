@@ -1,4 +1,4 @@
-from fastapi import APIRouter,BackgroundTasks,Depends,Query
+from fastapi import APIRouter,BackgroundTasks,Depends,Query,Request
 import os
 import json
 from utils.push_notification import PushNotificationCrud
@@ -42,16 +42,22 @@ async def send_app_notify(notify_inputs:NotifySchema,bgt:BackgroundTasks):
     return "sended notification successfully"
 
 @router.post("/app/notify/register-update")
-async def register_fcm_token(register_inp:RegisterNotifySchema,bgt:BackgroundTasks,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
-    user_id=user['id']
+async def register_fcm_token(request:Request,register_inp:RegisterNotifySchema,bgt:BackgroundTasks,session:Session=Depends(get_db_session)):
+    user_id=None
     if register_inp.user_email_or_no:
         user=await UserVerification(session=session).is_user_exists(email_or_no=register_inp.user_email_or_no)
         user_id=user.id
-    bgt.add_task(
-        FirebaseCrud(user_id=user_id).add_fcm_tokens,
-        fcm_token=register_inp.fcm_token,
-        device_id=register_inp.device_id
-    )
+    else:
+        user=await verify(request=request)
+        ic(user['id'])
+        user_id=user['id']
+
+    if user_id:
+        bgt.add_task(
+            FirebaseCrud(user_id=user_id).add_fcm_tokens,
+            fcm_token=register_inp.fcm_token,
+            device_id=register_inp.device_id
+        )
 
     ic("added successfuly")
 
