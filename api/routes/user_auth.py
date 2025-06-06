@@ -116,7 +116,8 @@ async def forgot(request:Request,forgot_inputs:user_auth.UserForgotSchema,bgt:Ba
         email=user.email,
         number=user.mobile_number,
         href=f"{request.base_url}forgot/accept/{link_id}",
-        isforgot=True
+        isforgot=True,
+        role=user.role
     )
     return JSONResponse(
         status_code=200,
