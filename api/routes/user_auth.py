@@ -70,7 +70,7 @@ async def register_accept(link_id:str,bgt:BackgroundTasks,session:Session=Depend
     )
 
 @router.post("/login")
-async def login(request:Request,login_inputs:user_auth.UserLoginSchema,session:Session=Depends(get_db_session)):
+async def login(request:Request,bgt:BackgroundTasks,login_inputs:user_auth.UserLoginSchema,session:Session=Depends(get_db_session)):
     data={
         "user_agent":request.headers.get("User-Agent"),
         "accept_language":request.headers.get("Accept-Language")
@@ -80,7 +80,9 @@ async def login(request:Request,login_inputs:user_auth.UserLoginSchema,session:S
     user_login=await UserLogin(
         session=session,
         email_or_no=login_inputs.email_or_no,
-        password=login_inputs.password
+        password=login_inputs.password,
+        fcm_token=login_inputs.fcm_token,
+        bg_task=bgt
     ).login(data=data)
 
     return JSONResponse(

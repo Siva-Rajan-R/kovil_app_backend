@@ -16,6 +16,8 @@ from typing import Optional
 from utils import indian_time
 from datetime import datetime
 from icecream import ic
+from utils.push_notification import PushNotificationCrud
+from firebase_db.operations import FirebaseCrud
 
 class __AddEventInputs:
     def __init__(
@@ -80,7 +82,7 @@ class __UpdateEventCompletedStatusInputs:
             poo:int,
             read:int,
             prepare:int,
-            image:Optional[UploadFile],
+            image:Optional[bytes],
             image_url_path:str
         ):
         self.session=session
@@ -554,7 +556,7 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
         try:
             with self.session.begin():
                 user=await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
-                await EventVerification(session=self.session).is_event_exists_by_id(event_id=self.event_id)
+                event=await EventVerification(session=self.session).is_event_exists_by_id(event_id=self.event_id)
                 if self.event_status==backend_enums.EventStatus.COMPLETED:
                     event_status_query=self.session.query(EventsCompletedStatus).filter(EventsCompletedStatus.event_id==self.event_id)
                     event_status=event_status_query.one_or_none()
@@ -621,6 +623,7 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                                             prev_worker_log_query=prev_worker_log_query
                                         )
                                     #{end of previous }
+                        
                         else:
                             raise HTTPException(
                                 status_code=404,
@@ -647,11 +650,12 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                         ic(event_comp_sts_cur_query)
                         event_comp_sts_cur_id=event_comp_sts_cur_query[0]+1
                     ic("Hello ji",event_comp_sts_cur_id)
+                    # ic(self.image.file.read())
                     if self.image and not event_status:
                         image_id=await create_unique_id(self.feedback)
                         ei_to_add=EventStatusImages(
                             id=image_id,
-                            image=self.image.file.read(),
+                            image=self.image,
                             event_sts_id=event_comp_sts_cur_id
                         )
                         image_query_to_add=ei_to_add
@@ -661,9 +665,10 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                         update_dict[EventsCompletedStatus.image_url]=image_url
 
                     elif self.image and event_status.image_url:
+                        
                         self.session.query(EventStatusImages).filter(EventStatusImages.event_sts_id==event_status.id).update(
                             {
-                                EventStatusImages.image:self.image.file.read()
+                                EventStatusImages.image:self.image
                             }
                         )
 
@@ -700,8 +705,19 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                     )
 
                     self.session.query(EventsPendingCanceledStatus).filter(EventsPendingCanceledStatus.event_id==self.event_id).delete()
-                    return "event completed status updated successfully"
-                
+                    ic("event completed status updated successfully")
+
+                    # ["fUKAXNhpQHCOiuFfHT8PQ-:APA91bEYqkU1qtNyE5UDeqDyi1bgI9Rfmqm1bvg2u6IJm5wgngmCjW9M0LWibAdjfY6G6OrEO0qwLrFb9cI6tVN2NafT4h-KDn2gd_1a6BPgxiFn07nbrC4"]
+                    fcm_tokens=FirebaseCrud(user.mobile_number).get_fcm_tokens()
+                    if fcm_tokens:
+                        await PushNotificationCrud(
+                            notify_title="event completed status updated successfully".title(),
+                            notify_body=f"for {event.name}".title(),
+                            data_payload={
+                                "screen":"event_page"
+                            }
+                        ).push_notifications_individually(fcm_tokens=fcm_tokens)
+                    return
                 raise HTTPException(
                     status_code=404,
                     detail=f"invalid event status {self.event_status.value}"
@@ -722,7 +738,7 @@ class UpdateEventPendingCanceledStatus(__UpdateEventPendingCanceledInputs):
         try:
             with self.session.begin():
                 user=await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
-                await EventVerification(session=self.session).is_event_exists_by_id(event_id=self.event_id)
+                event=await EventVerification(session=self.session).is_event_exists_by_id(event_id=self.event_id)
                 event_status_query=self.session.query(EventsCompletedStatus).filter(EventsCompletedStatus.event_id==self.event_id)
                 event_status=event_status_query.one_or_none()
 
@@ -759,8 +775,17 @@ class UpdateEventPendingCanceledStatus(__UpdateEventPendingCanceledInputs):
                         }
                     )
 
-                    return f"successfully event {self.event_status.value} status updated"
+                    ic(f"successfully event {self.event_status.value} status updated")
                 
+                    await PushNotificationCrud(
+                            notify_title=f"successfully event {self.event_status.value} status updated".title(),
+                            notify_body=f"for {event.name}".title(),
+                            data_payload={
+                                "screen":"event_page"
+                            }
+                    ).push_notifications_individually(["fUKAXNhpQHCOiuFfHT8PQ-:APA91bEYqkU1qtNyE5UDeqDyi1bgI9Rfmqm1bvg2u6IJm5wgngmCjW9M0LWibAdjfY6G6OrEO0qwLrFb9cI6tVN2NafT4h-KDn2gd_1a6BPgxiFn07nbrC4"])
+
+                    return
                 raise HTTPException(
                     status_code=404,
                     detail=f"invalid event status {self.event_status.value}"

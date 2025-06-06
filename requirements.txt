@@ -18,3 +18,5 @@ pytz
 pandas
 openpyxl
 reportlab
+pyrebase4
+pyfcm

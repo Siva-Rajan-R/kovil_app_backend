@@ -28,13 +28,13 @@ class AddEventSchema(BaseModel):
     client_name:constr(strip_whitespace=True,min_length=1)# type: ignore
     client_mobile_number:constr(strip_whitespace=True,min_length=1)# type: ignore
     client_city:constr(strip_whitespace=True,min_length=1)# type: ignore
-    total_amount:int
-    paid_amount:int
+    total_amount:float
+    paid_amount:float
     payment_status:backend_enums.PaymetStatus=backend_enums.PaymetStatus.NOT_PAID
     payment_mode:backend_enums.PaymentMode=backend_enums.PaymentMode.OFFLINE
     neivethiyam_id:Optional[int]=None
     is_special:Optional[bool]=None
-    neivethiyam_kg:Optional[int]=None
+    neivethiyam_kg:Optional[float]=None
 
 class DeleteSingleEventSchema(BaseModel):
     event_id:constr(strip_whitespace=True,min_length=1)# type: ignore

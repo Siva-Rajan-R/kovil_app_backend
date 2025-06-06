@@ -9,6 +9,7 @@ from api.schemas.event_crud import AddEventSchema,UpdateEventSchema,UpdateEventP
 from typing import Optional,List
 from database.operations.user_auth import UserVerification
 from utils.clean_ph_numbers import clean_phone_numbers
+from icecream import ic
 
 router=APIRouter(
     tags=["Add,Update and Delete Events and EventName"]
@@ -180,6 +181,7 @@ async def delete_all_event(bgt:BackgroundTasks,delete_event_inputs:DeleteAllEven
 @router.put("/event/status/completed")
 async def update_event_completed_status(
     request:Request,
+    bgt:BackgroundTasks,
     session:Session=Depends(get_db_session),
     user:dict=Depends(verify),
     event_id:str=Form(...),
@@ -195,7 +197,7 @@ async def update_event_completed_status(
     
 ):
     fields = [event_id, feedback, archagar, abisegam, helper, poo, read, prepare]
-    
+    ic(image)
     if any(not field.strip() for field in fields):
         raise HTTPException(
             status_code=422,
@@ -203,41 +205,51 @@ async def update_event_completed_status(
         )
     
     user_id=user["id"]
-    event_status=await UpdateEventCompletedStatus(
-        session=session,
-        user_id=user_id,
-        event_id=event_id,
-        event_status=event_status,
-        feedback=feedback,
-        archagar=archagar,
-        abisegam=abisegam,
-        helper=helper,
-        poo=poo,
-        read=read,
-        prepare=prepare,
-        image_url_path=str(request.base_url)+"event/status/image/",
-        image=image
-    ).update_event_status()
+
+    image_bytes = None
+    if image:
+        image.file.seek(0)
+        image_bytes = await image.read()
+        
+    bgt.add_task(
+        UpdateEventCompletedStatus(
+            session=session,
+            user_id=user_id,
+            event_id=event_id,
+            event_status=event_status,
+            feedback=feedback,
+            archagar=archagar,
+            abisegam=abisegam,
+            helper=helper,
+            poo=poo,
+            read=read,
+            prepare=prepare,
+            image_url_path=str(request.base_url)+"event/status/image/",
+            image=image_bytes
+        ).update_event_status
+    )
 
     return JSONResponse(
         status_code=200,
-        content=event_status
+        content="Updating event status..."
     )
 
 @router.put("/event/status/pending-canceled")
 async def update_event_pending_canceled_status(status_inp:UpdateEventPendingCanceledStatusSchema,bgt:BackgroundTasks,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
-    event_sts=await UpdateEventPendingCanceledStatus(
-        session=session,
-        user_id=user_id,
-        event_id=status_inp.event_id,
-        event_status=status_inp.event_status,
-        description=status_inp.status_description
-    ).update_event_status()
+    bgt.add_task(
+        UpdateEventPendingCanceledStatus(
+            session=session,
+            user_id=user_id,
+            event_id=status_inp.event_id,
+            event_status=status_inp.event_status,
+            description=status_inp.status_description
+        ).update_event_status
+    )
 
     return JSONResponse(
         status_code=200,
-        content=event_sts
+        content="Updating event status..."
     )
 
 @router.get("/event/status/image/{image_id}")

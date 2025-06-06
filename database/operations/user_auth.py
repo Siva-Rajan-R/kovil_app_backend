@@ -3,11 +3,12 @@ from enums import backend_enums
 from sqlalchemy import exists,or_
 from sqlalchemy.orm import Session
 from pydantic import EmailStr
-from fastapi.exceptions import HTTPException
+from fastapi import HTTPException,BackgroundTasks
 from security.hashing import hash_data,verify_hash
 from security.jwt_token import JwtTokenCreation
 from security.uuid_creation import create_unique_id
 from datetime import datetime,timedelta
+from firebase_db.operations import FirebaseCrud
 import os
 
 JWT_TOKEN_EXPIRY_IN_DAYS=int(os.getenv("JWT_TOKEN_EXPIRY_IN_DAYS"))
@@ -23,10 +24,12 @@ class __UserRegisterationInputs:
         self.password=password
 
 class __UserLoginInputs:
-    def __init__(self,session:Session,email_or_no:str|EmailStr,password:str):
+    def __init__(self,session:Session,email_or_no:str|EmailStr,password:str,fcm_token:str|None,bg_task:BackgroundTasks):
         self.session=session
         self.email_or_no=email_or_no
         self.password=password
+        self.fcm_token=fcm_token
+        self.bg_task=bg_task
 
 class __UserForgotInputs:
     def __init__(self,session:Session,email_or_no:str|EmailStr,new_password:str):
@@ -92,6 +95,13 @@ class UserLogin(__UserLoginInputs):
             data["id"]=user.id
             user_role=user.role.name
             print(user_role)
+
+            if self.fcm_token:
+                self.bg_task.add_task(
+                    FirebaseCrud(user_mobile_number=user.mobile_number).add_fcm_tokens,
+                    fcm_token=self.fcm_token
+                )
+
             jwt_token=JwtTokenCreation(
                 data=data
             )
