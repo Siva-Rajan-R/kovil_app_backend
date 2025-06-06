@@ -693,10 +693,11 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                             image_url=image_url
                         )
 
-                        self.session.add(event_sts_to_add)
+                        
+                        adding_list=[event_sts_to_add]
                         if image_query_to_add:
-                            self.session.add(image_query_to_add)
-
+                            adding_list.append(image_query_to_add)
+                        self.session.add_all(adding_list)
                     self.session.query(Events).filter(Events.id==self.event_id).update(
                         {
                             Events.status:self.event_status,
@@ -776,14 +777,14 @@ class UpdateEventPendingCanceledStatus(__UpdateEventPendingCanceledInputs):
                     )
 
                     ic(f"successfully event {self.event_status.value} status updated")
-                
+                    fcm_tokens=FirebaseCrud(user.mobile_number).get_fcm_tokens()
                     await PushNotificationCrud(
                             notify_title=f"successfully event {self.event_status.value} status updated".title(),
                             notify_body=f"for {event.name}".title(),
                             data_payload={
                                 "screen":"event_page"
                             }
-                    ).push_notifications_individually(["fUKAXNhpQHCOiuFfHT8PQ-:APA91bEYqkU1qtNyE5UDeqDyi1bgI9Rfmqm1bvg2u6IJm5wgngmCjW9M0LWibAdjfY6G6OrEO0qwLrFb9cI6tVN2NafT4h-KDn2gd_1a6BPgxiFn07nbrC4"])
+                    ).push_notifications_individually(fcm_tokens=fcm_tokens)
 
                     return
                 raise HTTPException(
