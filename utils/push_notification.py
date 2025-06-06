@@ -1,12 +1,18 @@
 from firebase_db.operations import FirebaseCrud
 from pyfcm import FCMNotification
 from fastapi.exceptions import HTTPException
+import os,json
+from dotenv import load_dotenv
+load_dotenv()
 
+fcm_cred=os.getenv("FCM_CREDENTIAL")
+with open("fcm_credential.json","w") as f:
+    json.dump(json.loads(fcm_cred), f)
 
 class PushNotificationCrud:
     def __init__(self,notify_title:str,notify_body:str,data_payload:dict):
         self.fcm_init=FCMNotification(
-            service_account_file="nanmaitharvuar-kovilapp-firebase-adminsdk-fbsvc-6ab7a4b1a6.json",
+            service_account_file="fcm_credential.json",
             project_id="nanmaitharvuar-kovilapp"
         )
         self.notify_title=notify_title
