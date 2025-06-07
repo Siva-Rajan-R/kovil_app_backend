@@ -257,6 +257,7 @@ async def update_event_pending_canceled_status(status_inp:UpdateEventPendingCanc
 
 @router.get("/event/status/image/{image_id}")
 async def get_event_status_image(image_id:str,session:Session=Depends(get_db_session)):
+    image_id=image_id.split(".")[0]
     image=await GetEventStatusImage(
         session=session,
         image_id=image_id
