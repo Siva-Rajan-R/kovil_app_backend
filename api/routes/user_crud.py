@@ -1,4 +1,4 @@
-from fastapi import APIRouter,Depends
+from fastapi import APIRouter,Depends,BackgroundTasks
 from fastapi.responses import JSONResponse
 from database.operations.user_crud import DeleteUser,GetUsers,UpdateUser
 from database.main import get_db_session
@@ -11,12 +11,13 @@ router=APIRouter(
 )
 
 @router.delete("/user")
-async def delete_user(delete_user_inputs:DeleteUserSchema,session:Session=Depends(get_db_session),user:dict=Depends(token_verification.verify)):
+async def delete_user(bgt:BackgroundTasks,delete_user_inputs:DeleteUserSchema,session:Session=Depends(get_db_session),user:dict=Depends(token_verification.verify)):
     user_id=user["id"]
     deleted_user=await DeleteUser(
         session=session,
         user_id=user_id,
-        del_user_id=delete_user_inputs.del_user_id
+        del_user_id=delete_user_inputs.del_user_id,
+        bg_task=bgt
     ).delete_user()
 
     return JSONResponse(
@@ -36,9 +37,10 @@ async def get_users(session:Session=Depends(get_db_session),user:dict=Depends(to
 
 
 @router.put("/user/role")
-async def delete_user(update_user_input:UpdateUserSchema,session:Session=Depends(get_db_session),user:dict=Depends(token_verification.verify)):
+async def delete_user(bgt:BackgroundTasks,update_user_input:UpdateUserSchema,session:Session=Depends(get_db_session),user:dict=Depends(token_verification.verify)):
     user_id=user["id"]
     update_user_role=await UpdateUser(
+        bg_task=bgt,
         session=session,
         user_id=user_id
     ).update_user_role(user_id_to_update=update_user_input.user_id,role_to_update=update_user_input.role)

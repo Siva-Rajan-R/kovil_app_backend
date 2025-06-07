@@ -2,8 +2,9 @@ from firebase_db.operations import FirebaseCrud
 from fastapi.exceptions import HTTPException
 import os,json
 from firebase_admin import messaging, credentials, initialize_app
-from typing import List,OrderedDict
+from typing import List,OrderedDict,Optional
 from dotenv import load_dotenv
+from icecream import ic
 load_dotenv()
 
 fcm_cred=os.getenv("FCM_CREDENTIAL")
@@ -26,19 +27,29 @@ class PushNotificationCrud:
         self.notify_body=notify_body
         self.data_payload=data_payload
 
-    async def push_notifications_individually(self,fcm_tokens:list|OrderedDict):
+    async def push_notifications_individually(self,fcm_tokens:list|OrderedDict,unsubscribe:Optional[bool]=False,remove_in_db:Optional[bool]=False,user_id:Optional[str]=None,image_url:Optional[str]=None):
         try:
             print(fcm_tokens)
+            
             for device_id,token in fcm_tokens.items():
                 print(device_id)
+                print("vanakam pangali")
+                if unsubscribe:
+                    messaging.unsubscribe_from_topic(tokens=[token],topic="all")
+            
                 message=messaging.Message(
                     notification=messaging.Notification(
                         title=self.notify_title,
                         body=self.notify_body,
+                        image=image_url
                     ),
                     token=token,
                     data=self.data_payload
                 )
+
+                if remove_in_db:
+                    res=FirebaseCrud(user_id=user_id).delete_fcm_token(device_id=device_id)
+                    ic(res)
 
                 response=messaging.send(message=message)
                 print(f"...suuccesss notify... {response}")
@@ -68,4 +79,17 @@ class PushNotificationCrud:
                 status_code=500,
                 detail=f"something went wrong {e}"
             )
+        
+    async def push_notification_to_all(self,image:Optional[str]=None):
+        message=messaging.Message(
+                notification=messaging.Notification(
+                    title=self.notify_title,
+                    body=self.notify_body,
+                    image=image
+                ),
+                data=self.data_payload,
+                topic="all"
+            )
+        response=messaging.send(message=message)
+        print(f"...suuccesss notify... {response}")
             

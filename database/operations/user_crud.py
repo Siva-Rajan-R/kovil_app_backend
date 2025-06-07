@@ -1,16 +1,19 @@
 from database.models.user import Users,UserRole
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-from fastapi.exceptions import HTTPException
+from fastapi import HTTPException,BackgroundTasks
 from database.operations.user_auth import UserVerification
 from enums import backend_enums
 from icecream import ic
+from firebase_db.operations import FirebaseCrud
+from utils.push_notification import PushNotificationCrud
 
 class __UserDeleteInputs:
-    def __init__(self,session:Session,user_id:str,del_user_id:str):
+    def __init__(self,session:Session,user_id:str,del_user_id:str,bg_task:BackgroundTasks):
         self.session=session
         self.user_id=user_id
         self.del_user_id=del_user_id
+        self.bg_task=bg_task
 
 class DeleteUser(__UserDeleteInputs):
     async def delete_user(self):
@@ -20,8 +23,29 @@ class DeleteUser(__UserDeleteInputs):
                 user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
                 ic(user.role)
                 if user.role==UserRole.ADMIN:
-                    is_deleted=self.session.query(Users).filter(Users.id==self.del_user_id).delete()
+                    deleting_query=self.session.query(Users).filter(Users.id==self.del_user_id)
+                    deleted_username=deleting_query.first().name
+                    is_deleted=deleting_query.delete()
                     if is_deleted:
+                        
+                        ic(self.del_user_id)
+                        fcm_tokens=FirebaseCrud(user_id=self.del_user_id).get_fcm_tokens()
+                        
+                        if fcm_tokens:
+                            self.bg_task.add_task(
+                                PushNotificationCrud(
+                                    notify_title="No More Access",
+                                    notify_body=f"Hi, {deleted_username} You Are Removed By The Admin So No More Access To This App",
+                                    data_payload={
+                                        "screen":"home_page"
+                                    }
+                                ).push_notifications_individually,
+                                fcm_tokens=fcm_tokens,
+                                unsubscribe=True,
+                                remove_in_db=True,
+                                user_id=self.del_user_id
+                            )
+                        
                         return "user deleted successfully"
                     raise HTTPException(
                         status_code=404,
@@ -76,20 +100,35 @@ class GetUsers:
             )
         
 class UpdateUser:
-    def __init__(self,session:Session,user_id:str):
+    def __init__(self,session:Session,user_id:str,bg_task:BackgroundTasks):
         self.session=session
         self.user_id=user_id
+        self.bg_task=bg_task
 
     async def update_user_role(self,user_id_to_update:str,role_to_update:backend_enums.UserRole):
         try:
             with self.session.begin():
                 user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
                 if user.role==backend_enums.UserRole.ADMIN:
-                    self.session.query(Users).filter(Users.id==user_id_to_update).update(
+                    update_query=self.session.query(Users).filter(Users.id==user_id_to_update)
+                    update_query.update(
                         {
                             Users.role:role_to_update
                         }
                     )
+                    fcm_tokens=FirebaseCrud(user_id=user_id_to_update).get_fcm_tokens()
+                        
+                    if fcm_tokens:
+                        self.bg_task.add_task(
+                            PushNotificationCrud(
+                                notify_title="Role Changed",
+                                notify_body=f"Hi, {update_query.first().name} Your Current Role Was Changed To {role_to_update.value.title()}. Please Re-Login!",
+                                data_payload={
+                                    "screen":"home_page"
+                                }
+                            ).push_notifications_individually,
+                            fcm_tokens=fcm_tokens,
+                        )
 
                     return "user role updated successfully"
                 else:

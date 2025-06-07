@@ -2,7 +2,7 @@ from database.models.event import (
     Events,Clients,Payments,EventsCompletedStatus,EventsPendingCanceledStatus,EventNames,EventStatusImages,NeivethiyamNames,EventsNeivethiyam,EventsContactDescription
 )
 from database.models.workers import Workers,WorkersParticipationLogs
-from fastapi import UploadFile
+from fastapi import BackgroundTasks
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import select,func,desc
@@ -22,6 +22,7 @@ from firebase_db.operations import FirebaseCrud
 class __AddEventInputs:
     def __init__(
             self,
+            bg_task:BackgroundTasks,
             session:Session,
             user_id:str,
             event_name:str,
@@ -57,6 +58,7 @@ class __AddEventInputs:
         self.neivethiyam_id=neivethiyam_id
         self.is_special=is_special
         self.padi_kg=padi_kg
+        self.bg_task=bg_task
 
 class __EventAndNeivethiyamNameAndAmountCrudInputs:
     def __init__(self,session:Session,user_id:str):
@@ -83,7 +85,8 @@ class __UpdateEventCompletedStatusInputs:
             read:int,
             prepare:int,
             image:Optional[bytes],
-            image_url_path:str
+            image_url_path:str,
+            bg_task:BackgroundTasks
         ):
         self.session=session
         self.user_id=user_id
@@ -98,6 +101,7 @@ class __UpdateEventCompletedStatusInputs:
         self.prepare=prepare
         self.image=image
         self.image_url_path=image_url_path
+        self.bg_task=bg_task
 
 class __UpdateEventPendingCanceledInputs:
     def __init__(
@@ -106,13 +110,15 @@ class __UpdateEventPendingCanceledInputs:
         user_id:str,
         event_id:str,
         event_status:backend_enums.EventStatus,
-        description:str
+        description:str,
+        bg_task:BackgroundTasks
     ):
         self.session=session
         self.user_id=user_id
         self.event_id=event_id
         self.event_status=event_status
         self.description=description
+        self.bg_task=bg_task
 
 class __ContactDescriptionInputs:
     def __init__(self,session:Session,user_id:str):
@@ -394,7 +400,17 @@ class AddEvent(__AddEventInputs):
                         combined_event_details.append(event_neivethiyam)
                     ic("gee")
                     self.session.add_all(combined_event_details)
-
+                    
+                    self.bg_task.add_task(
+                        PushNotificationCrud(
+                            notify_title="New Event Added",
+                            notify_body=f"{self.event_name} on {self.event_date} at {self.event_start_at}-{self.event_end_at} added-by {user.name}",
+                            data_payload={
+                                "screen":"event_page"
+                            }
+                        ).push_notification_to_all
+                    )
+                    
                     return "successfully event added"
 
                 raise HTTPException(
@@ -557,6 +573,8 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
             with self.session.begin():
                 user=await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
                 event=await EventVerification(session=self.session).is_event_exists_by_id(event_id=self.event_id)
+                current_time=await indian_time.get_india_time()
+                current_date=datetime.now().date()
                 if self.event_status==backend_enums.EventStatus.COMPLETED:
                     event_status_query=self.session.query(EventsCompletedStatus).filter(EventsCompletedStatus.event_id==self.event_id)
                     event_status=event_status_query.one_or_none()
@@ -639,16 +657,16 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                         EventsCompletedStatus.poo:self.poo,
                         EventsCompletedStatus.read:self.read,
                         EventsCompletedStatus.prepare:self.prepare,
-                        EventsCompletedStatus.updated_at:await indian_time.get_india_time(),
-                        EventsCompletedStatus.updated_date:datetime.now().date()
+                        EventsCompletedStatus.updated_at:current_time,
+                        EventsCompletedStatus.updated_date:current_date
                     }
                     image_url=None
                     image_query_to_add=None
-                    event_comp_sts_cur_id=1
-                    event_comp_sts_cur_query=self.session.query(EventsCompletedStatus.id).order_by(desc(EventsCompletedStatus.id)).first()
+                    event_comp_sts_cur_id=await create_unique_id(self.event_status.value)
+                    event_comp_sts_cur_query=self.session.query(EventsCompletedStatus.id).where(EventsCompletedStatus.event_id==self.event_id).scalar()
                     if event_comp_sts_cur_query:
                         ic(event_comp_sts_cur_query)
-                        event_comp_sts_cur_id=event_comp_sts_cur_query[0]+1
+                        event_comp_sts_cur_id=event_comp_sts_cur_query
                     ic("Hello ji",event_comp_sts_cur_id)
                     # ic(self.image.file.read())
                     if self.image and not event_status:
@@ -664,18 +682,24 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                         image_url=self.image_url_path+image_id
                         update_dict[EventsCompletedStatus.image_url]=image_url
 
-                    elif self.image and event_status.image_url:
-                        
-                        self.session.query(EventStatusImages).filter(EventStatusImages.event_sts_id==event_status.id).update(
-                            {
-                                EventStatusImages.image:self.image
-                            }
-                        )
-
+                    ic(event_status)
                     if event_status:
+                        ic(event_status.image_url)
+                        if self.image and event_status.image_url:
+                            
+                            self.session.query(EventStatusImages).filter(EventStatusImages.event_sts_id==event_status.id).update(
+                                {
+                                    EventStatusImages.image:self.image
+                                }
+                            )
+
+                            image_url=event_status.image_url
+
+                        
                         event_status_query.update(
                             update_dict
                         )
+
                     else:
                         ic("ulla yeahh veliyav")
                         event_sts_to_add=EventsCompletedStatus(
@@ -688,16 +712,17 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                             poo=self.poo,
                             read=self.read,
                             prepare=self.prepare,
-                            updated_at=await indian_time.get_india_time(),
-                            updated_date=datetime.now().date(),
+                            updated_at=current_time,
+                            updated_date=current_date,
                             image_url=image_url
                         )
 
                         
-                        adding_list=[event_sts_to_add]
+                        quries_to_add=[event_sts_to_add]
                         if image_query_to_add:
-                            adding_list.append(image_query_to_add)
-                        self.session.add_all(adding_list)
+                            quries_to_add.append(image_query_to_add)
+                        self.session.add_all(quries_to_add)  
+
                     self.session.query(Events).filter(Events.id==self.event_id).update(
                         {
                             Events.status:self.event_status,
@@ -709,16 +734,20 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                     ic("event completed status updated successfully")
 
                     # ["fUKAXNhpQHCOiuFfHT8PQ-:APA91bEYqkU1qtNyE5UDeqDyi1bgI9Rfmqm1bvg2u6IJm5wgngmCjW9M0LWibAdjfY6G6OrEO0qwLrFb9cI6tVN2NafT4h-KDn2gd_1a6BPgxiFn07nbrC4"]
-                    fcm_tokens=FirebaseCrud(user.id).get_fcm_tokens()
-                    if fcm_tokens:
-                        await PushNotificationCrud(
-                            notify_title="event completed status, updated successfully".title(),
-                            notify_body=f"for {event.name}".title(),
+                    
+                    ic(image_url)
+                    self.bg_task.add_task(
+                            PushNotificationCrud(
+                            notify_title="event status updated - completed".title(),
+                            notify_body=f"{event.name} completed on {current_date} at {current_time} updated-by {user.name}".title(),
                             data_payload={
                                 "screen":"event_page"
                             }
-                        ).push_notifications_individually(fcm_tokens=fcm_tokens)
+                        ).push_notification_to_all,
+                        image=image_url
+                    )
                     return
+                
                 raise HTTPException(
                     status_code=404,
                     detail=f"invalid event status {self.event_status.value}"
@@ -743,6 +772,9 @@ class UpdateEventPendingCanceledStatus(__UpdateEventPendingCanceledInputs):
                 event_status_query=self.session.query(EventsCompletedStatus).filter(EventsCompletedStatus.event_id==self.event_id)
                 event_status=event_status_query.one_or_none()
 
+                current_time=await indian_time.get_india_time()
+                current_date=datetime.now().date()
+
                 if self.event_status==backend_enums.EventStatus.CANCELED or self.event_status==backend_enums.EventStatus.PENDING:
                     print("hi from")
                     if event_status:
@@ -754,8 +786,8 @@ class UpdateEventPendingCanceledStatus(__UpdateEventPendingCanceledInputs):
                         add_desc=EventsPendingCanceledStatus(
                             description=self.description,
                             event_id=self.event_id,
-                            updated_at=await indian_time.get_india_time(),
-                            updated_date=datetime.now().date()
+                            updated_at=current_time,
+                            updated_date=current_date
                         )
 
                         self.session.add(add_desc)
@@ -764,8 +796,8 @@ class UpdateEventPendingCanceledStatus(__UpdateEventPendingCanceledInputs):
                         event_pen_canc_sts_query.update(
                             {
                                 EventsPendingCanceledStatus.description:self.description,
-                                EventsPendingCanceledStatus.updated_at:await indian_time.get_india_time(),
-                                EventsPendingCanceledStatus.updated_date:datetime.now().date()
+                                EventsPendingCanceledStatus.updated_at:current_time,
+                                EventsPendingCanceledStatus.updated_date:current_date
                             }
                         )
 
@@ -777,15 +809,15 @@ class UpdateEventPendingCanceledStatus(__UpdateEventPendingCanceledInputs):
                     )
 
                     ic(f"successfully event {self.event_status.value} status updated")
-                    fcm_tokens=FirebaseCrud(user.id).get_fcm_tokens()
-                    await PushNotificationCrud(
-                            notify_title=f"event {self.event_status.value}, status updated scuccessfully".title(),
-                            notify_body=f"for {event.name}".title(),
+                    self.bg_task.add_task(
+                        PushNotificationCrud(
+                            notify_title=f"event status updated - {self.event_status.value}".title(),
+                            notify_body=f"{event.name} on {current_date} at {current_time} updated-by {user.name}".title(),
                             data_payload={
                                 "screen":"event_page"
                             }
-                    ).push_notifications_individually(fcm_tokens=fcm_tokens)
-
+                        ).push_notification_to_all
+                    )
                     return
                 raise HTTPException(
                     status_code=404,

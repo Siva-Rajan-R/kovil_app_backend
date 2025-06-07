@@ -29,6 +29,7 @@ class FirebaseCrud:
     
     def delete_fcm_token(self,device_id):
         try:
+            ic(self.user_id)
             self.db.child("users_fcm_tokens").child(self.user_id).child("devices").child(device_id).remove()
             return "removed token successfully"
         except Exception as e:

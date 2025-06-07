@@ -71,7 +71,7 @@ class Payments(Base):
 
 class EventsCompletedStatus(Base):
     __tablename__="events_completed_status"
-    id=Column(Integer,autoincrement=True,primary_key=True)
+    id=Column(String,primary_key=True)
     event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False,unique=True)
     image_url=Column(String)
     feedback=Column(String)
@@ -101,7 +101,7 @@ class EventStatusImages(Base):
     __tablename__="event_status_images"
     id=Column(String,primary_key=True)
     image=Column(LargeBinary)
-    event_sts_id=Column(Integer,ForeignKey("events_completed_status.id",ondelete="CASCADE"))
+    event_sts_id=Column(String,ForeignKey("events_completed_status.id",ondelete="CASCADE"))
 
     event_completed_status=relationship("EventsCompletedStatus",back_populates="event_status_image")
 

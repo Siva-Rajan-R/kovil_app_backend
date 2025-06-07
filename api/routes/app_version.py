@@ -1,7 +1,7 @@
 from fastapi import APIRouter,BackgroundTasks,Depends,Query,Request
 import os
 import json
-from utils.push_notification import PushNotificationCrud
+from utils.push_notification import PushNotificationCrud,messaging
 from firebase_db.operations import FirebaseCrud
 from api.schemas.application import NotifySchema,RegisterNotifySchema,DeleteNotifySchema
 from database.operations.user_auth import UserVerification
@@ -25,18 +25,17 @@ def get_app_version():
 
 @router.post("/app/notify/all")
 async def send_app_notify(notify_inputs:NotifySchema,bgt:BackgroundTasks):
-    fcm_tokens=[
-        {"device_id":"fUKAXNhpQHCOiuFfHT8PQ-:APA91bEYqkU1qtNyE5UDeqDyi1bgI9Rfmqm1bvg2u6IJm5wgngmCjW9M0LWibAdjfY6G6OrEO0qwLrFb9cI6tVN2NafT4h-KDn2gd_1a6BPgxiFn07nbrC4"}
-    ]
+    
     bgt.add_task(
         PushNotificationCrud(
             notify_title=notify_inputs.notification_title,
             notify_body=notify_inputs.notification_body,
             data_payload={
-                "screen":"event_page"
+                "screen":"home_page"
             }
-        ).push_notifications_individually,
-        fcm_tokens=fcm_tokens
+        ).push_notification_to_all,
+        image=notify_inputs.image
+        
     )
 
     return "sended notification successfully"
@@ -65,9 +64,13 @@ async def register_fcm_token(request:Request,register_inp:RegisterNotifySchema,b
 async def delete_fcm_token(register_inp:DeleteNotifySchema,bgt:BackgroundTasks,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
 
+    fcm_tokens=[token for device_id,token in FirebaseCrud(user_id=user_id).get_fcm_tokens().items()]
+    ic(fcm_tokens)
     bgt.add_task(
         FirebaseCrud(user_id=user_id).delete_fcm_token,
         device_id=register_inp.device_id
     )
+
+    messaging.unsubscribe_from_topic(tokens=fcm_tokens,topic="all")
 
     ic("successfully deleted")

@@ -89,7 +89,7 @@ async def delete_neivethiyam_name_and_amount(en_del_inp:DeleteNeivethiyamNameSch
     )
 
 @router.post("/event")
-async def add_event(add_event_inputs:AddEventSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+async def add_event(bgt:BackgroundTasks,add_event_inputs:AddEventSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user["id"]
     print(add_event_inputs.neivethiyam_id)
     if len(add_event_inputs.client_mobile_number)>10:
@@ -98,6 +98,7 @@ async def add_event(add_event_inputs:AddEventSchema,session:Session=Depends(get_
     added_event=await AddEvent(
         user_id=user_id,
         session=session,
+        bg_task=bgt,
         event_name=add_event_inputs.event_name,
         event_description=add_event_inputs.event_description,
         event_date=add_event_inputs.event_date,
@@ -225,7 +226,8 @@ async def update_event_completed_status(
             read=read,
             prepare=prepare,
             image_url_path=str(request.base_url)+"event/status/image/",
-            image=image_bytes
+            image=image_bytes,
+            bg_task=bgt
         ).update_event_status
     )
 
@@ -243,10 +245,11 @@ async def update_event_pending_canceled_status(status_inp:UpdateEventPendingCanc
             user_id=user_id,
             event_id=status_inp.event_id,
             event_status=status_inp.event_status,
-            description=status_inp.status_description
+            description=status_inp.status_description,
+            bg_task=bgt
         ).update_event_status
     )
-
+    ic("odaneyy")
     return JSONResponse(
         status_code=200,
         content="Updating event status..."
