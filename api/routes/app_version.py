@@ -63,14 +63,15 @@ async def register_fcm_token(request:Request,register_inp:RegisterNotifySchema,b
 @router.delete("/app/notify/token")
 async def delete_fcm_token(register_inp:DeleteNotifySchema,bgt:BackgroundTasks,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
+    tokens=FirebaseCrud(user_id=user_id).get_fcm_tokens()
+    if tokens:
+        fcm_tokens=[token for device_id,token in tokens.items()]
+        ic(fcm_tokens)
+        bgt.add_task(
+            FirebaseCrud(user_id=user_id).delete_fcm_token,
+            device_id=register_inp.device_id
+        )
 
-    fcm_tokens=[token for device_id,token in FirebaseCrud(user_id=user_id).get_fcm_tokens().items()]
-    ic(fcm_tokens)
-    bgt.add_task(
-        FirebaseCrud(user_id=user_id).delete_fcm_token,
-        device_id=register_inp.device_id
-    )
-
-    messaging.unsubscribe_from_topic(tokens=fcm_tokens,topic="all")
+        messaging.unsubscribe_from_topic(tokens=fcm_tokens,topic="all")
 
     ic("successfully deleted")
