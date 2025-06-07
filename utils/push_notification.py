@@ -28,12 +28,12 @@ class PushNotificationCrud:
         self.data_payload=data_payload
 
     async def push_notifications_individually(self,fcm_tokens:list|OrderedDict,unsubscribe:Optional[bool]=False,remove_in_db:Optional[bool]=False,user_id:Optional[str]=None,image_url:Optional[str]=None):
-        try:
-            print(fcm_tokens)
-            
-            for device_id,token in fcm_tokens.items():
-                print(device_id)
-                print("vanakam pangali")
+        print(fcm_tokens)
+        
+        for device_id,token in fcm_tokens.items():
+            print(device_id)
+            print("vanakam pangali")
+            try:
                 if unsubscribe:
                     messaging.unsubscribe_from_topic(tokens=[token],topic="all")
             
@@ -53,16 +53,18 @@ class PushNotificationCrud:
 
                 response=messaging.send(message=message)
                 print(f"...suuccesss notify... {response}")
-        except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"something went wrong {e}"
-            )
+
+            except Exception as e:
+                ic(f"error notification {e}")
+                res=FirebaseCrud(user_id=user_id).delete_fcm_token(device_id=device_id)
+                ic(res)
+
+
     async def push_notifications_individually_by_tokens(self,fcm_tokens:list):
-        try:
-            print(fcm_tokens)
-            for token in fcm_tokens:
-                print(token)
+        print(fcm_tokens)
+        for token in fcm_tokens:
+            print(token)
+            try:
                 message=messaging.Message(
                     notification=messaging.Notification(
                         title=self.notify_title,
@@ -74,11 +76,9 @@ class PushNotificationCrud:
 
                 response=messaging.send(message=message)
                 print(f"...suuccesss notify... {response}")
-        except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"something went wrong {e}"
-            )
+
+            except Exception as e:
+                ic("notification fail")
         
     async def push_notification_to_all(self,image:Optional[str]=None):
         message=messaging.Message(
