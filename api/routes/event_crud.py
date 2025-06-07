@@ -1,6 +1,6 @@
 from fastapi import APIRouter,Depends,Request,UploadFile,File,Form,Response,HTTPException,BackgroundTasks,Query
 from enums import backend_enums
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse,StreamingResponse
 from database.operations.event_crud import AddEvent,DeleteEvent,UpdateEvent,UpdateEventCompletedStatus,UpdateEventPendingCanceledStatus,Session,EventNameAndAmountCrud,GetEventStatusImage,NeivethiyamNameAndAmountCrud,ContactDescription
 from database.operations.event_info import EventsToEmail
 from database.main import get_db_session
@@ -10,6 +10,7 @@ from typing import Optional,List
 from database.operations.user_auth import UserVerification
 from utils.clean_ph_numbers import clean_phone_numbers
 from icecream import ic
+from io import BytesIO
 
 router=APIRouter(
     tags=["Add,Update and Delete Events and EventName"]
@@ -263,10 +264,12 @@ async def get_event_status_image(image_id:str,session:Session=Depends(get_db_ses
         image_id=image_id
     ).get_image()
 
-    return Response(
-        content=image,
-        status_code=200,
-        media_type='image/jpg'
+    return StreamingResponse(
+        BytesIO(image),
+        media_type="image/jpeg",
+        headers={
+            "Content-Disposition": f'inline; filename="{image_id}.jpg"'
+        }
     )
 
 
