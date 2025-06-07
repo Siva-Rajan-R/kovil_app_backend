@@ -679,7 +679,7 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                         image_query_to_add=ei_to_add
                         
                         ic("Hello ji")
-                        image_url=self.image_url_path+image_id
+                        image_url=self.image_url_path+image_id+".jpg"
                         update_dict[EventsCompletedStatus.image_url]=image_url
 
                     ic(event_status)
