@@ -41,7 +41,8 @@ async def send_app_notify(
     image_url=None
 
     if notification_image:
-        if len(notification_image.file.read()) > 400*1024:
+        image_bytes=await notification_image.read()
+        if len(image_bytes) > 350*1024:
             raise HTTPException(
             status_code=422,
             detail="notification image should be lessthan 350 kb"
@@ -51,7 +52,7 @@ async def send_app_notify(
             session=session,
             request=request,
             notification_title=notification_title,
-            notification_image=notification_image.file.read()
+            notification_image=image_bytes
         )
     
     bgt.add_task(

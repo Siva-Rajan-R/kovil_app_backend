@@ -22,7 +22,8 @@ async def get_notification_image_url(session:Session,request:Request,notificatio
                 )
             )
             ic("scuccessfully notification image created")
-            return str(request.base_url)+f"notification/image/{image_id}"
+            # str(request.base_url)
+            return "https://muddy-danette-sivarajan-1b1beec7.koyeb.app/"+f"notification/image/{image_id}"
 
             
     except Exception as e:
