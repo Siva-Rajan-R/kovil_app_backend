@@ -755,7 +755,7 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                                 "screen":"event_page"
                             }
                         ).push_notification_to_all,
-                        image=compressed_image_url
+                        image_url=compressed_image_url
                     )
                     return
                 
