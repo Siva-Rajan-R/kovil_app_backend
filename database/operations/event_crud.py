@@ -747,16 +747,16 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                        
                     )
                     ic(compressed_image_url)
-                    self.bg_task.add_task(
-                            PushNotificationCrud(
-                            notify_title="event status updated - completed".title(),
-                            notify_body=f"{event.name} completed on {current_date} at {current_time} updated-by {user.name}".title(),
-                            data_payload={
-                                "screen":"event_page"
-                            }
-                        ).push_notification_to_all,
-                        image_url=compressed_image_url
-                    )
+                    # self.bg_task.add_task(
+                    #         PushNotificationCrud(
+                    #         notify_title="event status updated - completed".title(),
+                    #         notify_body=f"{event.name} completed on {current_date} at {current_time} updated-by {user.name}".title(),
+                    #         data_payload={
+                    #             "screen":"event_page"
+                    #         }
+                    #     ).push_notification_to_all,
+                    #     image_url=compressed_image_url
+                    # )
                     return
                 
                 raise HTTPException(

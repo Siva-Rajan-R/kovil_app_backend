@@ -34,32 +34,38 @@ async def send_app_notify(
     request:Request,
     notification_title:str=Form(...,min_length=5),
     notification_body:str=Form(...,min_length=5),
-    notification_image:Optional[UploadFile]=File(...),
+    notification_image:Optional[UploadFile]=File(None),
     session:Session=Depends(get_db_session)
 ):
-    image_url=None
-    ic(notification_image)
-    if notification_image:
-        image_url=await get_notification_image_url(
-            session=session,
-            request=request,
-            notification_title=notification_title,
-            notification_image=notification_image.file.read()
-        )
-    
-    bgt.add_task(
-        PushNotificationCrud(
-            notify_title=notification_title,
-            notify_body=notification_body,
-            data_payload={
-                "screen":"home_page"
-            }
-        ).push_notification_to_all,
-        image_url=image_url,
-        
-    )
+    if len(notification_image.file.read()) <= 350*1024:
+        image_url=None
 
-    return "sended notification successfully"
+        if notification_image:
+            image_url=await get_notification_image_url(
+                session=session,
+                request=request,
+                notification_title=notification_title,
+                notification_image=notification_image.file.read()
+            )
+        
+        bgt.add_task(
+            PushNotificationCrud(
+                notify_title=notification_title,
+                notify_body=notification_body,
+                data_payload={
+                    "screen":"home_page"
+                }
+            ).push_notification_to_all,
+            image_url=image_url,
+            
+        )
+
+        return "sended notification successfully"
+    else:
+        raise HTTPException(
+            status_code=422,
+            detail="notification image should be lessthan 350 kb"
+        )
 
 @router.post("/app/notify/register-update")
 async def register_fcm_token(request:Request,register_inp:RegisterNotifySchema,bgt:BackgroundTasks,session:Session=Depends(get_db_session)):

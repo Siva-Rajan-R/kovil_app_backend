@@ -1,7 +1,7 @@
 from PIL import Image
 import io
 
-async def compress_image_to_target_size(image_binary: bytes, target_size_bytes=5 * 1024 * 1024, min_quality=10) -> bytes:
+def compress_image_to_target_size(image_binary: bytes, target_size_bytes=5 * 1024 * 1024, min_quality=10) -> bytes:
     image = Image.open(io.BytesIO(image_binary))
 
     # Convert to RGB to avoid format issues (like PNG with alpha)
