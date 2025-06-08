@@ -201,26 +201,25 @@ async def update_event_completed_status(
 ):
     
     fields = [event_id, feedback, archagar, abisegam, helper, poo, read, prepare]
-    ic(image)
+
     if any(not field.strip() for field in fields):
         raise HTTPException(
             status_code=422,
             detail="input fields could not be empty"
         )
     
-    if len(await image.read()) <= 5*1024*1204:
-        raise HTTPException(
-            status_code=422,
-            detail="image should be less than 5 mb"
-        )
     
     user_id=user["id"]
 
-    compressed_image_bytes = None
+    image_bytes = None
     if image:
-        image.file.seek(0)
         image_bytes = await image.read()
-        compressed_image_bytes=compress_image_to_target_size(image_binary=image_bytes)
+        if len(image_bytes) > 5*1024*1024:
+            raise HTTPException(
+                status_code=422,
+                detail="image should be less than 5 mb"
+            )
+        
         
     bgt.add_task(
         UpdateEventCompletedStatus(
@@ -236,7 +235,7 @@ async def update_event_completed_status(
             read=read,
             prepare=prepare,
             image_url_path=str(request.base_url)+"event/status/image/",
-            image=compressed_image_bytes,
+            image=image_bytes,
             bg_task=bgt,
             request=request
         ).update_event_status

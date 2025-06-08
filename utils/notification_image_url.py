@@ -12,7 +12,7 @@ async def get_notification_image_url(session:Session,request:Request,notificatio
         with ctx:
             session.query(NotificationImages).delete()
 
-            compressed_bytes=compress_image_to_target_size(image_binary=notification_image,target_size_bytes=350*1024)
+            compressed_bytes=notification_image
             image_id=await create_unique_id(notification_title)
             ic("hello")
             session.add(

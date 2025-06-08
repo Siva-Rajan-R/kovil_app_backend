@@ -37,35 +37,36 @@ async def send_app_notify(
     notification_image:Optional[UploadFile]=File(None),
     session:Session=Depends(get_db_session)
 ):
-    if len(notification_image.file.read()) <= 350*1024:
-        image_url=None
+    
+    image_url=None
 
-        if notification_image:
-            image_url=await get_notification_image_url(
-                session=session,
-                request=request,
-                notification_title=notification_title,
-                notification_image=notification_image.file.read()
-            )
-        
-        bgt.add_task(
-            PushNotificationCrud(
-                notify_title=notification_title,
-                notify_body=notification_body,
-                data_payload={
-                    "screen":"home_page"
-                }
-            ).push_notification_to_all,
-            image_url=image_url,
-            
-        )
-
-        return "sended notification successfully"
-    else:
-        raise HTTPException(
+    if notification_image:
+        if len(notification_image.file.read()) > 400*1024:
+            raise HTTPException(
             status_code=422,
             detail="notification image should be lessthan 350 kb"
         )
+
+        image_url=await get_notification_image_url(
+            session=session,
+            request=request,
+            notification_title=notification_title,
+            notification_image=notification_image.file.read()
+        )
+    
+    bgt.add_task(
+        PushNotificationCrud(
+            notify_title=notification_title,
+            notify_body=notification_body,
+            data_payload={
+                "screen":"home_page"
+            }
+        ).push_notification_to_all,
+        image_url=image_url,
+        
+    )
+
+    return "sended notification successfully"
 
 @router.post("/app/notify/register-update")
 async def register_fcm_token(request:Request,register_inp:RegisterNotifySchema,bgt:BackgroundTasks,session:Session=Depends(get_db_session)):

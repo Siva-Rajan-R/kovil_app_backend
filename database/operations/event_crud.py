@@ -2,7 +2,7 @@ from database.models.event import (
     Events,Clients,Payments,EventsCompletedStatus,EventsPendingCanceledStatus,EventNames,EventStatusImages,NeivethiyamNames,EventsNeivethiyam,EventsContactDescription
 )
 from database.models.workers import Workers,WorkersParticipationLogs
-from fastapi import BackgroundTasks,Request
+from fastapi import BackgroundTasks,Request,File,UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import select,func,desc
@@ -573,6 +573,7 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
     async def update_event_status(self):
         try:
             with self.session.begin():
+                
                 user=await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
                 event=await EventVerification(session=self.session).is_event_exists_by_id(event_id=self.event_id)
                 current_time=await indian_time.get_india_time()
@@ -747,16 +748,16 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                        
                     )
                     ic(compressed_image_url)
-                    # self.bg_task.add_task(
-                    #         PushNotificationCrud(
-                    #         notify_title="event status updated - completed".title(),
-                    #         notify_body=f"{event.name} completed on {current_date} at {current_time} updated-by {user.name}".title(),
-                    #         data_payload={
-                    #             "screen":"event_page"
-                    #         }
-                    #     ).push_notification_to_all,
-                    #     image_url=compressed_image_url
-                    # )
+                    self.bg_task.add_task(
+                            PushNotificationCrud(
+                            notify_title="event status updated - completed".title(),
+                            notify_body=f"{event.name} completed on {current_date} at {current_time} updated-by {user.name}".title(),
+                            data_payload={
+                                "screen":"event_page"
+                            }
+                        ).push_notification_to_all,
+                        image_url=compressed_image_url
+                    )
                     return
                 
                 raise HTTPException(
