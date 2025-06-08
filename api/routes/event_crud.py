@@ -9,6 +9,7 @@ from api.schemas.event_crud import AddEventSchema,UpdateEventSchema,UpdateEventP
 from typing import Optional,List
 from database.operations.user_auth import UserVerification
 from utils.clean_ph_numbers import clean_phone_numbers
+from utils.image_compression import compress_image_to_target_size
 from icecream import ic
 from io import BytesIO
 
@@ -167,7 +168,7 @@ async def delete_single_event(delete_event_inputs:DeleteSingleEventSchema,sessio
     )
 
 @router.delete("/event/all")
-async def delete_all_event(bgt:BackgroundTasks,delete_event_inputs:DeleteAllEventSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+async def delete_all_event(request:Request,bgt:BackgroundTasks,delete_event_inputs:DeleteAllEventSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user["id"]
     bgt.add_task(
         DeleteEvent(
@@ -208,10 +209,11 @@ async def update_event_completed_status(
     
     user_id=user["id"]
 
-    image_bytes = None
+    compressed_image_bytes = None
     if image:
         image.file.seek(0)
         image_bytes = await image.read()
+        compressed_image_bytes=await compress_image_to_target_size(image_binary=image_bytes)
         
     bgt.add_task(
         UpdateEventCompletedStatus(
@@ -227,8 +229,9 @@ async def update_event_completed_status(
             read=read,
             prepare=prepare,
             image_url_path=str(request.base_url)+"event/status/image/",
-            image=image_bytes,
-            bg_task=bgt
+            image=compressed_image_bytes,
+            bg_task=bgt,
+            request=request
         ).update_event_status
     )
 

@@ -2,7 +2,7 @@ from database.models.event import (
     Events,Clients,Payments,EventsCompletedStatus,EventsPendingCanceledStatus,EventNames,EventStatusImages,NeivethiyamNames,EventsNeivethiyam,EventsContactDescription
 )
 from database.models.workers import Workers,WorkersParticipationLogs
-from fastapi import BackgroundTasks
+from fastapi import BackgroundTasks,Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import select,func,desc
@@ -13,7 +13,7 @@ from pydantic import EmailStr
 from fastapi.exceptions import HTTPException
 from database.operations.user_auth import UserVerification
 from typing import Optional
-from utils import indian_time
+from utils import indian_time,notification_image_url
 from datetime import datetime
 from icecream import ic
 from utils.push_notification import PushNotificationCrud
@@ -86,7 +86,8 @@ class __UpdateEventCompletedStatusInputs:
             prepare:int,
             image:Optional[bytes],
             image_url_path:str,
-            bg_task:BackgroundTasks
+            bg_task:BackgroundTasks,
+            request:Request
         ):
         self.session=session
         self.user_id=user_id
@@ -102,6 +103,7 @@ class __UpdateEventCompletedStatusInputs:
         self.image=image
         self.image_url_path=image_url_path
         self.bg_task=bg_task
+        self.request=request
 
 class __UpdateEventPendingCanceledInputs:
     def __init__(
@@ -736,6 +738,15 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                     # ["fUKAXNhpQHCOiuFfHT8PQ-:APA91bEYqkU1qtNyE5UDeqDyi1bgI9Rfmqm1bvg2u6IJm5wgngmCjW9M0LWibAdjfY6G6OrEO0qwLrFb9cI6tVN2NafT4h-KDn2gd_1a6BPgxiFn07nbrC4"]
                     
                     ic(image_url)
+
+                    compressed_image_url=await notification_image_url.get_notification_image_url(
+                        session=self.session,
+                        request=self.request,
+                        notification_title="event status updated - completed",
+                        notification_image=self.image,
+                       
+                    )
+                    ic(compressed_image_url)
                     self.bg_task.add_task(
                             PushNotificationCrud(
                             notify_title="event status updated - completed".title(),
@@ -744,7 +755,7 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                                 "screen":"event_page"
                             }
                         ).push_notification_to_all,
-                        image=image_url
+                        image=compressed_image_url
                     )
                     return
                 

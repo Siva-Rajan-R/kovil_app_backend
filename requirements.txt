@@ -20,3 +20,4 @@ openpyxl
 reportlab
 pyrebase4
 firebase-admin
+pillow

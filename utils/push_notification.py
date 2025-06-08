@@ -60,7 +60,7 @@ class PushNotificationCrud:
                 ic(res)
 
 
-    async def push_notifications_individually_by_tokens(self,fcm_tokens:list):
+    async def push_notifications_individually_by_tokens(self,fcm_tokens:list,image_url:Optional[str]):
         print(fcm_tokens)
         for token in fcm_tokens:
             print(token)
@@ -69,6 +69,7 @@ class PushNotificationCrud:
                     notification=messaging.Notification(
                         title=self.notify_title,
                         body=self.notify_body,
+                        image=image_url
                     ),
                     token=token,
                     data=self.data_payload
@@ -80,12 +81,12 @@ class PushNotificationCrud:
             except Exception as e:
                 ic("notification fail")
         
-    async def push_notification_to_all(self,image:Optional[str]=None):
+    async def push_notification_to_all(self,image_url:Optional[str]=None):
         message=messaging.Message(
                 notification=messaging.Notification(
                     title=self.notify_title,
                     body=self.notify_body,
-                    image=image
+                    image=image_url
                 ),
                 data=self.data_payload,
                 topic="all"

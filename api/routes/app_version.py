@@ -1,15 +1,20 @@
-from fastapi import APIRouter,BackgroundTasks,Depends,Query,Request
+from fastapi import APIRouter,BackgroundTasks,Depends,Query,Request,Form,File,UploadFile,HTTPException
+from fastapi.responses import StreamingResponse
 import os
 import json
 from utils.push_notification import PushNotificationCrud,messaging
+from utils.notification_image_url import get_notification_image_url
 from firebase_db.operations import FirebaseCrud
-from api.schemas.application import NotifySchema,RegisterNotifySchema,DeleteNotifySchema
+from api.schemas.application import RegisterNotifySchema,DeleteNotifySchema
 from database.operations.user_auth import UserVerification
 from dotenv import load_dotenv
 from database.main import get_db_session
+from database.models.notification import NotificationImages
 from sqlalchemy.orm import Session
 from icecream import ic
+from io import BytesIO
 from api.dependencies.token_verification import verify
+from typing import Optional
 load_dotenv()
 
 
@@ -24,17 +29,34 @@ def get_app_version():
     return json.loads(version_info)
 
 @router.post("/app/notify/all")
-async def send_app_notify(notify_inputs:NotifySchema,bgt:BackgroundTasks):
+async def send_app_notify(
+    bgt:BackgroundTasks,
+    request:Request,
+    notification_title:str=Form(...,min_length=5),
+    notification_body:str=Form(...,min_length=5),
+    notification_image:Optional[UploadFile]=File(...),
+    session:Session=Depends(get_db_session)
+):
+    image_url=None
+    ic(notification_image)
+    if notification_image:
+        image_url=await get_notification_image_url(
+            session=session,
+            request=request,
+            notification_title=notification_title,
+            notification_image=notification_image.file.read()
+        )
     
     bgt.add_task(
         PushNotificationCrud(
-            notify_title=notify_inputs.notification_title,
-            notify_body=notify_inputs.notification_body,
+            notify_title=notification_title,
+            notify_body=notification_body,
             data_payload={
                 "screen":"home_page"
             }
-        ).push_notification_to_all,
-        image=notify_inputs.image
+        ).push_notifications_individually_by_tokens,
+        image_url=image_url,
+        fcm_tokens=["dj9L4taSQTq6VRhWNEC25l:APA91bH47u6J2ck3tHNWo98SSCh8OiqvY6z74VltIqG9TvlohhcGYNuU7G95w_2WpMKN7ACbYNmlabhQNv4Y4tkqt-GHkpvLQVXI5Ou0UOrPOCAIsK9wQJo"]
         
     )
 
@@ -75,3 +97,32 @@ async def delete_fcm_token(register_inp:DeleteNotifySchema,bgt:BackgroundTasks,s
         messaging.unsubscribe_from_topic(tokens=fcm_tokens,topic="all")
 
     ic("successfully deleted")
+
+@router.get("/notification/image/{image_id}")
+async def get_notification_image(image_id:str,session:Session=Depends(get_db_session)):
+    try:
+        image=session.query(NotificationImages).filter(image_id==NotificationImages.id).first()
+
+        if image:
+            image_binary=image.image
+
+            return StreamingResponse(
+                content=BytesIO(image_binary),
+                media_type="image/jpeg",
+                headers={
+                    "Content-Disposition": f'inline; filename="{image_id}.jpg"'
+                }
+            )
+        else:
+            raise HTTPException(
+                status_code=404,
+                detail="image not found"
+            )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"something went wrong while fetching image {e}"
+        )
+        
