@@ -54,9 +54,8 @@ async def send_app_notify(
             data_payload={
                 "screen":"home_page"
             }
-        ).push_notifications_individually_by_tokens,
+        ).push_notification_to_all,
         image_url=image_url,
-        fcm_tokens=["dj9L4taSQTq6VRhWNEC25l:APA91bH47u6J2ck3tHNWo98SSCh8OiqvY6z74VltIqG9TvlohhcGYNuU7G95w_2WpMKN7ACbYNmlabhQNv4Y4tkqt-GHkpvLQVXI5Ou0UOrPOCAIsK9wQJo"]
         
     )
 
