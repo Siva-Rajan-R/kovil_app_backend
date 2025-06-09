@@ -34,7 +34,7 @@ async def send_app_notify(
     request:Request,
     notification_title:str=Form(...,min_length=5),
     notification_body:str=Form(...,min_length=5),
-    notification_image:Optional[UploadFile]=File(None),
+    notification_image:Optional[UploadFile]=File(...),
     session:Session=Depends(get_db_session)
 ):
     
