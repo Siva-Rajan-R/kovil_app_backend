@@ -37,7 +37,7 @@ async def register(request:Request,bgt:BackgroundTasks,register_inputs:user_auth
     )
     return JSONResponse(
         status_code=201,
-        content={"detail":"registered successfully waiting for admin conformation"}
+        content="registered successfully waiting for admin conformation"
     )
 
 @router.get("/register/accept/{link_id}")

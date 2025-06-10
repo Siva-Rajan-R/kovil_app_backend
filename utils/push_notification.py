@@ -60,7 +60,7 @@ class PushNotificationCrud:
                 ic(res)
 
 
-    async def push_notifications_individually_by_tokens(self,fcm_tokens:list,image_url:Optional[str]):
+    async def push_notifications_individually_by_tokens(self,fcm_tokens:list,image_url:Optional[str]=None):
         print(fcm_tokens)
         for token in fcm_tokens:
             print(token)
