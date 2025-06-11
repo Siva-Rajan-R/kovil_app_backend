@@ -42,7 +42,7 @@ async def send_app_notify(
 
     if notification_image:
         image_bytes=await notification_image.read()
-        if len(image_bytes) > 350*1024:
+        if len(image_bytes) > 1*1024*1024:
             raise HTTPException(
             status_code=422,
             detail="notification image should be lessthan 350 kb"
@@ -52,8 +52,10 @@ async def send_app_notify(
             session=session,
             request=request,
             notification_title=notification_title,
-            notification_image=image_bytes
+            notification_image=image_bytes,
+            compress_image=True
         )
+    
     
     bgt.add_task(
         PushNotificationCrud(
@@ -63,9 +65,9 @@ async def send_app_notify(
                 "screen":"home_page"
             }
         ).push_notification_to_all,
-        image_url=image_url,
-        
+        image_url=image_url
     )
+
     ic("immediyed")
     return "sended notification successfully"
 
@@ -134,15 +136,14 @@ async def get_notification_image(image_id:str,session:Session=Depends(get_db_ses
         )
         
 
-import time 
-import asyncio
-async def bgt_test(msg:str,image:bytes):
-    await asyncio.sleep(10)
-    ic(f"succefully executed bgt task after 10 sec {msg} {image} recived")
 
-@router.get("/test-bg")
-async def test_bgt(bgt:BackgroundTasks,image:UploadFile=File(None)):
-    image_bytes=await image.read()
-    bgt.add_task(bgt_test,msg="my message",image=image_bytes)
+# async def bgt_test(msg:str,image:bytes):
+#     await asyncio.sleep(10)
+#     ic(f"succefully executed bgt task after 10 sec {msg} {image} recived")
 
-    return "before going to bgt is sended"
+# @router.get("/test-bg")
+# async def test_bgt(bgt:BackgroundTasks,image:UploadFile=File(None)):
+#     image_bytes=await image.read()
+#     bgt.add_task(bgt_test,msg="my message",image=image_bytes)
+
+#     return "before going to bgt is sended"

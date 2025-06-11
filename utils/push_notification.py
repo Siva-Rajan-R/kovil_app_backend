@@ -27,7 +27,7 @@ class PushNotificationCrud:
         self.notify_body=notify_body
         self.data_payload=data_payload
 
-    async def push_notifications_individually(self,fcm_tokens:list|OrderedDict,unsubscribe:Optional[bool]=False,remove_in_db:Optional[bool]=False,user_id:Optional[str]=None,image_url:Optional[str]=None):
+    def push_notifications_individually(self,fcm_tokens:list|OrderedDict,unsubscribe:Optional[bool]=False,remove_in_db:Optional[bool]=False,user_id:Optional[str]=None,image_url:Optional[str]=None):
         print(fcm_tokens)
         
         for device_id,token in fcm_tokens.items():
@@ -60,7 +60,7 @@ class PushNotificationCrud:
                 ic(res)
 
 
-    async def push_notifications_individually_by_tokens(self,fcm_tokens:list,image_url:Optional[str]=None):
+    def push_notifications_individually_by_tokens(self,fcm_tokens:list,image_url:Optional[str]=None):
         print(fcm_tokens)
         for token in fcm_tokens:
             print(token)
@@ -81,7 +81,7 @@ class PushNotificationCrud:
             except Exception as e:
                 ic("notification fail")
         
-    async def push_notification_to_all(self,image_url:Optional[str]=None):
+    def push_notification_to_all(self,image_url:Optional[str]=None):
         message=messaging.Message(
                 notification=messaging.Notification(
                     title=self.notify_title,

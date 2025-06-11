@@ -745,11 +745,12 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                         request=self.request,
                         notification_title="event status updated - completed",
                         notification_image=self.image,
+                        compress_image=True
                        
                     )
                     ic(compressed_image_url)
                     self.bg_task.add_task(
-                            PushNotificationCrud(
+                        PushNotificationCrud(
                             notify_title="event status updated - completed".title(),
                             notify_body=f"{event.name} completed on {current_date} at {current_time} updated-by {user.name}".title(),
                             data_payload={

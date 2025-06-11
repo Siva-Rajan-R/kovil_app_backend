@@ -10,8 +10,10 @@ from typing import Optional,List
 from database.operations.user_auth import UserVerification
 from utils.clean_ph_numbers import clean_phone_numbers
 from utils.image_compression import compress_image_to_target_size
+from utils.async_to_sync_bgtask import run_async_in_bg
 from icecream import ic
 from io import BytesIO
+import asyncio
 
 router=APIRouter(
     tags=["Add,Update and Delete Events and EventName"]
@@ -181,9 +183,6 @@ async def delete_all_event(request:Request,bgt:BackgroundTasks,delete_event_inpu
 
     return f"{delete_event_inputs.from_date} to {delete_event_inputs.to_date} events deleting..."
 
-def run_async_bgt(coro):
-    import asyncio
-    asyncio.create_task(coro)
 
 @router.put("/event/status/completed")
 async def update_event_completed_status(
@@ -226,23 +225,25 @@ async def update_event_completed_status(
         
         
     bgt.add_task(
-        run_async_bgt,UpdateEventCompletedStatus(
-            session=session,
-            user_id=user_id,
-            event_id=event_id,
-            event_status=event_status,
-            feedback=feedback,
-            archagar=archagar,
-            abisegam=abisegam,
-            helper=helper,
-            poo=poo,
-            read=read,
-            prepare=prepare,
-            image_url_path=str(request.base_url)+"event/status/image/",
-            image=image_bytes,
-            bg_task=bgt,
-            request=request
-        ).update_event_status()
+        run_async_in_bg(
+            UpdateEventCompletedStatus(
+                session=session,
+                user_id=user_id,
+                event_id=event_id,
+                event_status=event_status,
+                feedback=feedback,
+                archagar=archagar,
+                abisegam=abisegam,
+                helper=helper,
+                poo=poo,
+                read=read,
+                prepare=prepare,
+                image_url_path=str(request.base_url)+"event/status/image/",
+                image=image_bytes,
+                bg_task=bgt,
+                request=request
+            ).update_event_status
+        )
     )
     ic("odaney")
     return JSONResponse(
@@ -254,14 +255,16 @@ async def update_event_completed_status(
 async def update_event_pending_canceled_status(status_inp:UpdateEventPendingCanceledStatusSchema,bgt:BackgroundTasks,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
     bgt.add_task(
-        UpdateEventPendingCanceledStatus(
-            session=session,
-            user_id=user_id,
-            event_id=status_inp.event_id,
-            event_status=status_inp.event_status,
-            description=status_inp.status_description,
-            bg_task=bgt
-        ).update_event_status
+        run_async_in_bg(
+            UpdateEventPendingCanceledStatus(
+                session=session,
+                user_id=user_id,
+                event_id=status_inp.event_id,
+                event_status=status_inp.event_status,
+                description=status_inp.status_description,
+                bg_task=bgt
+            ).update_event_status
+        )
     )
     ic("odaneyy")
     return JSONResponse(
