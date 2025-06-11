@@ -240,7 +240,7 @@ async def update_event_completed_status(
             request=request
         ).update_event_status
     )
-
+    ic("odaney")
     return JSONResponse(
         status_code=200,
         content="Updating event status..."
