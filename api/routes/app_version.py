@@ -135,7 +135,7 @@ async def get_notification_image(image_id:str,session:Session=Depends(get_db_ses
         
 
 import time 
-async def bgt_test(msg:str):
+def bgt_test(msg:str):
     time.sleep(10)
     ic(f"succefully executed bgt task after 10 sec {msg}")
 
