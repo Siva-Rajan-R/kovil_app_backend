@@ -66,7 +66,7 @@ async def send_app_notify(
         image_url=image_url,
         
     )
-
+    ic("immediyed")
     return "sended notification successfully"
 
 @router.post("/app/notify/register-update")

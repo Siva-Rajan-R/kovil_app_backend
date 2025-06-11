@@ -181,6 +181,10 @@ async def delete_all_event(request:Request,bgt:BackgroundTasks,delete_event_inpu
 
     return f"{delete_event_inputs.from_date} to {delete_event_inputs.to_date} events deleting..."
 
+def run_async_bgt(coro):
+    import asyncio
+    asyncio.create_task(coro)
+
 @router.put("/event/status/completed")
 async def update_event_completed_status(
     request:Request,
@@ -222,7 +226,7 @@ async def update_event_completed_status(
         
         
     bgt.add_task(
-        UpdateEventCompletedStatus(
+        run_async_bgt,UpdateEventCompletedStatus(
             session=session,
             user_id=user_id,
             event_id=event_id,
@@ -238,7 +242,7 @@ async def update_event_completed_status(
             image=image_bytes,
             bg_task=bgt,
             request=request
-        ).update_event_status
+        ).update_event_status()
     )
     ic("odaney")
     return JSONResponse(
