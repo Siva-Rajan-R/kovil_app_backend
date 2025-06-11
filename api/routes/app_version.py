@@ -135,8 +135,9 @@ async def get_notification_image(image_id:str,session:Session=Depends(get_db_ses
         
 
 import time 
-def bgt_test(msg:str):
-    time.sleep(10)
+import asyncio
+async def bgt_test(msg:str):
+    await asyncio.sleep(10)
     ic(f"succefully executed bgt task after 10 sec {msg}")
 
 @router.get("/test-bg")
