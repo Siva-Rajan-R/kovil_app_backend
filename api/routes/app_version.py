@@ -133,3 +133,14 @@ async def get_notification_image(image_id:str,session:Session=Depends(get_db_ses
             detail=f"something went wrong while fetching image {e}"
         )
         
+
+import time 
+async def bgt_test(msg:str):
+    time.sleep(10)
+    ic(f"succefully executed bgt task after 10 sec {msg}")
+
+@router.get("/test-bg")
+async def test_bgt(bgt:BackgroundTasks):
+    bgt.add_task(bgt_test,msg="my message")
+
+    return "before going to bgt is sended"
