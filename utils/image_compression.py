@@ -1,7 +1,7 @@
 from PIL import Image
 import io
 
-def compress_image_to_target_size(image_binary: bytes, target_size_bytes=5 * 1024 * 1024, min_quality=10) -> bytes:
+def compress_image_to_target_size(image_binary: bytes, target_size_bytes=5 * 1024 * 1024, min_quality=60) -> bytes:
     image = Image.open(io.BytesIO(image_binary))
 
     # Convert to RGB to avoid format issues (like PNG with alpha)
@@ -13,7 +13,7 @@ def compress_image_to_target_size(image_binary: bytes, target_size_bytes=5 * 102
 
     while quality >= min_quality:
         buffer = io.BytesIO()
-        image.save(buffer, format="JPEG", optimize=True, quality=quality)
+        image.save(buffer, format="WEBP", optimize=True, quality=quality)
         size = buffer.tell()
         
         if size <= target_size_bytes:
@@ -34,4 +34,5 @@ def compress_image_to_target_size(image_binary: bytes, target_size_bytes=5 * 102
         size = buffer.tell()
 
     buffer.seek(0)
+    
     return buffer.read()

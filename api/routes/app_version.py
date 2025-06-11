@@ -15,6 +15,7 @@ from icecream import ic
 from io import BytesIO
 from api.dependencies.token_verification import verify
 from typing import Optional
+from PIL import Image
 load_dotenv()
 
 
@@ -42,12 +43,12 @@ async def send_app_notify(
 
     if notification_image:
         image_bytes=await notification_image.read()
-        if len(image_bytes) > 1*1024*1024:
+        if len(image_bytes) > 400*1024:
             raise HTTPException(
             status_code=422,
-            detail="notification image should be lessthan 350 kb"
+            detail="notification image should be lessthan 400 kb"
         )
-
+        
         image_url=await get_notification_image_url(
             session=session,
             request=request,
