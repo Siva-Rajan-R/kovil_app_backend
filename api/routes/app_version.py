@@ -136,12 +136,13 @@ async def get_notification_image(image_id:str,session:Session=Depends(get_db_ses
 
 import time 
 import asyncio
-async def bgt_test(msg:str):
+async def bgt_test(msg:str,image:bytes):
     await asyncio.sleep(10)
-    ic(f"succefully executed bgt task after 10 sec {msg}")
+    ic(f"succefully executed bgt task after 10 sec {msg} {image} recived")
 
 @router.get("/test-bg")
-async def test_bgt(bgt:BackgroundTasks):
-    bgt.add_task(bgt_test,msg="my message")
+async def test_bgt(bgt:BackgroundTasks,image:UploadFile=File(None)):
+    image_bytes=await image.read()
+    bgt.add_task(bgt_test,msg="my message",image=image_bytes)
 
     return "before going to bgt is sended"
