@@ -15,7 +15,7 @@ async def get_notification_image_url(session:Session,request:Request,notificatio
             
             compressed_bytes=notification_image
             if compress_image:
-                compressed_bytes=compress_image_to_target_size(image_binary=notification_image,target_size_bytes=4*1024)
+                compressed_bytes=compress_image_to_target_size(image_binary=notification_image,target_size_bytes=300*1024)
             image_id=await create_unique_id(notification_title)
             ic(f"hello {len(compressed_bytes)}")
             session.add(

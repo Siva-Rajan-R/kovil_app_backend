@@ -43,7 +43,7 @@ async def send_app_notify(
 
     if notification_image:
         image_bytes=await notification_image.read()
-        if len(image_bytes) > 400*1024:
+        if len(image_bytes) > 300*1024:
             raise HTTPException(
             status_code=422,
             detail="notification image should be lessthan 400 kb"
@@ -54,7 +54,7 @@ async def send_app_notify(
             request=request,
             notification_title=notification_title,
             notification_image=image_bytes,
-            compress_image=True
+            compress_image=False
         )
     
     
