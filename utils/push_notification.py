@@ -89,7 +89,7 @@ class PushNotificationCrud:
                     image=image_url
                 ),
                 data=self.data_payload,
-                topic="all"
+                topic="test"
             )
         response=messaging.send(message=message)
         print(f"...suuccesss notify... {response}")
