@@ -1,0 +1,148 @@
+from fastapi import BackgroundTasks,HTTPException
+from database.operations.user_auth import UserVerification
+from database.models.notification import Notifications,NotificationRecivedUsers
+from database.main import SessionLocal
+from sqlalchemy.orm import Session
+from sqlalchemy import select,desc
+from datetime import datetime,timezone,timedelta
+from contextlib import nullcontext
+from icecream import ic
+import asyncio
+
+
+def delete_expired_notification():
+    session = SessionLocal()
+    ic("entered delete process")
+    expiry_time=datetime.now(timezone.utc)-timedelta(hours=24)
+    notify_to_delete=session.query(Notifications).filter(Notifications.created_at<expiry_time).first()
+    ic(notify_to_delete)
+    if notify_to_delete:
+        session.delete(notify_to_delete)
+        session.commit()
+    ic("removed expired notifications")
+
+class NotificationsCrud:
+    def __init__(self,session:Session):
+        self.session=session
+    
+    async def add_notification(self,notify_id:str,notify_title:str,notify_body:str,notify_img_url:str|None=None):
+        try:
+            ctx = self.session.begin() if not self.session.in_transaction() else nullcontext()
+            with ctx:
+                notify_to_add=Notifications(
+                    id=notify_id,
+                    title=notify_title,
+                    body=notify_body,
+                    image_url=notify_img_url,
+                    created_at=datetime.now(timezone.utc)
+                )
+
+                self.session.add(notify_to_add)
+
+                ic("successfully notification added")
+
+        except Exception as e:
+            raise HTTPException(
+                status_code=500,
+                detail=f"something went wrong while adding notification {e}"
+            )
+    
+    async def get_notifications(self,bg_task:BackgroundTasks,user_id:str):
+        try:
+            user=await UserVerification(session=self.session).is_user_exists_by_id(id=user_id)
+            def get_seen_notifications(last_checked):
+                ic("seen function called")
+                notifications=self.session.execute(
+                    select(
+                        Notifications.title,
+                        Notifications.body,
+                        Notifications.image_url,
+                        Notifications.created_at
+                    )
+                    .where(
+                        Notifications.created_at<=last_checked
+                    )
+                    .order_by(desc(Notifications.created_at))
+                ).mappings().all()
+                ic(notifications)
+                return notifications
+            
+            def get_new_notifications(last_checked):
+                ic("fucntjif ca;lled")
+                notifications=self.session.execute(
+                    select(
+                        Notifications.title,
+                        Notifications.body,
+                        Notifications.image_url,
+                        Notifications.created_at
+                    )
+                    .where(
+                        Notifications.created_at>last_checked
+                    )
+                    .order_by(desc(Notifications.created_at))
+                ).mappings().all()
+
+                ic(notifications)
+                return notifications
+            
+            def get_all_notifications():
+                ic("function called")
+                notifications=self.session.execute(
+                    select(
+                        Notifications.title,
+                        Notifications.body,
+                        Notifications.image_url,
+                        Notifications.created_at
+                    )
+                    .order_by(desc(Notifications.created_at))
+                ).mappings().all()
+                ic(notifications)
+                return notifications
+            
+            def update_add_notify_reciv_user():
+                notify_recvd_user_query=self.session.query(NotificationRecivedUsers).filter(NotificationRecivedUsers.user_id==user.id)
+                notify_recvd_user=notify_recvd_user_query.first()
+                utc_now=datetime.now(timezone.utc)
+                if notify_recvd_user:
+                    ic("ulla")
+                    notify_recvd_user_query.update(
+                        {
+                            NotificationRecivedUsers.last_checked:utc_now
+                        }
+                    )
+                else:
+                    notify_user_to_add=NotificationRecivedUsers(
+                        user_id=user.id,
+                        last_checked=utc_now
+                    )
+                    self.session.add(
+                        notify_user_to_add
+                    )
+                self.session.commit()
+
+            
+            last_checked=self.session.query(NotificationRecivedUsers.last_checked).filter(NotificationRecivedUsers.user_id==user.id).scalar()
+            ic(last_checked)
+            if not last_checked:
+                tasks=[asyncio.to_thread(get_all_notifications)]
+            else:
+                tasks=[asyncio.to_thread(get_new_notifications,last_checked),asyncio.to_thread(get_seen_notifications,last_checked)]
+
+            ic(tasks)
+            compeleted_tasks=await asyncio.gather(*tasks)
+
+            ic(compeleted_tasks)
+            
+            bg_task.add_task(update_add_notify_reciv_user)
+
+            notifications={"notifications":{"new":compeleted_tasks[0]}}
+            if len(compeleted_tasks)==2:
+                notifications['notifications'].update({"seen":compeleted_tasks[1]})
+            return notifications
+        
+        except Exception as e:
+            self.session.rollback()
+            raise HTTPException(
+                status_code=500,
+                detail=f"something went wrong while fetching notifications {e}"
+            )

@@ -1,4 +1,5 @@
 from sqlalchemy import String,Integer,ForeignKey,Column,Enum,DateTime
+from sqlalchemy.orm import relationship
 from enums.backend_enums import UserRole
 from database.main import Base,Engine
 from datetime import datetime,timezone
@@ -12,5 +13,7 @@ class Users(Base):
     role=Column(Enum(UserRole),default=UserRole.USER,nullable=False)
     password=Column(String,nullable=False)
     created_at=Column(DateTime,default=datetime.now(timezone.utc))
+
+    notify_recvd_user=relationship("NotificationRecivedUsers",back_populates="user",cascade="all, delete-orphan")
 
 Base.metadata.create_all(Engine)

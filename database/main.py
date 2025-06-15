@@ -10,9 +10,10 @@ Engine=create_engine(DATABASE_URL)
 
 Base=declarative_base()
 
+SessionLocal=sessionmaker(Engine)
+
 def get_db_session():
-    Session=sessionmaker(Engine)
-    session=Session()
+    session=SessionLocal()
     try:
         yield session
     finally:

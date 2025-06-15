@@ -4,9 +4,11 @@ import os
 import json
 from utils.push_notification import PushNotificationCrud,messaging
 from utils.notification_image_url import get_notification_image_url
+from security.uuid_creation import create_unique_id
 from firebase_db.operations import FirebaseCrud
 from api.schemas.application import RegisterNotifySchema,DeleteNotifySchema
 from database.operations.user_auth import UserVerification
+from database.operations.notification import NotificationsCrud
 from dotenv import load_dotenv
 from database.main import get_db_session
 from database.models.notification import NotificationImages
@@ -29,6 +31,7 @@ version_info=os.getenv("VERSION_INFO")
 def get_app_version():
     return json.loads(version_info)
 
+
 @router.post("/app/notify/all")
 async def send_app_notify(
     bgt:BackgroundTasks,
@@ -40,7 +43,7 @@ async def send_app_notify(
 ):
     
     image_url=None
-
+    notify_id=await create_unique_id(data=notification_title)
     if notification_image:
         image_bytes=await notification_image.read()
         if len(image_bytes) > 300*1024:
@@ -52,12 +55,22 @@ async def send_app_notify(
         image_url=await get_notification_image_url(
             session=session,
             request=request,
+            notification_id=notify_id,
             notification_title=notification_title,
+            notification_body=notification_body,
             notification_image=image_bytes,
             compress_image=False
         )
-    
-    
+    else:
+        await NotificationsCrud(
+            session=session,
+        ).add_notification(
+            notify_id=notify_id,
+            notify_title=notification_title,
+            notify_body=notification_body,
+            notify_img_url=image_url
+        )
+
     bgt.add_task(
         PushNotificationCrud(
             notify_title=notification_title,
@@ -91,6 +104,16 @@ async def register_fcm_token(request:Request,register_inp:RegisterNotifySchema,b
         )
 
     ic("added successfuly")
+
+@router.get("/app/notifications")
+async def get_app_notifications(bgt:BackgroundTasks,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']
+    notifications=await NotificationsCrud(
+        session=session
+    ).get_notifications(bg_task=bgt,user_id=user_id)
+
+    ic(notifications)
+    return notifications
 
 @router.delete("/app/notify/token")
 async def delete_fcm_token(register_inp:DeleteNotifySchema,bgt:BackgroundTasks,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
