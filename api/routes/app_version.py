@@ -39,14 +39,15 @@ async def send_app_notify(
     notification_title:str=Form(...,min_length=5),
     notification_body:str=Form(...,min_length=5),
     notification_image:Optional[UploadFile]=File(None),
-    session:Session=Depends(get_db_session)
+    session:Session=Depends(get_db_session),
+    verified_user:dict=Depends(verify),
 ):
-    
+    user_id=verified_user['id']
     image_url=None
     notify_id=await create_unique_id(data=notification_title)
     if notification_image:
         image_bytes=await notification_image.read()
-        if len(image_bytes) > 300*1024:
+        if len(image_bytes) > 400*1024:
             raise HTTPException(
             status_code=422,
             detail="notification image should be lessthan 400 kb"
@@ -59,11 +60,13 @@ async def send_app_notify(
             notification_title=notification_title,
             notification_body=notification_body,
             notification_image=image_bytes,
-            compress_image=False
+            compress_image=False,
+            user_id=user_id
         )
     else:
         await NotificationsCrud(
             session=session,
+            user_id=user_id
         ).add_notification(
             notify_id=notify_id,
             notify_title=notification_title,
@@ -109,8 +112,9 @@ async def register_fcm_token(request:Request,register_inp:RegisterNotifySchema,b
 async def get_app_notifications(bgt:BackgroundTasks,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
     notifications=await NotificationsCrud(
-        session=session
-    ).get_notifications(bg_task=bgt,user_id=user_id)
+        session=session,
+        user_id=user_id
+    ).get_notifications(bg_task=bgt)
 
     ic(notifications)
     return notifications

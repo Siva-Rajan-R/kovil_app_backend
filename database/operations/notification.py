@@ -7,6 +7,7 @@ from sqlalchemy import select,desc
 from datetime import datetime,timezone,timedelta
 from contextlib import nullcontext
 from icecream import ic
+from enums import backend_enums
 import asyncio
 
 
@@ -22,24 +23,36 @@ def delete_expired_notification():
     ic("removed expired notifications")
 
 class NotificationsCrud:
-    def __init__(self,session:Session):
+    def __init__(self,session:Session,user_id:str):
         self.session=session
+        self.user_id=user_id
     
     async def add_notification(self,notify_id:str,notify_title:str,notify_body:str,notify_img_url:str|None=None):
         try:
             ctx = self.session.begin() if not self.session.in_transaction() else nullcontext()
             with ctx:
-                notify_to_add=Notifications(
-                    id=notify_id,
-                    title=notify_title,
-                    body=notify_body,
-                    image_url=notify_img_url,
-                    created_at=datetime.now(timezone.utc)
+                user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
+                if user.role==backend_enums.UserRole.ADMIN:
+                    notify_to_add=Notifications(
+                        id=notify_id,
+                        title=notify_title.title(),
+                        body=notify_body.title(),
+                        image_url=notify_img_url,
+                        created_at=datetime.now(timezone.utc),
+                        created_by=user.name
+                    )
+
+                    self.session.add(notify_to_add)
+
+                    ic("successfully notification added")
+                    return
+                raise HTTPException(
+                    status_code=401,
+                    detail="you are not allowed to send notification"
                 )
-
-                self.session.add(notify_to_add)
-
-                ic("successfully notification added")
+            
+        except HTTPException:
+            raise
 
         except Exception as e:
             raise HTTPException(
@@ -47,9 +60,9 @@ class NotificationsCrud:
                 detail=f"something went wrong while adding notification {e}"
             )
     
-    async def get_notifications(self,bg_task:BackgroundTasks,user_id:str):
+    async def get_notifications(self,bg_task:BackgroundTasks,):
         try:
-            user=await UserVerification(session=self.session).is_user_exists_by_id(id=user_id)
+            user=await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
             def get_seen_notifications(last_checked):
                 ic("seen function called")
                 notifications=self.session.execute(
@@ -57,7 +70,8 @@ class NotificationsCrud:
                         Notifications.title,
                         Notifications.body,
                         Notifications.image_url,
-                        Notifications.created_at
+                        Notifications.created_at,
+                        Notifications.created_by
                     )
                     .where(
                         Notifications.created_at<=last_checked
@@ -74,7 +88,8 @@ class NotificationsCrud:
                         Notifications.title,
                         Notifications.body,
                         Notifications.image_url,
-                        Notifications.created_at
+                        Notifications.created_at,
+                        Notifications.created_by
                     )
                     .where(
                         Notifications.created_at>last_checked
@@ -92,7 +107,8 @@ class NotificationsCrud:
                         Notifications.title,
                         Notifications.body,
                         Notifications.image_url,
-                        Notifications.created_at
+                        Notifications.created_at,
+                        Notifications.created_by
                     )
                     .order_by(desc(Notifications.created_at))
                 ).mappings().all()
@@ -140,6 +156,9 @@ class NotificationsCrud:
                 notifications['notifications'].update({"seen":compeleted_tasks[1]})
             return notifications
         
+        except HTTPException:
+            raise
+
         except Exception as e:
             self.session.rollback()
             raise HTTPException(

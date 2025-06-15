@@ -10,6 +10,7 @@ class Notifications(Base):
     title=Column(String,nullable=False)
     body=Column(String,nullable=False)
     image_url=Column(String,nullable=True)
+    created_by=Column(String,nullable=False)
     created_at=Column(DateTime(timezone=True),nullable=False)
 
     notify_image=relationship("NotificationImages",back_populates="notify",cascade="all, delete-orphan")
