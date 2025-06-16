@@ -1,5 +1,5 @@
 from fastapi import APIRouter,Request,Depends,BackgroundTasks,Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import ORJSONResponse
 from database.operations.user_auth import UserRegisteration,UserLogin,UserVerification,UserForgot
 from database.main import get_db_session
 from sqlalchemy.orm import Session
@@ -35,7 +35,7 @@ async def register(request:Request,bgt:BackgroundTasks,register_inputs:user_auth
         href=f"{request.base_url}register/accept/{link_id}",
         isforgot=False
     )
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=201,
         content="registered successfully waiting for admin conformation"
     )
@@ -98,7 +98,7 @@ async def login(request:Request,bgt:BackgroundTasks,login_inputs:user_auth.UserL
         password=login_inputs.password,
     ).login(data=data)
 
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=200,
         content=user_login
     )
@@ -119,7 +119,7 @@ async def forgot(request:Request,forgot_inputs:user_auth.UserForgotSchema,bgt:Ba
         isforgot=True,
         role=user.role
     )
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=200,
         content="new password changed successfully waiting for your conformation"
     )
@@ -168,7 +168,7 @@ async def forgot_accept(link_id:str,bgt:BackgroundTasks,session:Session=Depends(
 
 @router.get("/new-access-token")
 def get_new_access_token(new_access_token:dict=Depends(token_revocation.revoke)):
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=200,
         content=new_access_token
     )

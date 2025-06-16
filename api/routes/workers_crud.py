@@ -1,5 +1,5 @@
 from fastapi import APIRouter,Depends,Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import ORJSONResponse
 from database.operations.workers_crud import WorkersCrud,Session,SendWorkerInfoAsEmail
 from database.main import get_db_session
 from api.dependencies.token_verification import verify
@@ -25,7 +25,7 @@ async def add_worker(worker_inp:AddWorkersSchema,session:Session=Depends(get_db_
         worker_name=worker_inp.worker_name
     ).add_workers(worker_mobile_number=worker_inp.worker_mobile_number)
 
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=201,
         content=added_worker
     )
@@ -39,7 +39,7 @@ async def delete_worker(worker_inp:DeleteWorkerSchema,session:Session=Depends(ge
         worker_name=worker_inp.worker_name
     ).delete_workers()
 
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=200,
         content=deleted_worker
     )
@@ -53,7 +53,7 @@ async def reset_worker(worker_inp:DeleteWorkerSchema,session:Session=Depends(get
         worker_name=worker_inp.worker_name
     ).reset_workers()
 
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=200,
         content=reseted_worker
     )
@@ -66,7 +66,7 @@ async def reset_all_worker(worker_inp:ResetAllWorkersSchema,session:Session=Depe
         user_id=user_id,
     ).reset_all_workers(from_date=worker_inp.from_date,to_date=worker_inp.to_date,amount=worker_inp.amount,to_email=worker_inp.send_to,isfor_reset=True)
 
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=200,
         content=reseted_worker
     )
@@ -80,7 +80,7 @@ async def worker_report_email(worker_inp:ResetAllWorkersSchema,session:Session=D
     ).reset_all_workers(from_date=worker_inp.from_date,to_date=worker_inp.to_date,amount=worker_inp.amount,to_email=worker_inp.send_to,isfor_reset=False)
 
  
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=200,
         content=email_send
     )

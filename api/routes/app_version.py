@@ -1,7 +1,7 @@
 from fastapi import APIRouter,BackgroundTasks,Depends,Query,Request,Form,File,UploadFile,HTTPException
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse,ORJSONResponse
 import os
-import json
+import orjson
 from utils.push_notification import PushNotificationCrud,messaging
 from utils.notification_image_url import get_notification_image_url
 from security.uuid_creation import create_unique_id
@@ -29,7 +29,7 @@ version_info=os.getenv("VERSION_INFO")
 
 @router.get("/app/version")
 def get_app_version():
-    return json.loads(version_info)
+    return orjson.loads(version_info)
 
 
 @router.post("/app/notify/all")
@@ -106,7 +106,7 @@ async def register_fcm_token(request:Request,register_inp:RegisterNotifySchema,b
             device_id=register_inp.device_id
         )
 
-    ic("added successfuly")
+    ic("fcm token added successfuly")
 
 @router.get("/app/notifications")
 async def get_app_notifications(bgt:BackgroundTasks,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
@@ -133,7 +133,7 @@ async def delete_fcm_token(register_inp:DeleteNotifySchema,bgt:BackgroundTasks,s
 
         messaging.unsubscribe_from_topic(tokens=fcm_tokens,topic="all")
 
-    ic("successfully deleted")
+    ic("notification successfully deleted")
 
 @router.get("/notification/image/{image_id}")
 async def get_notification_image(image_id:str,session:Session=Depends(get_db_session)):

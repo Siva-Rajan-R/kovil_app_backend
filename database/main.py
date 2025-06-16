@@ -6,7 +6,7 @@ load_dotenv()
 
 DATABASE_URL=os.getenv("DATABASE_URL")
 
-Engine=create_engine(DATABASE_URL)
+Engine=create_engine(DATABASE_URL,pool_size=5,max_overflow=10,pool_recycle=1200)
 
 Base=declarative_base()
 

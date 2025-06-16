@@ -1,6 +1,6 @@
 from fastapi import APIRouter,Depends,Request,UploadFile,File,Form,Response,HTTPException,BackgroundTasks,Query
 from enums import backend_enums
-from fastapi.responses import JSONResponse,StreamingResponse
+from fastapi.responses import ORJSONResponse,StreamingResponse
 from database.operations.event_crud import AddEvent,DeleteEvent,UpdateEvent,UpdateEventCompletedStatus,UpdateEventPendingCanceledStatus,Session,EventNameAndAmountCrud,GetEventStatusImage,NeivethiyamNameAndAmountCrud,ContactDescription
 from database.operations.event_info import EventsToEmail
 from database.main import get_db_session
@@ -37,7 +37,7 @@ async def add_event_name_and_amount(event_name_inp:AddEventNameSchema,session:Se
         user_id=user_id
     ).add_event_name_and_amt(event_name=event_name_inp.event_name,event_amount=event_name_inp.event_amount,is_special=event_name_inp.is_special)
 
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=201,
         content=added_event_name
     )
@@ -45,14 +45,14 @@ async def add_event_name_and_amount(event_name_inp:AddEventNameSchema,session:Se
 @router.delete("/event/name")
 async def delete_event_name_and_amount(en_del_inp:DeleteEventNameSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
-    added_event_name=await EventNameAndAmountCrud(
+    delete_event_name=await EventNameAndAmountCrud(
         session=session,
         user_id=user_id
     ).delete_event_name_and_amount(event_name_id=en_del_inp.event_name_id)
 
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=200,
-        content=added_event_name
+        content=delete_event_name
     )
 
 #neivethiyam
@@ -74,7 +74,7 @@ async def add_neivethiyam_name_and_amount(neivethiyam_name_inp:AddNeivethiyamNam
         user_id=user_id
     ).add_neivethiyam_name_and_amt(neivethiyam_name=neivethiyam_name_inp.neivethiyam_name,neivethiyam_amount=neivethiyam_name_inp.neivethiyam_amount)
 
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=201,
         content=added_neivethiyam_name
     )
@@ -82,14 +82,14 @@ async def add_neivethiyam_name_and_amount(neivethiyam_name_inp:AddNeivethiyamNam
 @router.delete("/neivethiyam/name")
 async def delete_neivethiyam_name_and_amount(en_del_inp:DeleteNeivethiyamNameSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
-    added_neivethiyam_name=await NeivethiyamNameAndAmountCrud(
+    deleted_neivethiyam_name=await NeivethiyamNameAndAmountCrud(
         session=session,
         user_id=user_id
     ).delete_neivethiyam_name_and_amount(neivethiyam_name_id=en_del_inp.neivethiyam_name_id)
 
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=200,
-        content=added_neivethiyam_name
+        content=deleted_neivethiyam_name
     )
 
 @router.post("/event")
@@ -120,7 +120,7 @@ async def add_event(bgt:BackgroundTasks,add_event_inputs:AddEventSchema,session:
         padi_kg=add_event_inputs.neivethiyam_kg
     ).add_event()
 
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=201,
         content=added_event
     )
@@ -151,7 +151,7 @@ async def update_event(update_event_inputs:UpdateEventSchema,session:Session=Dep
         padi_kg=update_event_inputs.neivethiyam_kg
     ).update_event(event_id=update_event_inputs.event_id)
 
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=200,
         content=updated_event
     )
@@ -164,7 +164,7 @@ async def delete_single_event(delete_event_inputs:DeleteSingleEventSchema,sessio
         user_id=user_id
     ).delete_single_event(event_id=delete_event_inputs.event_id)
 
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=200,
         content=deleted_event
     )
@@ -174,11 +174,11 @@ async def delete_all_event(request:Request,bgt:BackgroundTasks,delete_event_inpu
     user_id=user["id"]
     bgt.add_task(
         DeleteEvent(
-        session=session,
-        user_id=user_id
+            session=session,
+            user_id=user_id
         ).delete_all_event,
-        from_date=delete_event_inputs.from_date,
-        to_date=delete_event_inputs.to_date
+            from_date=delete_event_inputs.from_date,
+            to_date=delete_event_inputs.to_date
     )
 
     return f"{delete_event_inputs.from_date} to {delete_event_inputs.to_date} events deleting..."
@@ -246,7 +246,7 @@ async def update_event_completed_status(
         )
     )
     ic("odaney")
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=200,
         content="Updating event status..."
     )
@@ -267,7 +267,7 @@ async def update_event_pending_canceled_status(status_inp:UpdateEventPendingCanc
         )
     )
     ic("odaneyy")
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=200,
         content="Updating event status..."
     )
@@ -338,7 +338,7 @@ async def delete_contact_desc(cont_desc_inp:DeleteContactDescriptionSchema,sessi
         user_id=user_id
     ).delete_description(contact_desc_id=cont_desc_inp.contact_desc_id)
 
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=200,
         content=deleted_cont_desc
     )

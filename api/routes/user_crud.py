@@ -1,5 +1,5 @@
 from fastapi import APIRouter,Depends,BackgroundTasks
-from fastapi.responses import JSONResponse
+from fastapi.responses import ORJSONResponse
 from database.operations.user_crud import DeleteUser,GetUsers,UpdateUser
 from database.main import get_db_session
 from sqlalchemy.orm import Session
@@ -20,7 +20,7 @@ async def delete_user(bgt:BackgroundTasks,delete_user_inputs:DeleteUserSchema,se
         bg_task=bgt
     ).delete_user()
 
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=200,
         content=deleted_user
     )
@@ -45,7 +45,7 @@ async def delete_user(bgt:BackgroundTasks,update_user_input:UpdateUserSchema,ses
         user_id=user_id
     ).update_user_role(user_id_to_update=update_user_input.user_id,role_to_update=update_user_input.role)
 
-    return JSONResponse(
+    return ORJSONResponse(
         status_code=200,
         content=update_user_role
     )

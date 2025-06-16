@@ -17,7 +17,7 @@ from utils import indian_time,notification_image_url
 from datetime import datetime
 from icecream import ic
 from utils.push_notification import PushNotificationCrud
-from firebase_db.operations import FirebaseCrud
+from utils.error_notification import send_error_notification
 
 class __AddEventInputs:
     def __init__(
@@ -761,20 +761,35 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                     )
                     return
                 
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"invalid event status {self.event_status.value}"
+                # raise HTTPException(
+                #     status_code=404,
+                #     detail=f"invalid event status {self.event_status.value}"
+                # )
+                ic(f"404 : invalid event status {self.event_status.value}")
+                send_error_notification(
+                    user_id=self.user_id,
+                    error_title="invalid event status : 404".title(),
+                    error_body=f"for {event.name} expected status 'completed' actual '{self.event_status.value}'".title,
+                    notify_data_payload={
+                        "screen":"home_screen"
+                    }
                 )
-            
-        except HTTPException:
-            raise
+                   
 
         except Exception as e:
-            print(e)
-            raise HTTPException(
-                status_code=500,
-                detail=f"something went wrong while updating event completed status {e}"
-            )
+            ic(f"500 : something went wrong while updating event completed status {e}")
+            send_error_notification(
+                    user_id=self.user_id,
+                    error_title="error updateing event status : 500".title(),
+                    error_body="Something went wrong, Please Try Again".title(),
+                    notify_data_payload={
+                        "screen":"home_screen"
+                    }
+                )
+            # raise HTTPException(
+            #     status_code=500,
+            #     detail=f"something went wrong while updating event completed status {e}"
+            # )
 
 class UpdateEventPendingCanceledStatus(__UpdateEventPendingCanceledInputs):
     async def update_event_status(self):
@@ -832,21 +847,35 @@ class UpdateEventPendingCanceledStatus(__UpdateEventPendingCanceledInputs):
                         ).push_notification_to_all
                     )
                     return
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"invalid event status {self.event_status.value}"
+                # raise HTTPException(
+                #     status_code=404,
+                #     detail=f"invalid event status {self.event_status.value}"
+                # )
+                ic(f"404 : invalid event status {self.event_status.value}")
+                send_error_notification(
+                    user_id=self.user_id,
+                    error_title="invalid event status".title(),
+                    error_body=f"for {event.name} expected status 'pending or canceled' actual '{self.event_status.value}'".title,
+                    notify_data_payload={
+                        "screen":"home_screen"
+                    }
                 )
 
-        
-        except HTTPException:
-            raise
 
         except Exception as e:
-            print(e)
-            raise HTTPException(
-                status_code=500,
-                detail=f"something went wrong while updating event {self.event_status.value} status {e}"
-            )
+            print(f"something went wrong while updating event {self.event_status.value} status {e}")
+            send_error_notification(
+                    user_id=self.user_id,
+                    error_title="error updateing event status : 500".title(),
+                    error_body=f"something went wrong, please try again".title,
+                    notify_data_payload={
+                        "screen":"home_screen"
+                    }
+                )
+            # raise HTTPException(
+            #     status_code=500,
+            #     detail=f"something went wrong while updating event {self.event_status.value} status {e}"
+            # )
         
 class GetEventStatusImage:
     def __init__(self,session:Session,image_id:str):

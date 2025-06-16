@@ -22,3 +22,6 @@ pyrebase4
 firebase-admin
 pillow
 apscheduler
+orjson
+brotli
+brotli-asgi
