@@ -305,7 +305,8 @@ async def get_events_reprot_emails(event_email_inputs:GetEventsEmailschema,bgt:B
                 to_date=event_email_inputs.to_date,
                 file_type=event_email_inputs.file_type,
                 to_email=email
-            ).get_events_email
+            ).get_events_email,
+            user=user
         )
 
     # report=await EventsToEmail(

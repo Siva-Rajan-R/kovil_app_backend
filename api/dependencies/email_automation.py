@@ -57,7 +57,7 @@ def register_or_forgot_successfull_email(email_subject:str,email_body:str,email:
 
 
 
-async def send_events_report_as_excel(to_email: EmailStr, events: list[dict],excel_filename:str,is_contains_image:bool):
+def send_events_report_as_excel(to_email: EmailStr, events: list[dict],excel_filename:str,is_contains_image:bool):
     msg = EmailMessage()
     msg['Subject'] = 'Nanmai tharuvar kovil Events report as EXCEL'
     msg['From'] = EMAIL_ADDRESS
@@ -91,7 +91,7 @@ async def send_events_report_as_excel(to_email: EmailStr, events: list[dict],exc
         smtp.send_message(msg)
 
 
-async def send_event_report_as_pdf(to_email: EmailStr, pdf_bytes: bytes,pdf_filename:str):
+def send_event_report_as_pdf(to_email: EmailStr, pdf_bytes: bytes,pdf_filename:str):
     msg = EmailMessage()
     msg['Subject'] = 'Nanmai tharuvar kovil Events report as PDF'
     msg['From'] = EMAIL_ADDRESS

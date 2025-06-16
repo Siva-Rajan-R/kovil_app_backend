@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import extract,select,func,cast, Date, Time,desc
 from enums import backend_enums
+from database.models.user import Users
 from database.models.event import Events,Clients,Payments,EventsCompletedStatus,EventsPendingCanceledStatus,EventStatusImages,EventsNeivethiyam,NeivethiyamNames,EventsContactDescription
 from database.operations.event_crud import EventNameAndAmountCrud,NeivethiyamNameAndAmountCrud
 from database.operations.user_auth import UserVerification
@@ -186,10 +187,9 @@ class EventDropDownValues(__EventDropDownValuesInputs):
             )
 
 class EventsToEmail(__EventsToEmailInputs):
-    async def get_events_email(self):
+    def get_events_email(self,user:Users):
         try:
             with self.session.begin():
-                user=await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
                 if user.role==backend_enums.UserRole.ADMIN:
                     select_statement_columns=[
                         Events.name.label("event_name"),
@@ -260,14 +260,14 @@ class EventsToEmail(__EventsToEmailInputs):
                 
                     if self.file_type==backend_enums.FileType.EXCEL:
                         file_name=f"{self.from_date}-{self.to_date}_eventReport.xlsx"
-                        await email_automation.send_events_report_as_excel(to_email=self.to_email,events=events,excel_filename=file_name,is_contains_image=True)
+                        email_automation.send_events_report_as_excel(to_email=self.to_email,events=events,excel_filename=file_name,is_contains_image=True)
                     else:
                         file_name=f"{self.from_date}-{self.to_date}_eventReport.pdf"
                         ic(events[0]["event_name"])
                         for event in events:
-                            pdf_byte=await document_generator.generate_pdf(data=events,pdf_fields=pdf_fields.events_field_data(events=events),is_contain_image=True)
+                            pdf_byte=document_generator.generate_pdf(data=events,pdf_fields=pdf_fields.events_field_data(events=events),is_contain_image=True)
                         if pdf_byte:
-                            await email_automation.send_event_report_as_pdf(to_email=self.to_email,pdf_bytes=pdf_byte,pdf_filename=file_name)
+                            email_automation.send_event_report_as_pdf(to_email=self.to_email,pdf_bytes=pdf_byte,pdf_filename=file_name)
 
                     return "successfully sended"
                 raise HTTPException(

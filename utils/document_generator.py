@@ -13,7 +13,7 @@ from fastapi.exceptions import HTTPException
 from icecream import ic
 from typing import List
 
-async def generate_pdf(data:List[dict],pdf_fields:List[dict],is_contain_image:bool) -> bytes:
+def generate_pdf(data:List[dict],pdf_fields:List[dict],is_contain_image:bool) -> bytes:
     try:
         buffer = BytesIO()
         doc = SimpleDocTemplate(buffer, pagesize=A4)

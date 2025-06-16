@@ -739,7 +739,6 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                     # ["fUKAXNhpQHCOiuFfHT8PQ-:APA91bEYqkU1qtNyE5UDeqDyi1bgI9Rfmqm1bvg2u6IJm5wgngmCjW9M0LWibAdjfY6G6OrEO0qwLrFb9cI6tVN2NafT4h-KDn2gd_1a6BPgxiFn07nbrC4"]
                     
                     ic(image_url)
-
                     compressed_image_url=await notification_image_url.get_notification_image_url(
                         session=self.session,
                         request=self.request,
@@ -781,7 +780,7 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
             send_error_notification(
                     user_id=self.user_id,
                     error_title="error updateing event status : 500".title(),
-                    error_body="Something went wrong, Please Try Again".title(),
+                    error_body=f"for {event.name} Something went wrong, Please Try Again".title(),
                     notify_data_payload={
                         "screen":"home_screen"
                     }
@@ -867,7 +866,7 @@ class UpdateEventPendingCanceledStatus(__UpdateEventPendingCanceledInputs):
             send_error_notification(
                     user_id=self.user_id,
                     error_title="error updateing event status : 500".title(),
-                    error_body=f"something went wrong, please try again".title,
+                    error_body=f"for {event.name} something went wrong, please try again".title,
                     notify_data_payload={
                         "screen":"home_screen"
                     }

@@ -9,7 +9,7 @@ from contextlib import nullcontext
 from typing import Optional
 from database.operations.notification import NotificationsCrud
 
-async def get_notification_image_url(session:Session,request:Request,notification_id:str,notification_title:str,notification_body:str,notification_image:bytes,user_id:str,compress_image:Optional[bool]=False):
+async def get_notification_image_url(session:Session,request:Request,notification_title:str,notification_image:bytes,user_id:str,notification_id:Optional[str]=None,notification_body:Optional[str]=None,compress_image:Optional[bool]=False):
     try:
         ctx = session.begin() if not session.in_transaction() else nullcontext()
         with ctx:
@@ -22,16 +22,19 @@ async def get_notification_image_url(session:Session,request:Request,notificatio
             ic(f"hello {len(compressed_bytes)}")
             image_url="https://muddy-danette-sivarajan-1b1beec7.koyeb.app/"+f"notification/image/{image_id}"
             ic(image_url)
-            await NotificationsCrud(
-                session=session,
-                user_id=user_id
-            ).add_notification(
-                notify_id=notification_id,
-                notify_title=notification_title,
-                notify_body=notification_body,
-                notify_img_url=image_url
-            )
-            ic("hello eorld")
+            
+            if notification_id and notification_body:
+                await NotificationsCrud(
+                    session=session,
+                    user_id=user_id
+                ).add_notification(
+                    notify_id=notification_id,
+                    notify_title=notification_title,
+                    notify_body=notification_body,
+                    notify_img_url=image_url
+                )
+                ic("hello eorld")
+
             session.add(
                 NotificationImages(
                     notify_id=notification_id,
