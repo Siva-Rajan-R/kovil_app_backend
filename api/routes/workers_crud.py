@@ -1,4 +1,5 @@
-from fastapi import APIRouter,Depends,Query
+from fastapi import APIRouter,Depends,Query,Request,Response,HTTPException
+from security.entity_tag import generate_entity_tag
 from fastapi.responses import ORJSONResponse
 from database.operations.workers_crud import WorkersCrud,Session,SendWorkerInfoAsEmail
 from database.main import get_db_session
@@ -86,13 +87,21 @@ async def worker_report_email(worker_inp:ResetAllWorkersSchema,session:Session=D
     )
 
 @router.get("/workers")
-async def get_worker(session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+async def get_worker(request:Request,response:Response,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
     fetched_worker=await WorkersCrud(
         session=session,
         user_id=user_id,
     ).get_workers()
 
+    etag=generate_entity_tag(data=str(fetched_worker))
+
+    if request.headers.get("if-none-match")==etag:
+        raise HTTPException(
+            status_code=304,
+        )
+    
+    response.headers['ETag']=etag
     return fetched_worker
 
 @router.get("/workers/date")

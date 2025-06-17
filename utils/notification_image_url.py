@@ -8,6 +8,7 @@ from icecream import ic
 from contextlib import nullcontext
 from typing import Optional
 from database.operations.notification import NotificationsCrud
+from datetime import datetime,timedelta,timezone
 
 async def get_notification_image_url(session:Session,request:Request,notification_title:str,notification_image:bytes,user_id:Optional[str]=None,notification_id:Optional[str]=None,notification_body:Optional[str]=None,compress_image:Optional[bool]=False):
     try:
@@ -20,7 +21,7 @@ async def get_notification_image_url(session:Session,request:Request,notificatio
 
             image_id=await create_unique_id(notification_title)
             ic(f"hello {len(compressed_bytes)}")
-            image_url="https://muddy-danette-sivarajan-1b1beec7.koyeb.app/"+f"notification/image/{image_id}"
+            image_url=str(request.base_url)+f"notification/image/{image_id}"
             ic(image_url)
 
             if notification_id and notification_body and user_id:
@@ -39,7 +40,8 @@ async def get_notification_image_url(session:Session,request:Request,notificatio
                 NotificationImages(
                     notify_id=notification_id,
                     id=image_id,
-                    image=compressed_bytes
+                    image=compressed_bytes,
+                    created_at=datetime.now(timezone.utc)
                 )
             )
             ic("scuccessfully notification image created")

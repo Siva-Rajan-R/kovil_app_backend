@@ -1,10 +1,11 @@
-from fastapi import APIRouter,Depends,BackgroundTasks
+from fastapi import APIRouter,Depends,BackgroundTasks,Response,Request,HTTPException
 from fastapi.responses import ORJSONResponse
 from database.operations.user_crud import DeleteUser,GetUsers,UpdateUser
 from database.main import get_db_session
 from sqlalchemy.orm import Session
 from api.dependencies import token_verification
 from api.schemas.user_crud import DeleteUserSchema,UpdateUserSchema
+from security.entity_tag import generate_entity_tag
 from icecream import ic
 router=APIRouter(
     tags=["Get,Update And Delete Users"]
@@ -26,13 +27,21 @@ async def delete_user(bgt:BackgroundTasks,delete_user_inputs:DeleteUserSchema,se
     )
 
 @router.get("/users")
-async def get_users(session:Session=Depends(get_db_session),user:dict=Depends(token_verification.verify)):
+async def get_users(request:Request,response:Response,session:Session=Depends(get_db_session),user:dict=Depends(token_verification.verify)):
     user_id=user["id"]
     users=await GetUsers(
         session=session,
         user_id=user_id
     ).get_users()
 
+    etag=generate_entity_tag(data=str(users))
+
+    if request.headers.get("if-none-match")==etag:
+        raise HTTPException(
+            status_code=304,
+        )
+    
+    response.headers['ETag']=etag
     return users
 
 

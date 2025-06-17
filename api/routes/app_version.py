@@ -115,7 +115,7 @@ async def get_app_notifications(response:Response,request:Request,bgt:Background
     notifications=await NotificationsCrud(
         session=session,
         user_id=user_id
-    ).get_notifications(bg_task=bgt)
+    ).get_notifications()
     
     ic(len(notifications))
 
@@ -129,6 +129,27 @@ async def get_app_notifications(response:Response,request:Request,bgt:Background
     response.headers['ETag']=etag
     ic(len(serialized_data))
     return notifications
+
+@router.put("/app/notifications/seen")
+async def app_notifications_seen(response:Response,request:Request,bgt:BackgroundTasks,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']
+    try:
+        user=await UserVerification(session=session).is_user_exists_by_id(user_id)
+        bgt.add_task(
+            NotificationsCrud(
+                session=session,
+                user_id=user_id
+            ).update_add_notify_reciv_user,
+            user=user
+        )
+
+        ic("notification seen updating...")
+    except HTTPException:
+        ic("404 user does not exists")
+    
+    except Exception as e:
+        ic(f"something went wrong while updating notification seen {e}")
+
 
 @router.delete("/app/notify/token")
 async def delete_fcm_token(register_inp:DeleteNotifySchema,bgt:BackgroundTasks,session:Session=Depends(get_db_session),user:dict=Depends(verify)):

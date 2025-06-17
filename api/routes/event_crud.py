@@ -8,6 +8,7 @@ from api.dependencies.token_verification import verify
 from api.schemas.event_crud import AddEventSchema,UpdateEventSchema,UpdateEventPendingCanceledStatusSchema,DeleteAllEventSchema,DeleteSingleEventSchema,AddEventNameSchema,DeleteEventNameSchema,GetEventsEmailschema,AddNeivethiyamNameSchema,DeleteNeivethiyamNameSchema,AddContactDescriptionSchema,DeleteContactDescriptionSchema
 from typing import Optional,List
 from database.operations.user_auth import UserVerification
+from security.entity_tag import generate_entity_tag
 from utils.clean_ph_numbers import clean_phone_numbers
 from utils.image_compression import compress_image_to_target_size
 from utils.async_to_sync_bgtask import run_async_in_bg
@@ -20,12 +21,21 @@ router=APIRouter(
 )
 
 @router.get("/event/name")
-async def get_event_name_and_amount(session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+async def get_event_name_and_amount(request:Request,response:Response,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
     event_names=await EventNameAndAmountCrud(
         session=session,
         user_id=user_id
     ).get_event_name_and_amount()
+
+    etag=generate_entity_tag(data=str(event_names))
+
+    if request.headers.get("if-none-match")==etag:
+        raise HTTPException(
+            status_code=304,
+        )
+    
+    response.headers['ETag']=etag
 
     return event_names
 
@@ -57,12 +67,21 @@ async def delete_event_name_and_amount(en_del_inp:DeleteEventNameSchema,session:
 
 #neivethiyam
 @router.get("/neivethiyam/name")
-async def get_neivethiyam_name_and_amount(session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+async def get_neivethiyam_name_and_amount(request:Request,response:Response,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
     neivethiyam_names=await NeivethiyamNameAndAmountCrud(
         session=session,
         user_id=user_id
     ).get_neivethiyam_name_and_amount()
+
+    etag=generate_entity_tag(data=str(neivethiyam_names))
+
+    if request.headers.get("if-none-match")==etag:
+        raise HTTPException(
+            status_code=304,
+        )
+    
+    response.headers['ETag']=etag
 
     return neivethiyam_names
 

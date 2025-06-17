@@ -1,4 +1,5 @@
-from fastapi import APIRouter,Depends,Query
+from fastapi import APIRouter,Depends,Query,Request,Response,HTTPException
+from security.entity_tag import generate_entity_tag
 from database.operations.event_info import EventCalendar,ParticularEvent,Session,date,EventDropDownValues
 from database.main import get_db_session
 from api.dependencies.token_verification import verify
@@ -29,8 +30,16 @@ async def event_specific(date:date=Query(...),user:dict=Depends(verify),session:
     return events
 
 @router.get("/event/dropdown-values")
-async def get_event_dropdown_values(session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+async def get_event_dropdown_values(request:Request,response:Response,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
     event_dd_values=await EventDropDownValues(session=session,user_id=user_id).get_dropdown_values()
+    etag=generate_entity_tag(data=str(event_dd_values))
+
+    if request.headers.get("if-none-match")==etag:
+        raise HTTPException(
+            status_code=304,
+        )
+    
+    response.headers['ETag']=etag
     return event_dd_values
 

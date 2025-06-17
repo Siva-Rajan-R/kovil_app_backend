@@ -20,6 +20,7 @@ class NotificationImages(Base):
     id=Column(String,primary_key=True)
     image=Column(LargeBinary,nullable=False)
     notify_id=Column(String,ForeignKey("notifications.id",ondelete="CASCADE"))
+    created_at=Column(DateTime(timezone=True),nullable=False)
 
     notify=relationship("Notifications",back_populates="notify_image")
 
