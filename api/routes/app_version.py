@@ -36,8 +36,12 @@ def get_app_version(request:Request,response:Response):
         raise HTTPException(
             status_code=304
         )
-    response.headers['ETag']=etag
-    return version
+    
+    # response.headers['ETag']=etag
+    return ORJSONResponse(
+        content=version,
+        headers={"ETag":etag}
+    )
 
 
 @router.post("/app/notify/all")
