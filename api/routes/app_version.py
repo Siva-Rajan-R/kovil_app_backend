@@ -1,10 +1,11 @@
 from fastapi import APIRouter,BackgroundTasks,Depends,Query,Request,Form,File,UploadFile,HTTPException
-from fastapi.responses import StreamingResponse,ORJSONResponse
+from fastapi.responses import StreamingResponse,ORJSONResponse,Response
 import os
 import orjson
 from utils.push_notification import PushNotificationCrud,messaging
 from utils.notification_image_url import get_notification_image_url
 from security.uuid_creation import create_unique_id
+from security.entity_tag import generate_entity_tag
 from firebase_db.operations import FirebaseCrud
 from api.schemas.application import RegisterNotifySchema,DeleteNotifySchema
 from database.operations.user_auth import UserVerification
@@ -109,14 +110,24 @@ async def register_fcm_token(request:Request,register_inp:RegisterNotifySchema,b
     ic("fcm token added successfuly")
 
 @router.get("/app/notifications")
-async def get_app_notifications(bgt:BackgroundTasks,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+async def get_app_notifications(response:Response,request:Request,bgt:BackgroundTasks,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
     notifications=await NotificationsCrud(
         session=session,
         user_id=user_id
     ).get_notifications(bg_task=bgt)
+    
+    ic(len(notifications))
 
-    ic(notifications)
+    serialized_data=str(notifications)
+    etag = generate_entity_tag(serialized_data)
+    ic(request.headers.get('If-None-Match'),request.headers.get('if-none-match'))
+    if request.headers.get('If-None-Match') == etag:
+        raise HTTPException(
+            status_code=304
+        )
+    response.headers['ETag']=etag
+    ic(len(serialized_data))
     return notifications
 
 @router.delete("/app/notify/token")

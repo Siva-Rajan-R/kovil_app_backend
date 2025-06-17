@@ -150,7 +150,7 @@ class NotificationsCrud:
             ic(compeleted_tasks)
             
             bg_task.add_task(update_add_notify_reciv_user)
-
+            ic("hello world")
             notifications={"notifications":{"new":compeleted_tasks[0]}}
             if len(compeleted_tasks)==2:
                 notifications['notifications'].update({"seen":compeleted_tasks[1]})
