@@ -43,4 +43,4 @@ app.include_router(app_version.router)
 
 # middlewares
 
-app.add_middleware(GZipMiddleware,minimum_size=400,compresslevel=9)
+app.add_middleware(GZipMiddleware,minimum_size=300,compresslevel=9)

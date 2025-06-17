@@ -29,8 +29,15 @@ router=APIRouter(
 version_info=os.getenv("VERSION_INFO")
 
 @router.get("/app/version")
-def get_app_version():
-    return orjson.loads(version_info)
+def get_app_version(request:Request,response:Response):
+    version=orjson.loads(version_info)
+    etag=generate_entity_tag(str(version))
+    if request.headers.get('if-none-match')==etag:
+        raise HTTPException(
+            status_code=304
+        )
+    response.headers['ETag']=etag
+    return version
 
 
 @router.post("/app/notify/all")
