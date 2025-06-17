@@ -5,6 +5,7 @@ from firebase_admin import messaging, credentials, initialize_app
 from typing import List,OrderedDict,Optional
 from dotenv import load_dotenv
 from icecream import ic
+import time
 load_dotenv()
 
 fcm_cred=os.getenv("FCM_CREDENTIAL")
@@ -21,11 +22,28 @@ except ValueError:
     raise
 
 class PushNotificationCrud:
-    def __init__(self,notify_title:str,notify_body:str,data_payload:dict):
+    def __init__(self,notify_title:str,notify_body:str,data_payload:dict,max_retries:int=3,delay=5):
         
         self.notify_title=notify_title
         self.notify_body=notify_body
         self.data_payload=data_payload
+        self.max_retries=max_retries
+        self.delay=delay
+    
+    def _retry_send_notification(self,message):
+        delay=self.delay
+        for attempt in range(self.max_retries+1):
+            try:
+                response=messaging.send(message=message)
+                print(f"...suuccesss notify... {response}")
+                return
+            except Exception as e:
+                ic (f"something went wrong while sending notification {e}")
+
+            if attempt<self.max_retries:
+                time.sleep(delay)
+                delay*=2
+        return None
 
     def push_notifications_individually(self,fcm_tokens:list|OrderedDict,unsubscribe:Optional[bool]=False,remove_in_db:Optional[bool]=False,user_id:Optional[str]=None,image_url:Optional[str]=None):
         print(fcm_tokens)
@@ -75,7 +93,7 @@ class PushNotificationCrud:
                     data=self.data_payload
                 )
 
-                response=messaging.send(message=message)
+                response=self._retry_send_notification(message=message)
                 print(f"...suuccesss notify... {response}")
 
             except Exception as e:
@@ -91,6 +109,5 @@ class PushNotificationCrud:
                 data=self.data_payload,
                 topic="test"
             )
-        response=messaging.send(message=message)
+        response=self._retry_send_notification(message=message)
         print(f"...suuccesss notify... {response}")
-            
