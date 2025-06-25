@@ -3,6 +3,7 @@ from security.entity_tag import generate_entity_tag
 from database.operations.event_info import EventCalendar,ParticularEvent,Session,date,EventDropDownValues
 from database.main import get_db_session
 from api.dependencies.token_verification import verify
+from typing import Optional
 
 router=APIRouter(
     tags=["Get Event Informations"]
@@ -20,11 +21,12 @@ async def event_calendar(month:int=Query(...),year:int=Query(...),user:dict=Depe
     return ec
 
 @router.get("/event/specific")
-async def event_specific(date:date=Query(...),user:dict=Depends(verify),session:Session=Depends(get_db_session)):
+async def event_specific(date:date=Query(...),event_id:Optional[str]=Query(None),user:dict=Depends(verify),session:Session=Depends(get_db_session)):
     events=await ParticularEvent(
         session=session,
         user_id=user['id'],
-        event_date=date
+        event_date=date,
+        event_id=event_id
     ).get_events()
 
     return events

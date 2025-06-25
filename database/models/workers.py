@@ -7,8 +7,10 @@ class Workers(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, nullable=False, unique=True)
     mobile_number = Column(String, nullable=False, unique=True)
+    user_id=Column(String,ForeignKey("users.id",ondelete="CASCADE"),nullable=True)
 
     wrk_partic_log = relationship("WorkersParticipationLogs", back_populates="worker", cascade="all, delete-orphan")
+    user=relationship("Users",back_populates="worker")
 
 class WorkersParticipationLogs(Base):
     __tablename__ = "workers_participation_logs"

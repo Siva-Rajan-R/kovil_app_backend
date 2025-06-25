@@ -1,11 +1,11 @@
 from database.models.event import (
-    Events,Clients,Payments,EventsCompletedStatus,EventsPendingCanceledStatus,EventNames,EventStatusImages,NeivethiyamNames,EventsNeivethiyam,EventsContactDescription
+    Events,Clients,Payments,EventsCompletedStatus,EventsPendingCanceledStatus,EventNames,EventStatusImages,NeivethiyamNames,EventsNeivethiyam,EventsContactDescription,EventsAssignments
 )
 from database.models.workers import Workers,WorkersParticipationLogs
 from fastapi import BackgroundTasks,Request,File,UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
-from sqlalchemy import select,func,desc
+from sqlalchemy import select,func,desc,or_,and_
 from enums import backend_enums
 from security.uuid_creation import create_unique_id
 from datetime import date,time
@@ -14,10 +14,12 @@ from fastapi.exceptions import HTTPException
 from database.operations.user_auth import UserVerification
 from typing import Optional
 from utils import indian_time,notification_image_url
-from datetime import datetime
+from datetime import datetime,timezone,timedelta
 from icecream import ic
+from firebase_db.operations import FirebaseCrud
 from utils.push_notification import PushNotificationCrud
 from utils.error_notification import send_error_notification
+from database.operations.notification import NotificationsCrud
 
 class __AddEventInputs:
     def __init__(
@@ -191,13 +193,19 @@ class EventNameAndAmountCrud(__EventAndNeivethiyamNameAndAmountCrudInputs):
             with self.session.begin():
                 user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
                 if user.role==backend_enums.UserRole.ADMIN:
-                    added_event_name=EventNames(
-                        name=event_name,
-                        amount=event_amount,
-                        is_special=is_special
+                    is_event_name_exists=self.session.execute(select(EventNames.name).where(EventNames.name==event_name)).scalar_one_or_none()
+                    if not is_event_name_exists:
+                        added_event_name=EventNames(
+                            name=event_name,
+                            amount=event_amount,
+                            is_special=is_special
+                        )
+                        self.session.add(added_event_name)
+                        return "successfully event name added"
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Event name already exists"
                     )
-                    self.session.add(added_event_name)
-                    return "successfully event name added"
                 raise HTTPException(
                     status_code=401,
                     detail='you are not allowed to make any changes'
@@ -210,12 +218,12 @@ class EventNameAndAmountCrud(__EventAndNeivethiyamNameAndAmountCrudInputs):
                 detail="something went wrong while adding event name"
             )
         
-    async def delete_event_name_and_amount(self,event_name_id):
+    async def delete_event_name_and_amount(self,event_name):
         try:
             with self.session.begin():
                 user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
                 if user.role==backend_enums.UserRole.ADMIN:
-                    en_to_delete=self.session.query(EventNames).filter(EventNames.id==event_name_id).first()
+                    en_to_delete=self.session.query(EventNames).filter(EventNames.name==event_name).first()
                     if en_to_delete:
                         self.session.delete(en_to_delete)
                     else:
@@ -270,12 +278,18 @@ class NeivethiyamNameAndAmountCrud(__EventAndNeivethiyamNameAndAmountCrudInputs)
             with self.session.begin():
                 user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
                 if user.role==backend_enums.UserRole.ADMIN:
-                    added_event_name=NeivethiyamNames(
-                        name=neivethiyam_name,
-                        amount=neivethiyam_amount
+                    is_neivethiyam_name_exists=self.session.execute(select(NeivethiyamNames.name).where(NeivethiyamNames.name==neivethiyam_name)).scalar_one_or_none()
+                    if not is_neivethiyam_name_exists:
+                        added_event_name=NeivethiyamNames(
+                            name=neivethiyam_name,
+                            amount=neivethiyam_amount
+                        )
+                        self.session.add(added_event_name)
+                        return "successfully neivethiyam name added"
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Neivethiyam name already exists"
                     )
-                    self.session.add(added_event_name)
-                    return "successfully neivethiyam name added"
                 raise HTTPException(
                     status_code=401,
                     detail='you are not allowed to make any changes'
@@ -288,18 +302,18 @@ class NeivethiyamNameAndAmountCrud(__EventAndNeivethiyamNameAndAmountCrudInputs)
                 detail="something went wrong while adding neivethiyam name"
             )
         
-    async def delete_neivethiyam_name_and_amount(self,neivethiyam_name_id):
+    async def delete_neivethiyam_name_and_amount(self,neivethiyam_name):
         try:
             with self.session.begin():
                 user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
                 if user.role==backend_enums.UserRole.ADMIN:
-                    nv_to_delete=self.session.query(NeivethiyamNames).filter(NeivethiyamNames.id==neivethiyam_name_id).first()
+                    nv_to_delete=self.session.query(NeivethiyamNames).filter(NeivethiyamNames.name==neivethiyam_name).first()
                     if nv_to_delete:
                         self.session.delete(nv_to_delete)
                     else:
                         raise HTTPException(
                             status_code=404,
-                            detail="neivethiyam id not found"
+                            detail="neivethiyam name not found"
                         )
 
                     return 'successfully neivethiyam name deleted'
@@ -349,9 +363,9 @@ class AddEvent(__AddEventInputs):
                 if user.role==backend_enums.UserRole.ADMIN:
 
                     is_event_name_exists=self.session.execute(select(EventNames.id).where(EventNames.name==self.event_name)).scalar_one_or_none()
-                    
+                    ic("hello",is_event_name_exists)
                     is_neivethiyam_name_exists=self.session.execute(select(NeivethiyamNames.id).where(NeivethiyamNames.id==self.neivethiyam_id)).scalar_one_or_none()
-                    ic(is_event_name_exists,is_neivethiyam_name_exists)
+                    ic("hello",is_event_name_exists,is_neivethiyam_name_exists)
                     if not is_event_name_exists and not is_neivethiyam_name_exists:
                         raise HTTPException(
                             status_code=404,
@@ -413,7 +427,27 @@ class AddEvent(__AddEventInputs):
                         ).push_notification_to_all
                     )
                     
-                    return "successfully event added"
+                    cur_datetime=datetime.now()
+                    utc_time=datetime(
+                        year=self.event_date.year,
+                        month=self.event_date.month,
+                        day=self.event_date.day,
+                        hour=cur_datetime.hour,
+                        minute=cur_datetime.minute,
+                        second=cur_datetime.second
+                    ).astimezone(timezone.utc)
+                    return {
+                        'response_msg':'successfully event added',
+                        'schedule_notifications':[
+                            {
+                                'title':"Reminder of event assignment",
+                                'body':f"Now, you can assign a workers to {event.name} on {event.date} at {event.start_at}",
+                                'datetime':utc_time+timedelta(seconds=10)
+                            }
+                        ]
+                    }
+
+                    # return "Event added successfully"
 
                 raise HTTPException(
                     status_code=401,
@@ -425,6 +459,7 @@ class AddEvent(__AddEventInputs):
             raise
 
         except Exception as e:
+            ic(f"something went wrong while adding event details {e}")
             raise HTTPException(
                 status_code=500,
                 detail=f"something went wrong while adding event details {e}"
@@ -734,6 +769,7 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                     )
 
                     self.session.query(EventsPendingCanceledStatus).filter(EventsPendingCanceledStatus.event_id==self.event_id).delete()
+                    self.session.query(EventsAssignments).filter(EventsAssignments.event_id==self.event_id).update({EventsAssignments.is_completed:True})
                     ic("event completed status updated successfully")
 
                     # ["fUKAXNhpQHCOiuFfHT8PQ-:APA91bEYqkU1qtNyE5UDeqDyi1bgI9Rfmqm1bvg2u6IJm5wgngmCjW9M0LWibAdjfY6G6OrEO0qwLrFb9cI6tVN2NafT4h-KDn2gd_1a6BPgxiFn07nbrC4"]
@@ -834,7 +870,7 @@ class UpdateEventPendingCanceledStatus(__UpdateEventPendingCanceledInputs):
                             Events.updated_by:user.name
                         }
                     )
-
+                    self.session.query(EventsAssignments).filter(EventsAssignments.event_id==self.event_id).update({EventsAssignments.is_completed:False})
                     ic(f"successfully event {self.event_status.value} status updated")
                     self.bg_task.add_task(
                         PushNotificationCrud(
@@ -995,3 +1031,215 @@ class ContactDescription(__ContactDescriptionInputs):
                 detail="something went wrong while deleting contact description {e}"
             )
                     
+
+class EventAssignmentCrud:
+    def __init__(self,session:Session,user_id:str):
+        self.session=session
+        self.user_id=user_id
+
+    async def add_update_event_assignment(
+        self,
+        bg_task:BackgroundTasks,
+        event_id:str,
+        assigned_archagar:str,
+        assigned_abisegam:str,
+        assigned_helper:str,
+        assigned_poo:str,
+        assigned_read:str,
+        assigned_prepare:str,
+    ):
+        try:
+            with self.session.begin():
+                cur_datetime_utc=datetime.now(timezone.utc)
+                user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
+                event=await EventVerification(self.session).is_event_exists_by_id(event_id)
+
+                role_names = {
+                    "archagar": assigned_archagar,
+                    "abisegam": assigned_abisegam,
+                    "helper": assigned_helper,
+                    "poo": assigned_poo,
+                    "read": assigned_read,
+                    "prepare": assigned_prepare
+                }
+                ic(role_names)
+                workers=list(set(role_names.values()))
+                
+                if user.role==backend_enums.UserRole.ADMIN:
+                    checked_workers=self.session.execute(select(Workers.id,Workers.user_id).where(Workers.name.in_(workers))).mappings().all()
+                    ic(checked_workers)
+                    if len(workers)==len(checked_workers):
+                        event_assign_query=self.session.query(EventsAssignments).filter(EventsAssignments.event_id==event_id)
+                        notify_title="Event Assignment".title()
+                        notify_body=f"You are assigned to a event of {event.name} on {event.date} at {event.start_at}".title()
+                        if not event_assign_query.one_or_none():
+                            event_assignment=EventsAssignments(
+                                event_id=event_id,
+                                archagar=assigned_archagar,
+                                abisegam=assigned_abisegam,
+                                helper=assigned_helper,
+                                poo=assigned_poo,
+                                read=assigned_read,
+                                prepare=assigned_prepare,
+                                assigned_by=user.name,
+                                assigned_datetime=cur_datetime_utc,
+                                is_completed=False
+                            )
+
+                            self.session.add(event_assignment)
+                            
+                            for worker in checked_workers:
+                                worker_user_id=worker['user_id']
+                                if worker_user_id:
+                                    await NotificationsCrud(
+                                        session=self.session,
+                                        user_id=user.id,
+                                        is_for=worker_user_id
+                                    ).add_notification(
+                                        notify_title=notify_title,
+                                        notify_body=notify_body
+                                    )
+                                    order_dict=FirebaseCrud(user_id=worker_user_id).get_fcm_tokens()
+                                    ic(order_dict)
+                                    if order_dict:
+                                        bg_task.add_task(
+                                            PushNotificationCrud(
+                                                notify_title=notify_title,
+                                                notify_body=notify_body,
+                                                data_payload={
+                                                    "screen":"home_screen"
+                                                }
+                                            ).push_notifications_individually,
+                                            fcm_tokens=order_dict
+                                        )
+                            return f"Successfully workers assigned to {event.name}"
+                        else:
+                            event_assign_query.update(
+                                {
+                                    EventsAssignments.archagar:assigned_archagar,
+                                    EventsAssignments.abisegam:assigned_abisegam,
+                                    EventsAssignments.helper:assigned_helper,
+                                    EventsAssignments.poo:assigned_poo,
+                                    EventsAssignments.read:assigned_read,
+                                    EventsAssignments.prepare:assigned_prepare,
+                                    EventsAssignments.assigned_by:user.name,
+                                    EventsAssignments.assigned_datetime:cur_datetime_utc 
+                                }
+                            )
+
+                            for worker in checked_workers:
+                                worker_user_id=worker['user_id']
+                                if worker_user_id:
+                                    await NotificationsCrud(
+                                        session=self.session,
+                                        user_id=user.id,
+                                        is_for=worker_user_id
+                                    ).add_notification(
+                                        notify_title=notify_title,
+                                        notify_body=notify_body
+                                    )
+                                    order_dict=FirebaseCrud(user_id=worker_user_id).get_fcm_tokens()
+                                    ic(order_dict)
+                                    if order_dict:
+                                        bg_task.add_task(
+                                            PushNotificationCrud(
+                                                notify_title=notify_title,
+                                                notify_body=notify_body,
+                                                data_payload={
+                                                    "screen":"home_screen"
+                                                }
+                                            ).push_notifications_individually,
+                                            fcm_tokens=order_dict
+                                        )
+
+                            return f"Successfully workers assignment updated for {event.name}"
+                    
+                    raise HTTPException(
+                        status_code=404,
+                        detail="worker name not found"
+                    )
+                raise HTTPException(
+                    status_code=401,
+                    detail="You are not allowed to make any changes"
+                )
+            
+        except HTTPException:
+            raise
+
+        except Exception as e:
+            ic(f"Something went wrong while assigning worker to event : {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Something went wrong while assigning worker to event : {e}"
+            )
+    
+    async def delete_event_assignment(self,event_id):
+        try:
+            with self.session.begin():
+                user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
+                await EventVerification(self.session).is_event_exists_by_id(event_id)
+
+                if user.role==backend_enums.UserRole.ADMIN:
+                    self.session.query(EventsAssignments).filter(EventsAssignments.event_id==event_id).delete()
+
+                    return "assigned event deleteed successfully"
+                
+                raise HTTPException(
+                    status_code=401,
+                    detail="You are not allowed to make any changes"
+                )
+        except HTTPException:
+            raise
+        except Exception as e:
+            ic(f"something went wrong while deleting Assinged event")
+            raise HTTPException(
+                status_code=500,
+                detail=f"something went wrong while deleting Assinged event"
+            )
+    
+    async def get_assigned_events(self,worker_name:Optional[str]=None):
+        try:
+            user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
+            if worker_name==None:
+                worker_name=self.session.execute(select(Workers.name).where(Workers.user_id==user.id)).scalar_one_or_none()
+            ic(worker_name)
+            if worker_name:
+                assigned_events=self.session.execute(
+                    select(
+                        EventsAssignments.assigned_datetime,
+                        EventsAssignments.assigned_by,
+                        Events.id.label("event_id"),
+                        Events.name.label('event_name'),
+                        Events.date.label("event_date"),
+                        Events.start_at.label("event_start_at")
+                    )
+                    .join(Events,Events.id==EventsAssignments.event_id,isouter=True)
+                    .where(
+                        and_(
+                            or_(
+                                EventsAssignments.archagar==worker_name,
+                                EventsAssignments.abisegam==worker_name,
+                                EventsAssignments.prepare==worker_name,
+                                EventsAssignments.poo==worker_name,
+                                EventsAssignments.read==worker_name,
+                                EventsAssignments.helper==worker_name
+                            ),
+                            EventsAssignments.is_completed==False
+                        )
+                    )
+                    .order_by(Events.date)
+                ).mappings().all()
+
+                return {"assigned_events":assigned_events}
+            raise HTTPException(
+                status_code=404,
+                detail="Worker not using the app"
+            )
+        except HTTPException:
+            raise
+        except Exception as e:
+            ic(f"something went wrong while getting assigned events {e}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"something went wrong while getting assigned events {e}"
+            )

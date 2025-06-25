@@ -37,7 +37,7 @@ async def register(request:Request,bgt:BackgroundTasks,register_inputs:user_auth
     )
     return ORJSONResponse(
         status_code=201,
-        content="registered successfully waiting for admin conformation"
+        content=f"registered successfully waiting for admin conformation {link_id}"
     )
 
 @router.get("/register/accept/{link_id}")

@@ -10,6 +10,7 @@ class Notifications(Base):
     title=Column(String,nullable=False)
     body=Column(String,nullable=False)
     image_url=Column(String,nullable=True)
+    is_for=Column(String,nullable=False)
     created_by=Column(String,nullable=False)
     created_at=Column(DateTime(timezone=True),nullable=False)
 

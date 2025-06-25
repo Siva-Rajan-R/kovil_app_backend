@@ -6,6 +6,7 @@ from datetime import date
 class AddWorkersSchema(BaseModel):
     worker_name:constr(min_length=1,strip_whitespace=True)# type: ignore
     worker_mobile_number:constr(min_length=10,strip_whitespace=True)# type: ignore
+    worker_user_id:Optional[str]
 
 class DeleteWorkerSchema(BaseModel):
     worker_name:constr(min_length=1,strip_whitespace=True)# type: ignore
@@ -15,3 +16,7 @@ class ResetAllWorkersSchema(BaseModel):
     to_date:date
     amount:int
     send_to:Optional[EmailStr]=None
+
+class UpdateWorkerUserIdSchema(BaseModel):
+    worker_name:constr(min_length=1,strip_whitespace=True)# type: ignore
+    worker_user_id:Optional[str]

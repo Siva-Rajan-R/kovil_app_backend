@@ -1,11 +1,11 @@
 from fastapi import APIRouter,Depends,Request,UploadFile,File,Form,Response,HTTPException,BackgroundTasks,Query
 from enums import backend_enums
 from fastapi.responses import ORJSONResponse,StreamingResponse
-from database.operations.event_crud import AddEvent,DeleteEvent,UpdateEvent,UpdateEventCompletedStatus,UpdateEventPendingCanceledStatus,Session,EventNameAndAmountCrud,GetEventStatusImage,NeivethiyamNameAndAmountCrud,ContactDescription
+from database.operations.event_crud import AddEvent,DeleteEvent,UpdateEvent,UpdateEventCompletedStatus,UpdateEventPendingCanceledStatus,Session,EventNameAndAmountCrud,GetEventStatusImage,NeivethiyamNameAndAmountCrud,ContactDescription,EventAssignmentCrud
 from database.operations.event_info import EventsToEmail
 from database.main import get_db_session
 from api.dependencies.token_verification import verify
-from api.schemas.event_crud import AddEventSchema,UpdateEventSchema,UpdateEventPendingCanceledStatusSchema,DeleteAllEventSchema,DeleteSingleEventSchema,AddEventNameSchema,DeleteEventNameSchema,GetEventsEmailschema,AddNeivethiyamNameSchema,DeleteNeivethiyamNameSchema,AddContactDescriptionSchema,DeleteContactDescriptionSchema
+from api.schemas.event_crud import AddEventSchema,UpdateEventSchema,UpdateEventPendingCanceledStatusSchema,DeleteAllEventSchema,DeleteSingleEventSchema,AddEventNameSchema,DeleteEventNameSchema,GetEventsEmailschema,AddNeivethiyamNameSchema,DeleteNeivethiyamNameSchema,AddContactDescriptionSchema,DeleteContactDescriptionSchema,AddEventAssignmentSchema,DeleteEventAssignmentSchema
 from typing import Optional,List
 from database.operations.user_auth import UserVerification
 from security.entity_tag import generate_entity_tag
@@ -58,7 +58,7 @@ async def delete_event_name_and_amount(en_del_inp:DeleteEventNameSchema,session:
     delete_event_name=await EventNameAndAmountCrud(
         session=session,
         user_id=user_id
-    ).delete_event_name_and_amount(event_name_id=en_del_inp.event_name_id)
+    ).delete_event_name_and_amount(event_name=en_del_inp.event_name)
 
     return ORJSONResponse(
         status_code=200,
@@ -104,7 +104,7 @@ async def delete_neivethiyam_name_and_amount(en_del_inp:DeleteNeivethiyamNameSch
     deleted_neivethiyam_name=await NeivethiyamNameAndAmountCrud(
         session=session,
         user_id=user_id
-    ).delete_neivethiyam_name_and_amount(neivethiyam_name_id=en_del_inp.neivethiyam_name_id)
+    ).delete_neivethiyam_name_and_amount(neivethiyam_name=en_del_inp.neivethiyam_name)
 
     return ORJSONResponse(
         status_code=200,
@@ -139,18 +139,20 @@ async def add_event(bgt:BackgroundTasks,add_event_inputs:AddEventSchema,session:
         padi_kg=add_event_inputs.neivethiyam_kg
     ).add_event()
 
+
     return ORJSONResponse(
         status_code=201,
         content=added_event
     )
 
 @router.put("/event")
-async def update_event(update_event_inputs:UpdateEventSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+async def update_event(bgt:BackgroundTasks,update_event_inputs:UpdateEventSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user["id"]
     if len(update_event_inputs.client_mobile_number)>10:
         update_event_inputs.client_mobile_number=await clean_phone_numbers(update_event_inputs.client_mobile_number)
         
     updated_event=await UpdateEvent(
+        bg_task=bgt,
         user_id=user_id,
         session=session,
         event_name=update_event_inputs.event_name,
@@ -372,3 +374,47 @@ async def get_contact_desc(event_id:str=Query(...),session:Session=Depends(get_d
     ).get_description(event_id=event_id)
 
     return fetched_cont_desc
+
+@router.post("/event/assign")
+async def assign_worker_to_event(assign_inp:AddEventAssignmentSchema,bgt:BackgroundTasks,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']
+    assigned=await EventAssignmentCrud(
+        session=session,
+        user_id=user_id
+    ).add_update_event_assignment(
+        bg_task=bgt,
+        event_id=assign_inp.event_id,
+        assigned_archagar=assign_inp.archagar,
+        assigned_abisegam=assign_inp.abisegam,
+        assigned_helper=assign_inp.helper,
+        assigned_poo=assign_inp.poo,
+        assigned_prepare=assign_inp.prepare,
+        assigned_read=assign_inp.read
+
+    )
+
+    return ORJSONResponse(
+        content=assigned
+    )
+
+@router.delete("/event/assign")
+async def delete_assigned_events(assign_inp:DeleteEventAssignmentSchema,bgt:BackgroundTasks,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']
+    deleted=await EventAssignmentCrud(
+        session=session,
+        user_id=user_id
+    ).delete_event_assignment(event_id=assign_inp.event_id)
+
+    return ORJSONResponse(
+        content=deleted
+    )
+
+@router.get("/event/assign")
+async def get_assigned_events(worker_name:Optional[str]=Query(None),session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']
+    assigned_events=await EventAssignmentCrud(
+        session=session,
+        user_id=user_id
+    ).get_assigned_events(worker_name=worker_name)
+
+    return assigned_events

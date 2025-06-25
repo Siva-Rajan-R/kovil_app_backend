@@ -4,12 +4,14 @@ from database.models.notification import Notifications,NotificationRecivedUsers,
 from database.models.user import Users
 from database.main import SessionLocal
 from sqlalchemy.orm import Session
-from sqlalchemy import select,desc
+from sqlalchemy import select,desc,or_,and_
 from datetime import datetime,timezone,timedelta
 from contextlib import nullcontext
 from icecream import ic
 from enums import backend_enums
 import asyncio
+from typing import Optional
+from security.uuid_creation import create_unique_id
 
 
 def delete_expired_notification():
@@ -22,28 +24,34 @@ def delete_expired_notification():
     ic("removed expired notifications and images")
 
 class NotificationsCrud:
-    def __init__(self,session:Session,user_id:str):
+    def __init__(self,session:Session,user_id:str,is_for:Optional[str]="all"):
         self.session=session
         self.user_id=user_id
+        self.is_for=is_for
     
-    async def add_notification(self,notify_id:str,notify_title:str,notify_body:str,notify_img_url:str|None=None):
+    async def add_notification(self,notify_title:str,notify_body:str,notify_img_url:str|None=None,notify_id:Optional[str]=None):
         try:
             ctx = self.session.begin() if not self.session.in_transaction() else nullcontext()
             with ctx:
                 user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
+
+                if notify_id==None:
+                    notify_id=await create_unique_id(data=notify_title)
+
                 if user.role==backend_enums.UserRole.ADMIN:
                     notify_to_add=Notifications(
                         id=notify_id,
                         title=notify_title.title(),
                         body=notify_body.title(),
                         image_url=notify_img_url,
+                        is_for=self.is_for,
                         created_at=datetime.now(timezone.utc),
                         created_by=user.name
                     )
 
                     self.session.add(notify_to_add)
 
-                    ic("successfully notification added")
+                    ic(f"successfully notification added {datetime.now(timezone.utc)}")
                     return
                 raise HTTPException(
                     status_code=401,
@@ -98,7 +106,10 @@ class NotificationsCrud:
                         Notifications.created_by
                     )
                     .where(
-                        Notifications.created_at<=last_checked
+                        or_(
+                            and_(Notifications.created_at<=last_checked,Notifications.is_for=="all"),
+                            and_(Notifications.created_at<=last_checked,Notifications.is_for==user.id)
+                        )
                     )
                     .order_by(desc(Notifications.created_at))
                 ).mappings().all()
@@ -115,7 +126,11 @@ class NotificationsCrud:
                         Notifications.created_by
                     )
                     .where(
-                        Notifications.created_at>last_checked
+                        or_(
+                            and_(Notifications.created_at>last_checked,Notifications.is_for=='all'),
+                            and_(Notifications.created_at>last_checked,Notifications.is_for==user.id)
+                        )
+                        
                     )
                     .order_by(desc(Notifications.created_at))
                 ).mappings().all()

@@ -4,9 +4,10 @@ from fastapi.responses import ORJSONResponse
 from database.operations.workers_crud import WorkersCrud,Session,SendWorkerInfoAsEmail
 from database.main import get_db_session
 from api.dependencies.token_verification import verify
-from api.schemas.workers_crud import AddWorkersSchema,DeleteWorkerSchema,ResetAllWorkersSchema
+from api.schemas.workers_crud import AddWorkersSchema,DeleteWorkerSchema,ResetAllWorkersSchema,UpdateWorkerUserIdSchema
 from utils.clean_ph_numbers import clean_phone_numbers
 from datetime import date
+from typing import Optional
 
 
 router=APIRouter(
@@ -24,11 +25,26 @@ async def add_worker(worker_inp:AddWorkersSchema,session:Session=Depends(get_db_
         session=session,
         user_id=user_id,
         worker_name=worker_inp.worker_name
-    ).add_workers(worker_mobile_number=worker_inp.worker_mobile_number)
+    ).add_workers(worker_mobile_number=worker_inp.worker_mobile_number,worker_user_id=worker_inp.worker_user_id)
 
     return ORJSONResponse(
         status_code=201,
         content=added_worker
+    )
+
+@router.put("/worker/user-id")
+async def update_worker_user_id(worker_inp:UpdateWorkerUserIdSchema,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']
+
+    updated_worker=await WorkersCrud(
+        session=session,
+        user_id=user_id,
+        worker_name=worker_inp.worker_name
+    ).update_worker_as_app_user(worker_user_id=worker_inp.worker_user_id)
+
+    return ORJSONResponse(
+        status_code=201,
+        content=updated_worker
     )
 
 @router.delete("/worker")
@@ -87,12 +103,12 @@ async def worker_report_email(worker_inp:ResetAllWorkersSchema,session:Session=D
     )
 
 @router.get("/workers")
-async def get_worker(request:Request,response:Response,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+async def get_worker(request:Request,response:Response,session:Session=Depends(get_db_session),user:dict=Depends(verify),include_users:Optional[str]=Query(None)):
     user_id=user['id']
     fetched_worker=await WorkersCrud(
         session=session,
         user_id=user_id,
-    ).get_workers()
+    ).get_workers(include_users=include_users)
 
     etag=generate_entity_tag(data=str(fetched_worker))
 

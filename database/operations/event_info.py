@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import extract,select,func,cast, Date, Time,desc
 from enums import backend_enums
 from database.models.user import Users
-from database.models.event import Events,Clients,Payments,EventsCompletedStatus,EventsPendingCanceledStatus,EventStatusImages,EventsNeivethiyam,NeivethiyamNames,EventsContactDescription
+from database.models.event import Events,Clients,Payments,EventsCompletedStatus,EventsPendingCanceledStatus,EventStatusImages,EventsNeivethiyam,NeivethiyamNames,EventsContactDescription,EventsAssignments
 from database.operations.event_crud import EventNameAndAmountCrud,NeivethiyamNameAndAmountCrud
 from database.operations.user_auth import UserVerification
 from datetime import date
@@ -12,6 +12,7 @@ from icecream import ic
 import pandas as pd
 from api.dependencies import email_automation
 from pydantic import EmailStr
+from typing import Optional
 
 
 class __EventsCalendarInputs:
@@ -22,10 +23,11 @@ class __EventsCalendarInputs:
         self.year=year
 
 class __ParticularEventInputs:
-    def __init__(self,session:Session,user_id:str,event_date:date):
+    def __init__(self,session:Session,user_id:str,event_date:date,event_id:Optional[str]=None):
         self.session=session
         self.user_id=user_id
         self.event_date=event_date
+        self.event_id=event_id
 
 class __EventDropDownValuesInputs:
     def __init__(self,session:Session,user_id:str):
@@ -71,6 +73,10 @@ class ParticularEvent(__ParticularEventInputs):
     async def get_events(self):
         try:
             user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
+            condition=Events.date==self.event_date
+            if self.event_id:
+                condition=Events.id==self.event_id
+                
             select_statement_columns=[
                 Events.id.label("event_id"),
                 Events.name.label("event_name"),
@@ -100,6 +106,14 @@ class ParticularEvent(__ParticularEventInputs):
                 EventsPendingCanceledStatus.description.label("event_pending_canceled_description"),
                 EventsPendingCanceledStatus.updated_date.label("pending_canceled_updated_date"),
                 EventsPendingCanceledStatus.updated_at.label("pending_canceled_updated_at"),
+                EventsAssignments.abisegam.label('assigned_abisegam'),
+                EventsAssignments.archagar.label('assigned_archagar'),
+                EventsAssignments.helper.label("assigned_helper"),
+                EventsAssignments.poo.label("assigned_poo"),
+                EventsAssignments.read.label("assigned_read"),
+                EventsAssignments.prepare.label("assigned_prepare"),
+                EventsAssignments.assigned_by,
+                EventsAssignments.assigned_datetime,
                 NeivethiyamNames.id.label("neivethiyam_id"),
                 NeivethiyamNames.name.label("neivethiyam_name"),
                 EventsNeivethiyam.padi_kg,
@@ -149,8 +163,12 @@ class ParticularEvent(__ParticularEventInputs):
                     EventsPendingCanceledStatus,Events.id==EventsPendingCanceledStatus.event_id,
                     isouter=True,
                 )
+                .join(
+                    EventsAssignments,EventsAssignments.event_id==Events.id,
+                    isouter=True
+                )
                 .where(
-                    Events.date==self.event_date
+                    condition
                 )
                 .order_by(
                     cast(Events.date, Date),

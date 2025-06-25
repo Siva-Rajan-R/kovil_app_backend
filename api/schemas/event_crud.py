@@ -14,10 +14,10 @@ class AddNeivethiyamNameSchema(BaseModel):
     neivethiyam_amount:int
 
 class DeleteEventNameSchema(BaseModel):
-    event_name_id:int
+    event_name:str
 
 class DeleteNeivethiyamNameSchema(BaseModel):
-    neivethiyam_name_id:int
+    neivethiyam_name:str
 
 class AddEventSchema(BaseModel):
     event_name:constr(strip_whitespace=True,min_length=1) # type: ignore
@@ -78,3 +78,15 @@ class AddContactDescriptionSchema(BaseModel):
 
 class DeleteContactDescriptionSchema(BaseModel):
     contact_desc_id:int
+
+class AddEventAssignmentSchema(BaseModel):
+    event_id:str
+    archagar:str
+    abisegam:str
+    helper:str
+    poo:str
+    read:str
+    prepare:str
+
+class DeleteEventAssignmentSchema(BaseModel):
+    event_id:str

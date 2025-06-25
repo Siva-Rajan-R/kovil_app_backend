@@ -1,4 +1,4 @@
-from sqlalchemy import Column,Integer,String,ForeignKey,Date,Time,Enum,LargeBinary,Boolean
+from sqlalchemy import Column,Integer,String,ForeignKey,Date,Time,Enum,LargeBinary,Boolean,DateTime
 from sqlalchemy.orm import relationship
 from database.main import Base,Engine
 from enums import backend_enums
@@ -38,6 +38,7 @@ class Events(Base):
     event_neivethiyam=relationship("EventsNeivethiyam",back_populates="event",cascade="all, delete-orphan")
     event_contact_desc=relationship("EventsContactDescription",back_populates="event",cascade="all, delete-orphan")
     worker_participation_log=relationship("WorkersParticipationLogs",back_populates="event",cascade="all, delete-orphan")
+    event_assignment=relationship("EventsAssignments",back_populates="event",cascade="all, delete-orphan")
     
 class EventsNeivethiyam(Base):
     __tablename__="events_neivethiyam"
@@ -115,5 +116,23 @@ class EventsContactDescription(Base):
     updated_date=Column(String,nullable=False)
     
     event=relationship("Events",back_populates="event_contact_desc")
+
+class EventsAssignments(Base):
+    __tablename__="events_assignments"
+    id=Column(Integer,primary_key=True,autoincrement=True)
+    event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False,unique=True)
+    archagar=Column(String)
+    abisegam=Column(String)
+    helper=Column(String)
+    poo=Column(String)
+    read=Column(String)
+    prepare=Column(String)
+    assigned_by=Column(String)
+    assigned_datetime=Column(DateTime(timezone=True),nullable=False)
+    is_completed=Column(Boolean,nullable=False)
+    
+
+    event=relationship("Events",back_populates="event_assignment")
+
 
 Base.metadata.create_all(Engine)

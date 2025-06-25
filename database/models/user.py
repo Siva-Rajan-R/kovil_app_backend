@@ -15,5 +15,7 @@ class Users(Base):
     created_at=Column(DateTime,default=datetime.now(timezone.utc))
 
     notify_recvd_user=relationship("NotificationRecivedUsers",back_populates="user",cascade="all, delete-orphan")
+    worker=relationship("Workers",back_populates="user",cascade="all, delete-orphan")
+    leave_management=relationship("LeaveManagement",back_populates="user",cascade="all, delete-orphan")
 
 Base.metadata.create_all(Engine)

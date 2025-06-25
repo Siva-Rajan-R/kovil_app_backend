@@ -22,3 +22,8 @@ class EventStatus(Enum):
 class FileType(Enum):
     PDF="pdf"
     EXCEL="excel"
+
+class LeaveStatus(Enum):
+    WAITING="waiting"
+    REJECTED="rejected"
+    ACCEPTED='accepted'
