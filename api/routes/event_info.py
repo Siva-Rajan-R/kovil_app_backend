@@ -5,6 +5,7 @@ from database.main import get_db_session
 from api.dependencies.token_verification import verify
 from typing import Optional
 
+
 router=APIRouter(
     tags=["Get Event Informations"]
 )
@@ -20,7 +21,7 @@ async def event_calendar(month:int=Query(...),year:int=Query(...),user:dict=Depe
 
     return ec
 
-@router.get("/event/specific")
+@router.get("/event/specific",response_model_exclude_none=True)
 async def event_specific(date:date=Query(...),event_id:Optional[str]=Query(None),user:dict=Depends(verify),session:Session=Depends(get_db_session)):
     events=await ParticularEvent(
         session=session,

@@ -1,4 +1,4 @@
-from fastapi import FastAPI,middleware
+from fastapi import FastAPI,middleware,Request
 from fastapi.responses import ORJSONResponse
 from fastapi.middleware.gzip import GZipMiddleware
 from brotli_asgi import BrotliMiddleware
@@ -7,7 +7,8 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from contextlib import asynccontextmanager
 from database.operations.notification import delete_expired_notification
-import os
+import os,time
+from icecream import ic
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -45,5 +46,15 @@ app.include_router(leave_management.router)
 # middlewares
 
 app.add_middleware(GZipMiddleware,minimum_size=300,compresslevel=9)
+
+
+@app.middleware("http")
+async def add_process_time_header(request: Request, call_next):
+    start_time = time.time()
+    response = await call_next(request)
+    process_time = time.time() - start_time
+    response.headers["X-Process-Time"] = str(process_time)[:6]
+    ic(f"Request: {request.url} took {process_time:.4f}s")
+    return response
 
 # uvicorn main:app --host localhost --ssl-keyfile localhost-key.pem --ssl-certfile localhost.pem --reload

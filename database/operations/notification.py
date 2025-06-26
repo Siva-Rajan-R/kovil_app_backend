@@ -147,6 +147,12 @@ class NotificationsCrud:
                         Notifications.created_at,
                         Notifications.created_by
                     )
+                    .where(
+                        or_(
+                            Notifications.is_for=='all',
+                            Notifications.is_for==user.id
+                        )
+                    )
                     .order_by(desc(Notifications.created_at))
                 ).mappings().all()
                 return notifications
