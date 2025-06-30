@@ -139,7 +139,7 @@ async def register_fcm_token(request:Request,register_inp:RegisterNotifySchema,b
 
     ic("fcm token added successfuly")
 
-@router.get("/app/notifications")
+@router.get("/app/notifications",response_model_exclude_none=True)
 async def get_app_notifications(response:Response,request:Request,bgt:BackgroundTasks,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
     
