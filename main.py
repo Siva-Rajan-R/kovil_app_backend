@@ -14,6 +14,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # jobstores={"default":SQLAlchemyJobStore(os.getenv("DATABASE_URL"))}
+import sys
+ic(sys)
+if sys.platform != "win32":
+    import uvloop, asyncio
+    asyncio.set_event_loop_policy(uvloop.EventLoopPolicy())
 
 scheduler = AsyncIOScheduler()
 @asynccontextmanager
