@@ -163,6 +163,7 @@ async def get_app_notifications(response:Response,request:Request,bgt:Background
     serialized_data=str(notifications)
     etag = generate_entity_tag(serialized_data)
     response.headers['ETag']=etag
+    response.headers['Cache-Control']=None
     await redis_crud.store_etag_to_redis(etag=etag)
     ic(len(serialized_data))
     return notifications
