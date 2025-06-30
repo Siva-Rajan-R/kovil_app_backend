@@ -113,7 +113,7 @@ class PushNotificationCrud:
                     image=image_url
                 ),
                 data=self.data_payload,
-                topic="hii"
+                topic="all"
             )
         response=await self._retry_send_notification(message=message)
         print(f"...suuccesss notify... {response}")

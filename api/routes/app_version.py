@@ -38,17 +38,17 @@ version_info=os.getenv("VERSION_INFO")
 @router.get("/app/version")
 async def get_app_version(request:Request,response:Response):
     version=orjson.loads(version_info)
-    version={
-        "current_version": "1.1.2",
-        "is_debug": False,
-        "is_mandatory": True,
-        "is_trigger_login":False,
-        "update_url": "https://drive.google.com/file/d/1MHXqE733vo0D1wAyMjcsG9n9BxhmETn3/view?usp=drive_link",
-        "android_update_url": "https://drive.google.com/file/d/1MHXqE733vo0D1wAyMjcsG9n9BxhmETn3/view?usp=drive_link",
-        "ios_update_url": "https://drive.google.com/file/d/1MHXqE733vo0D1wAyMjcsG9n9BxhmETn3/view?usp=drive_link",
-        "windows_update_url": "https://drive.google.com/file/d/1l6CLu130rgoIfwp4C-7lxpiL6Kfejj-o/view?usp=sharing",
-        "macos_update_url": "https://drive.google.com/file/d/1MHXqE733vo0D1wAyMjcsG9n9BxhmETn3/view?usp=drive_link"
-        }
+    # version={
+    #     "current_version": "1.1.2",
+    #     "is_debug": False,
+    #     "is_mandatory": True,
+    #     "is_trigger_login":False,
+    #     "update_url": "https://drive.google.com/file/d/1MHXqE733vo0D1wAyMjcsG9n9BxhmETn3/view?usp=drive_link",
+    #     "android_update_url": "https://drive.google.com/file/d/1MHXqE733vo0D1wAyMjcsG9n9BxhmETn3/view?usp=drive_link",
+    #     "ios_update_url": "https://drive.google.com/file/d/1MHXqE733vo0D1wAyMjcsG9n9BxhmETn3/view?usp=drive_link",
+    #     "windows_update_url": "https://drive.google.com/file/d/1l6CLu130rgoIfwp4C-7lxpiL6Kfejj-o/view?usp=sharing",
+    #     "macos_update_url": "https://drive.google.com/file/d/1MHXqE733vo0D1wAyMjcsG9n9BxhmETn3/view?usp=drive_link"
+    #     }
         
     etag=generate_entity_tag(str(version))
     if request.headers.get('if-none-match')==etag:
