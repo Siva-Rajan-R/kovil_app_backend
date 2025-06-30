@@ -23,4 +23,4 @@ class WorkersParticipationLogs(Base):
     worker = relationship("Workers", back_populates="wrk_partic_log")
     event = relationship("Events",back_populates="worker_participation_log")
 
-Base.metadata.create_all(Engine)
+# Base.metadata.create_all(Engine)

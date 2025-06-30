@@ -25,3 +25,4 @@ apscheduler
 orjson
 brotli
 brotli-asgi
+asyncpg

@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 from icecream import ic
 import time
 load_dotenv()
+from redis_db.redis_crud import RedisCrud
+from redis_db.redis_etag_keys import NOTIFICATION_ETAG_KEY
 
 fcm_cred=os.getenv("FCM_CREDENTIAL")
 
@@ -30,7 +32,7 @@ class PushNotificationCrud:
         self.max_retries=max_retries
         self.delay=delay
     
-    def _retry_send_notification(self,message):
+    async def _retry_send_notification(self,message):
         delay=self.delay
         for attempt in range(self.max_retries+1):
             try:
@@ -43,11 +45,13 @@ class PushNotificationCrud:
             if attempt<self.max_retries:
                 time.sleep(delay)
                 delay*=2
+        ic("hello hiii")
+        
         return None
 
-    def push_notifications_individually(self,fcm_tokens:list|OrderedDict,unsubscribe:Optional[bool]=False,remove_in_db:Optional[bool]=False,user_id:Optional[str]=None,image_url:Optional[str]=None):
+    async def push_notifications_individually(self,fcm_tokens:list|OrderedDict,unsubscribe:Optional[bool]=False,remove_in_db:Optional[bool]=False,user_id:Optional[str]=None,image_url:Optional[str]=None):
         print(fcm_tokens)
-        
+        await RedisCrud(key=NOTIFICATION_ETAG_KEY).unlink_etag_from_redis()
         for device_id,token in fcm_tokens.items():
             print(device_id)
             print("vanakam pangali")
@@ -78,8 +82,9 @@ class PushNotificationCrud:
                 ic(res)
 
 
-    def push_notifications_individually_by_tokens(self,fcm_tokens:list,image_url:Optional[str]=None):
+    async def push_notifications_individually_by_tokens(self,fcm_tokens:list,image_url:Optional[str]=None):
         print(fcm_tokens)
+        await RedisCrud(key=NOTIFICATION_ETAG_KEY).unlink_etag_from_redis()
         for token in fcm_tokens:
             print(token)
             try:
@@ -93,13 +98,14 @@ class PushNotificationCrud:
                     data=self.data_payload
                 )
 
-                response=self._retry_send_notification(message=message)
+                response=await self._retry_send_notification(message=message)
                 print(f"...suuccesss notify... {response}")
 
             except Exception as e:
                 ic("notification fail")
         
-    def push_notification_to_all(self,image_url:Optional[str]=None):
+    async def push_notification_to_all(self,image_url:Optional[str]=None):
+        await RedisCrud(key=NOTIFICATION_ETAG_KEY).unlink_etag_from_redis()
         message=messaging.Message(
                 notification=messaging.Notification(
                     title=self.notify_title,
@@ -107,7 +113,7 @@ class PushNotificationCrud:
                     image=image_url
                 ),
                 data=self.data_payload,
-                topic="all"
+                topic="hii"
             )
-        response=self._retry_send_notification(message=message)
+        response=await self._retry_send_notification(message=message)
         print(f"...suuccesss notify... {response}")

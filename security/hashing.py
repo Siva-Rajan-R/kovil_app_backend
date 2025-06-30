@@ -1,4 +1,5 @@
 from argon2 import PasswordHasher,exceptions as phexceptions
+from fastapi.concurrency import run_in_threadpool
 import os
 from dotenv import load_dotenv
 load_dotenv() 
@@ -10,7 +11,7 @@ ph=PasswordHasher(time_cost=int(HASHING_TIME_COST))
 
 async def hash_data(data:str,hash_salt:bytes=os.urandom(64)):
     try:
-        hashed_data=ph.hash(data,salt=hash_salt)
+        hashed_data=await run_in_threadpool(ph.hash,data,salt=hash_salt)
         return hashed_data
     except Exception as e:
         raise HTTPException(
@@ -20,7 +21,7 @@ async def hash_data(data:str,hash_salt:bytes=os.urandom(64)):
     
 async def verify_hash(hashed_data,plain_data):
     try:
-        ph.verify(hashed_data,plain_data)
+        await run_in_threadpool(ph.verify,hashed_data,plain_data)
         return True
     except phexceptions.VerifyMismatchError:
         raise HTTPException(

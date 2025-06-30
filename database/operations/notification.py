@@ -3,36 +3,36 @@ from database.operations.user_auth import UserVerification
 from database.models.notification import Notifications,NotificationRecivedUsers,NotificationImages
 from database.models.user import Users
 from database.main import SessionLocal
-from sqlalchemy.orm import Session
-from sqlalchemy import select,desc,or_,and_
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select,desc,or_,and_,delete
 from datetime import datetime,timezone,timedelta
 from contextlib import nullcontext
 from icecream import ic
 from enums import backend_enums
 import asyncio
 from typing import Optional
+from utils.db_transaction_management import maybe_begin
 from security.uuid_creation import create_unique_id
 
-
-def delete_expired_notification():
+async def delete_expired_notification():
     session = SessionLocal()
-    ic("entered delete process")
-    expiry_time=datetime.now(timezone.utc)-timedelta(hours=24)
-    session.query(Notifications).filter(Notifications.created_at<expiry_time).delete()
-    session.query(NotificationImages).filter(NotificationImages.created_at<expiry_time).delete()
-    session.commit()
-    ic("removed expired notifications and images")
+    async with session.begin():
+        ic("entered delete process")
+        expiry_time=datetime.now(timezone.utc)-timedelta(hours=24)
+        await session.execute(delete(Notifications).where(Notifications.created_at<expiry_time))
+        await session.execute(delete(NotificationImages).where(NotificationImages.created_at<expiry_time))
+        ic("removed expired notifications and images")
 
 class NotificationsCrud:
-    def __init__(self,session:Session,user_id:str,is_for:Optional[str]="all"):
+    def __init__(self,session:AsyncSession,user_id:str,is_for:Optional[str]="all"):
         self.session=session
         self.user_id=user_id
         self.is_for=is_for
     
     async def add_notification(self,notify_title:str,notify_body:str,notify_img_url:str|None=None,notify_id:Optional[str]=None):
         try:
-            ctx = self.session.begin() if not self.session.in_transaction() else nullcontext()
-            with ctx:
+            # ctx = self.session.begin() if not self.session.in_transaction() else nullcontext()
+            async with maybe_begin(session=self.session):
                 user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
 
                 if notify_id==None:
@@ -67,27 +67,24 @@ class NotificationsCrud:
                 detail=f"something went wrong while adding notification {e}"
             )
         
-    def update_add_notify_reciv_user(self,user:Users):
+    async def update_add_notify_reciv_user(self,user:Users):
         try:
-            notify_recvd_user_query=self.session.query(NotificationRecivedUsers).filter(NotificationRecivedUsers.user_id==user.id)
-            notify_recvd_user=notify_recvd_user_query.first()
-            utc_now=datetime.now(timezone.utc)
-            if notify_recvd_user:
-                notify_recvd_user_query.update(
-                    {
-                        NotificationRecivedUsers.last_checked:utc_now
-                    }
-                )
-            else:
-                notify_user_to_add=NotificationRecivedUsers(
-                    user_id=user.id,
-                    last_checked=utc_now
-                )
-                self.session.add(
-                    notify_user_to_add
-                )
-            self.session.commit()
-            ic("notification seen updated successfully")
+            async with self.session.begin():
+                notify_recvd_user_query=await self.session.execute(select(NotificationRecivedUsers).where(NotificationRecivedUsers.user_id==user.id))
+                notify_recvd_user=notify_recvd_user_query.scalar_one_or_none()
+                utc_now=datetime.now(timezone.utc)
+
+                if notify_recvd_user:
+                    notify_recvd_user.last_checked=utc_now
+                else:
+                    notify_user_to_add=NotificationRecivedUsers(
+                        user_id=user.id,
+                        last_checked=utc_now
+                    )
+                    self.session.add(
+                        notify_user_to_add
+                    )
+                ic("notification seen updated successfully")
 
         except Exception as e:
             ic(f"something went wrong while updating notification seen {e}")
@@ -95,9 +92,9 @@ class NotificationsCrud:
     async def get_notifications(self):
         try:
             user=await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
-            def get_seen_notifications(last_checked):
-                ic("seen function called")
-                notifications=self.session.execute(
+            async def get_seen_notifications(last_checked):
+                ic("seen notification called")
+                notifications=await self.session.execute(
                     select(
                         Notifications.title,
                         Notifications.body,
@@ -112,12 +109,12 @@ class NotificationsCrud:
                         )
                     )
                     .order_by(desc(Notifications.created_at))
-                ).mappings().all()
-                return notifications
+                )
+                return notifications.mappings().all()
             
-            def get_new_notifications(last_checked):
-                ic("fucntjif ca;lled")
-                notifications=self.session.execute(
+            async def get_new_notifications(last_checked):
+                ic("new notification called")
+                notifications=await self.session.execute(
                     select(
                         Notifications.title,
                         Notifications.body,
@@ -133,13 +130,13 @@ class NotificationsCrud:
                         
                     )
                     .order_by(desc(Notifications.created_at))
-                ).mappings().all()
+                )
 
-                return notifications
+                return notifications.mappings().all()
             
-            def get_all_notifications():
-                ic("function called")
-                notifications=self.session.execute(
+            async def get_all_notifications():
+                ic("all notification called")
+                notifications=await self.session.execute(
                     select(
                         Notifications.title,
                         Notifications.body,
@@ -154,22 +151,20 @@ class NotificationsCrud:
                         )
                     )
                     .order_by(desc(Notifications.created_at))
-                ).mappings().all()
-                return notifications
+                )
+                return notifications.mappings().all()
 
             
-            last_checked=self.session.query(NotificationRecivedUsers.last_checked).filter(NotificationRecivedUsers.user_id==user.id).scalar()
+            last_checked_query=await self.session.execute(select(NotificationRecivedUsers.last_checked).where(NotificationRecivedUsers.user_id==user.id))
+            last_checked=last_checked_query.scalar()
             ic(last_checked)
             if not last_checked:
-                tasks=[asyncio.to_thread(get_all_notifications)]
+                tasks=[get_all_notifications()]
             else:
-                tasks=[asyncio.to_thread(get_new_notifications,last_checked),asyncio.to_thread(get_seen_notifications,last_checked)]
+                tasks=[get_new_notifications(last_checked),get_seen_notifications(last_checked)]
 
-            ic(tasks)
             compeleted_tasks=await asyncio.gather(*tasks)
 
-            ic(compeleted_tasks)
-            ic("hello world")
             notifications={"notifications":{"new":compeleted_tasks[0],"seen":[]}}
             if len(compeleted_tasks)==2:
                 notifications['notifications']["seen"]=compeleted_tasks[1]
@@ -179,7 +174,7 @@ class NotificationsCrud:
             raise
 
         except Exception as e:
-            self.session.rollback()
+            await self.session.rollback()
             raise HTTPException(
                 status_code=500,
                 detail=f"something went wrong while fetching notifications {e}"

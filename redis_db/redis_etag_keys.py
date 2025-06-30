@@ -1,0 +1,9 @@
+NOTIFICATION_ETAG_KEY="notification-etag"
+WORKER_ETAG_KEY="worker-etag"
+WORKER_WITH_USER_ETAG_KEY="worker-user-etag"
+USER_ETAG_KEY="user-etag"
+EVENT_NAME_ETAG_KEY="event-name-etag"
+NEIVETHIYAM_ETAG_KEY="neivethiyam-etag"
+DROP_DOWN_ETAG_KEY="drop-down-etag"
+ASSIGNED_EVENT_ETAG_KEY="assigned-event-etag"
+USER_LEAVE_ALL='user-leave-all-etag'

@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import extract,select,func,cast, Date, Time,desc
 from enums import backend_enums
 from database.models.user import Users
@@ -16,26 +16,26 @@ from typing import Optional
 
 
 class __EventsCalendarInputs:
-    def __init__(self,session:Session,user_id:str,month:int,year:int):
+    def __init__(self,session:AsyncSession,user_id:str,month:int,year:int):
         self.session=session
         self.user_id=user_id
         self.month=month
         self.year=year
 
 class __ParticularEventInputs:
-    def __init__(self,session:Session,user_id:str,event_date:date,event_id:Optional[str]=None):
+    def __init__(self,session:AsyncSession,user_id:str,event_date:date,event_id:Optional[str]=None):
         self.session=session
         self.user_id=user_id
         self.event_date=event_date
         self.event_id=event_id
 
 class __EventDropDownValuesInputs:
-    def __init__(self,session:Session,user_id:str):
+    def __init__(self,session:AsyncSession,user_id:str):
         self.session=session
         self.user_id=user_id
 
 class __EventsToEmailInputs:
-    def __init__(self,session:Session,user_id:str,from_date:date,to_date:date,file_type:backend_enums.FileType,to_email:EmailStr):
+    def __init__(self,session:AsyncSession,user_id:str,from_date:date,to_date:date,file_type:backend_enums.FileType,to_email:EmailStr):
         self.session=session
         self.user_id=user_id
         self.from_date=from_date
@@ -47,18 +47,19 @@ class EventCalendar(__EventsCalendarInputs):
     async def get_event_calendar(self):
         try:
             await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
-            events=self.session.execute(
+            events=(await self.session.execute(
                 select(
-                    Events.date
+                    Events.date,
+                    func.count(Events.id).label("total_events")
                 )
                 .where(
                     extract("month",Events.date)==self.month,
                     extract("year",Events.date)==self.year
-                )
-            ).scalars().all()
+                ).group_by(Events.date)
+            )).mappings().all()
 
-            ic({"events":events})
-            return {"events":events}
+            ic({"events calendar":events})
+            return {"events_date":events}
         
         except HTTPException:
             raise
@@ -133,7 +134,7 @@ class ParticularEvent(__ParticularEventInputs):
                     ]
                 )
 
-            events=self.session.execute(
+            events=(await self.session.execute(
                 select(*select_statement_columns)
                 .join(
                     Clients,Events.id==Clients.event_id,
@@ -174,9 +175,8 @@ class ParticularEvent(__ParticularEventInputs):
                     cast(Events.date, Date),
                     cast(Events.start_at, Time)
                 )
-            ).mappings().all()
+            )).mappings().all()
 
-            ic({"events":events})
 
             return {"events":events}
         
@@ -184,6 +184,7 @@ class ParticularEvent(__ParticularEventInputs):
             raise
 
         except Exception as e:
+            ic(f"something went wrong while fetching particular event {e}")
             raise HTTPException(
                 status_code=500,
                 detail=f"something went wrong while fetching particular event {e}"
@@ -205,9 +206,9 @@ class EventDropDownValues(__EventDropDownValuesInputs):
             )
 
 class EventsToEmail(__EventsToEmailInputs):
-    def get_events_email(self,user:Users):
+    async def get_events_email(self,user:Users):
         try:
-            with self.session.begin():
+            async with self.session.begin():
                 if user.role==backend_enums.UserRole.ADMIN:
                     select_statement_columns=[
                         Events.name.label("event_name"),
@@ -239,7 +240,7 @@ class EventsToEmail(__EventsToEmailInputs):
                         NeivethiyamNames.amount.label("neivethiyam_amount")
                     ]
 
-                    events=self.session.execute(
+                    events=(await self.session.execute(
                         select(*select_statement_columns)
                         .join(
                             Clients,Events.id==Clients.event_id,
@@ -274,7 +275,7 @@ class EventsToEmail(__EventsToEmailInputs):
                             cast(Events.date, Date),
                             cast(Events.start_at, Time)
                         )
-                    ).mappings().all()
+                    )).mappings().all()
                 
                     if self.file_type==backend_enums.FileType.EXCEL:
                         file_name=f"{self.from_date}-{self.to_date}_eventReport.xlsx"

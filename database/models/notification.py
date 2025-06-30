@@ -34,4 +34,4 @@ class NotificationRecivedUsers(Base):
     user=relationship("Users",back_populates="notify_recvd_user")
 
 
-Base.metadata.create_all(Engine)
+# Base.metadata.create_all(Engine)

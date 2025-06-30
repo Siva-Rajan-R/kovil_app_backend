@@ -1,4 +1,4 @@
-from sqlalchemy import Column,Integer,String,ForeignKey,Date,Time,Enum,LargeBinary,Boolean,DateTime
+from sqlalchemy import Column,Integer,String,ForeignKey,Date,Time,Enum,LargeBinary,Boolean,DateTime,Float
 from sqlalchemy.orm import relationship
 from database.main import Base,Engine
 from enums import backend_enums
@@ -8,14 +8,14 @@ class EventNames(Base):
     __tablename__="event_names"
     id=Column(Integer,primary_key=True,autoincrement=True)
     name=Column(String,nullable=False)
-    amount=Column(Integer,nullable=False)
+    amount=Column(Float,nullable=False)
     is_special=Column(Boolean,nullable=False)
 
 class NeivethiyamNames(Base):
     __tablename__="neivethiyam_names"
     id=Column(Integer,primary_key=True,autoincrement=True)
     name=Column(String,nullable=False)
-    amount=Column(Integer,nullable=False)
+    amount=Column(Float,nullable=False)
     
 
 class Events(Base):
@@ -45,7 +45,7 @@ class EventsNeivethiyam(Base):
     id=Column(Integer,primary_key=True,autoincrement=True)
     neivethiyam_id=Column(Integer,ForeignKey("neivethiyam_names.id"),nullable=False)
     event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False)
-    padi_kg=Column(Integer,nullable=False)
+    padi_kg=Column(Float,nullable=False)
 
     event=relationship("Events",back_populates="event_neivethiyam")
 
@@ -62,8 +62,8 @@ class Clients(Base):
 class Payments(Base):
     __tablename__="payments"
     id=Column(Integer,autoincrement=True,primary_key=True)
-    total_amount=Column(Integer,nullable=False)
-    paid_amount=Column(Integer,nullable=False)
+    total_amount=Column(Float,nullable=False)
+    paid_amount=Column(Float,nullable=False)
     status=Column(Enum(backend_enums.PaymetStatus),default=backend_enums.PaymetStatus.NOT_PAID,nullable=False)
     mode=Column(Enum(backend_enums.PaymentMode),default=backend_enums.PaymentMode.OFFLINE)
     event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False)
@@ -113,7 +113,7 @@ class EventsContactDescription(Base):
     event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False)
     updated_by=Column(String,nullable=False)
     updated_at=Column(String,nullable=False)
-    updated_date=Column(String,nullable=False)
+    updated_date=Column(Date,nullable=False)
     
     event=relationship("Events",back_populates="event_contact_desc")
 
@@ -135,4 +135,4 @@ class EventsAssignments(Base):
     event=relationship("Events",back_populates="event_assignment")
 
 
-Base.metadata.create_all(Engine)
+# Base.metadata.create_all(Engine)

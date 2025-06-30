@@ -18,4 +18,4 @@ class LeaveManagement(Base):
     user=relationship("Users",back_populates="leave_management")
 
 
-Base.metadata.create_all(Engine)
+# Base.metadata.create_all(Engine)

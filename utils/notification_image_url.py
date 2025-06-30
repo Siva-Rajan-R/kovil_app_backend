@@ -1,6 +1,6 @@
 from utils.image_compression import compress_image_to_target_size
 from security.uuid_creation import create_unique_id
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi.requests import Request
 from fastapi.exceptions import HTTPException
 from database.models.notification import NotificationImages
@@ -9,11 +9,13 @@ from contextlib import nullcontext
 from typing import Optional
 from database.operations.notification import NotificationsCrud
 from datetime import datetime,timedelta,timezone
+from utils.db_transaction_management import maybe_begin
+import asyncio
 
-async def get_notification_image_url(session:Session,request:Request,notification_title:str,notification_image:bytes,user_id:Optional[str]=None,notification_id:Optional[str]=None,notification_body:Optional[str]=None,compress_image:Optional[bool]=False):
+async def get_notification_image_url(session:AsyncSession,request:Request,notification_title:str,notification_image:bytes,user_id:Optional[str]=None,notification_id:Optional[str]=None,notification_body:Optional[str]=None,compress_image:Optional[bool]=False):
     try:
-        ctx = session.begin() if not session.in_transaction() else nullcontext()
-        with ctx:
+        # ctx = session.begin() if not session.in_transaction() else nullcontext()
+        async with maybe_begin(session=session):
             ic("hello")
             compressed_bytes=notification_image
             if compress_image:

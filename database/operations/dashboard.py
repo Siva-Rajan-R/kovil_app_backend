@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import extract,select,func,case
 from database.models.event import Payments,Events
 from database.operations.user_auth import UserVerification
@@ -10,7 +10,7 @@ from icecream import ic
 
 
 class __EventDashboardInputs:
-    def __init__(self,session:Session,user_id:str,from_date:date,to_date:date):
+    def __init__(self,session:AsyncSession,user_id:str,from_date:date,to_date:date):
         self.session=session
         self.user_id=user_id
         self.from_date=from_date
@@ -22,7 +22,7 @@ class EventDashboard(__EventDashboardInputs):
             user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
             if user.role==backend_enums.UserRole.ADMIN:
                 
-                events_dashboard=self.session.execute(
+                events_dashboard=(await self.session.execute(
                     select(
                         func.coalesce(func.count(Events.id),0).label("count"),
                         Events.status,
@@ -35,7 +35,7 @@ class EventDashboard(__EventDashboardInputs):
                     .group_by(
                         Events.status
                 )
-                ).mappings().all()
+                )).mappings().all()
 
 
 

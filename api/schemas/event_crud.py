@@ -6,12 +6,12 @@ from typing import Optional
 
 class AddEventNameSchema(BaseModel):
     event_name:constr(strip_whitespace=True,min_length=1)# type: ignore
-    event_amount:int
+    event_amount:float
     is_special:bool
 
 class AddNeivethiyamNameSchema(BaseModel):
     neivethiyam_name:constr(strip_whitespace=True,min_length=1)# type: ignore
-    neivethiyam_amount:int
+    neivethiyam_amount:float
 
 class DeleteEventNameSchema(BaseModel):
     event_name:str
@@ -53,13 +53,13 @@ class UpdateEventSchema(BaseModel):
     client_name:constr(strip_whitespace=True,min_length=1)# type: ignore
     client_mobile_number:constr(strip_whitespace=True,min_length=1)# type: ignore
     client_city:constr(strip_whitespace=True,min_length=1)# type: ignore
-    total_amount:int
-    paid_amount:int
+    total_amount:float
+    paid_amount:float
     payment_status:backend_enums.PaymetStatus
     payment_mode:backend_enums.PaymentMode
     neivethiyam_id:Optional[int]=None
     is_special:bool | None
-    neivethiyam_kg:int
+    neivethiyam_kg:Optional[float]=None
 
 class UpdateEventPendingCanceledStatusSchema(BaseModel):
     status_description:constr(strip_whitespace=True,min_length=5)# type: ignore

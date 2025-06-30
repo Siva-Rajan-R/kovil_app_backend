@@ -13,12 +13,17 @@ from database.operations.notification import NotificationsCrud
 from dotenv import load_dotenv
 from database.main import get_db_session
 from database.models.notification import NotificationImages
-from sqlalchemy.orm import Session
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from icecream import ic
 from io import BytesIO
 from api.dependencies.token_verification import verify
 from typing import Optional
 from PIL import Image
+from redis_db.redis_crud import RedisCrud
+from redis_db.main import redis
+from redis_db.redis_etag_keys import NOTIFICATION_ETAG_KEY
+import asyncio
 load_dotenv()
 
 
@@ -28,20 +33,22 @@ router=APIRouter(
 
 version_info=os.getenv("VERSION_INFO")
 
+
+
 @router.get("/app/version")
-def get_app_version(request:Request,response:Response):
+async def get_app_version(request:Request,response:Response):
     version=orjson.loads(version_info)
-    # version={
-    #     "current_version": "1.1.2",
-    #     "is_debug": False,
-    #     "is_mandatory": True,
-    #     "is_trigger_login":False,
-    #     "update_url": "https://drive.google.com/file/d/1MHXqE733vo0D1wAyMjcsG9n9BxhmETn3/view?usp=drive_link",
-    #     "android_update_url": "https://drive.google.com/file/d/1MHXqE733vo0D1wAyMjcsG9n9BxhmETn3/view?usp=drive_link",
-    #     "ios_update_url": "https://drive.google.com/file/d/1MHXqE733vo0D1wAyMjcsG9n9BxhmETn3/view?usp=drive_link",
-    #     "windows_update_url": "https://drive.google.com/file/d/1l6CLu130rgoIfwp4C-7lxpiL6Kfejj-o/view?usp=sharing",
-    #     "macos_update_url": "https://drive.google.com/file/d/1MHXqE733vo0D1wAyMjcsG9n9BxhmETn3/view?usp=drive_link"
-    #     }
+    version={
+        "current_version": "1.1.2",
+        "is_debug": False,
+        "is_mandatory": True,
+        "is_trigger_login":False,
+        "update_url": "https://drive.google.com/file/d/1MHXqE733vo0D1wAyMjcsG9n9BxhmETn3/view?usp=drive_link",
+        "android_update_url": "https://drive.google.com/file/d/1MHXqE733vo0D1wAyMjcsG9n9BxhmETn3/view?usp=drive_link",
+        "ios_update_url": "https://drive.google.com/file/d/1MHXqE733vo0D1wAyMjcsG9n9BxhmETn3/view?usp=drive_link",
+        "windows_update_url": "https://drive.google.com/file/d/1l6CLu130rgoIfwp4C-7lxpiL6Kfejj-o/view?usp=sharing",
+        "macos_update_url": "https://drive.google.com/file/d/1MHXqE733vo0D1wAyMjcsG9n9BxhmETn3/view?usp=drive_link"
+        }
         
     etag=generate_entity_tag(str(version))
     if request.headers.get('if-none-match')==etag:
@@ -63,7 +70,7 @@ async def send_app_notify(
     notification_title:str=Form(...,min_length=5),
     notification_body:str=Form(...,min_length=5),
     notification_image:Optional[UploadFile]=File(None),
-    session:Session=Depends(get_db_session),
+    session:AsyncSession=Depends(get_db_session),
     verified_user:dict=Depends(verify),
 ):
     user_id=verified_user['id']
@@ -98,22 +105,22 @@ async def send_app_notify(
             notify_img_url=image_url
         )
 
-    bgt.add_task(
+    asyncio.create_task(
         PushNotificationCrud(
             notify_title=notification_title,
             notify_body=notification_body,
             data_payload={
                 "screen":"event_page"
             }
-        ).push_notification_to_all,
-        image_url=image_url
+        ).push_notification_to_all(image_url=image_url)
+        
     )
 
     ic("immediyed")
     return "sended notification successfully"
 
 @router.post("/app/notify/register-update")
-async def register_fcm_token(request:Request,register_inp:RegisterNotifySchema,bgt:BackgroundTasks,session:Session=Depends(get_db_session)):
+async def register_fcm_token(request:Request,register_inp:RegisterNotifySchema,bgt:BackgroundTasks,session:AsyncSession=Depends(get_db_session)):
     user_id=None
     if register_inp.user_email_or_no:
         user=await UserVerification(session=session).is_user_exists(email_or_no=register_inp.user_email_or_no)
@@ -133,8 +140,19 @@ async def register_fcm_token(request:Request,register_inp:RegisterNotifySchema,b
     ic("fcm token added successfuly")
 
 @router.get("/app/notifications")
-async def get_app_notifications(response:Response,request:Request,bgt:BackgroundTasks,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+async def get_app_notifications(response:Response,request:Request,bgt:BackgroundTasks,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
+    
+    redis_crud=RedisCrud(key=NOTIFICATION_ETAG_KEY)
+    redis_etag=await redis_crud.get_etag_from_redis()
+    ic(redis_etag)
+    ic(redis_etag)
+    if redis_etag:
+        if request.headers.get('If-None-Match') == redis_etag:
+            raise HTTPException(
+                status_code=304
+            )
+    
     notifications=await NotificationsCrud(
         session=session,
         user_id=user_id
@@ -144,17 +162,13 @@ async def get_app_notifications(response:Response,request:Request,bgt:Background
 
     serialized_data=str(notifications)
     etag = generate_entity_tag(serialized_data)
-    ic(request.headers.get('If-None-Match'),request.headers.get('if-none-match'))
-    if request.headers.get('If-None-Match') == etag:
-        raise HTTPException(
-            status_code=304
-        )
     response.headers['ETag']=etag
+    await redis_crud.store_etag_to_redis(etag=etag)
     ic(len(serialized_data))
     return notifications
 
 @router.put("/app/notifications/seen")
-async def app_notifications_seen(response:Response,request:Request,bgt:BackgroundTasks,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+async def app_notifications_seen(response:Response,request:Request,bgt:BackgroundTasks,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
     try:
         user=await UserVerification(session=session).is_user_exists_by_id(user_id)
@@ -165,7 +179,7 @@ async def app_notifications_seen(response:Response,request:Request,bgt:Backgroun
             ).update_add_notify_reciv_user,
             user=user
         )
-
+        await RedisCrud(key=NOTIFICATION_ETAG_KEY).unlink_etag_from_redis()
         ic("notification seen updating...")
     except HTTPException:
         ic("404 user does not exists")
@@ -175,7 +189,7 @@ async def app_notifications_seen(response:Response,request:Request,bgt:Backgroun
 
 
 @router.delete("/app/notify/token")
-async def delete_fcm_token(register_inp:DeleteNotifySchema,bgt:BackgroundTasks,session:Session=Depends(get_db_session),user:dict=Depends(verify)):
+async def delete_fcm_token(register_inp:DeleteNotifySchema,bgt:BackgroundTasks,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
     tokens=FirebaseCrud(user_id=user_id).get_fcm_tokens()
     if tokens:
@@ -191,10 +205,9 @@ async def delete_fcm_token(register_inp:DeleteNotifySchema,bgt:BackgroundTasks,s
     ic("notification successfully deleted")
 
 @router.get("/notification/image/{image_id}")
-async def get_notification_image(image_id:str,session:Session=Depends(get_db_session)):
+async def get_notification_image(image_id:str,session:AsyncSession=Depends(get_db_session)):
     try:
-        image=session.query(NotificationImages).filter(image_id==NotificationImages.id).first()
-
+        image=(await session.execute(select(NotificationImages).filter(image_id==NotificationImages.id))).scalar_one_or_none()
         if image:
             image_binary=image.image
 

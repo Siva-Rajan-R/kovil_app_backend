@@ -18,4 +18,4 @@ class Users(Base):
     worker=relationship("Workers",back_populates="user",cascade="all, delete-orphan")
     leave_management=relationship("LeaveManagement",back_populates="user",cascade="all, delete-orphan")
 
-Base.metadata.create_all(Engine)
+# Base.metadata.create_all(Engine)
