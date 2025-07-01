@@ -6,7 +6,7 @@ from typing import Optional
 
 class RedisCrud:
 
-    def __init__(self,key:str,expiry:Optional[int]=3600):
+    def __init__(self,key:str,expiry:Optional[int]=604800):
         self.key=key
         self.expity=expiry
 

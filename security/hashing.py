@@ -24,10 +24,7 @@ async def verify_hash(hashed_data,plain_data):
         await run_in_threadpool(ph.verify,hashed_data,plain_data)
         return True
     except phexceptions.VerifyMismatchError:
-        raise HTTPException(
-            status_code=422,
-            detail="invalid data for verifying hash"
-        )
+        return False
     except Exception as e:
         raise HTTPException(
             status_code=500,

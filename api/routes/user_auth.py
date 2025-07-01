@@ -7,11 +7,13 @@ from api.schemas import user_auth
 from api.dependencies import token_revocation,email_automation
 from templates.pyhtml import report
 from security.uuid_creation import create_unique_id
-from security.hashing import hash_data
+from security.hashing import hash_data,verify_hash
 from firebase_db.operations import FirebaseCrud
 from utils.push_notification import PushNotificationCrud
 from icecream import ic
 import asyncio
+from redis_db.redis_crud import RedisCrud
+from redis_db.redis_etag_keys import USER_ETAG_KEY
 router=APIRouter(
     tags=["Register,Login,forgot and delete Users"]
 )
@@ -74,7 +76,7 @@ async def register_accept(link_id:str,bgt:BackgroundTasks,session:AsyncSession=D
                 ).push_notifications_individually_by_tokens(fcm_tokens=[registered_user_data.fcm_token])
                 
             )
-
+        await RedisCrud(key=USER_ETAG_KEY).unlink_etag_from_redis()
         return Response(
             content=report.register_accept_greet(registered_user_data.name,registered_user_data.email,registered_user_data.mobile_number,registered_user_data.role),
             media_type="text/html",
@@ -108,9 +110,10 @@ async def login(request:Request,bgt:BackgroundTasks,login_inputs:user_auth.UserL
 async def forgot(request:Request,forgot_inputs:user_auth.UserForgotSchema,bgt:BackgroundTasks,session:AsyncSession=Depends(get_db_session)):
     user=await UserVerification(session=session).is_user_exists(email_or_no=forgot_inputs.email_or_no)
     link_id=await create_unique_id(forgot_inputs.email_or_no)
-    hashed_new_password=await hash_data(forgot_inputs.new_password)
-    if user.password != hashed_new_password:
-        forgot_inputs.new_password=hashed_new_password
+    is_exists=await verify_hash(user.password,forgot_inputs.new_password)
+    ic(is_exists)
+    if is_exists==False:
+        forgot_inputs.new_password=forgot_inputs.new_password
         forgot_password_waiting_list[link_id]=forgot_inputs
         ic(user.email)
         ic(forgot_inputs.email_or_no)
@@ -140,7 +143,7 @@ async def forgot_accept(link_id:str,bgt:BackgroundTasks,session:AsyncSession=Dep
         await UserForgot(
             session=session,
             email_or_no=forgot_password_user_data.email_or_no,
-            hashed_new_password=forgot_password_user_data.new_password
+            new_password=forgot_password_user_data.new_password
         ).update_user_password()
         del forgot_password_waiting_list[link_id]
         bgt.add_task(

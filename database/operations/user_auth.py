@@ -7,9 +7,10 @@ from fastapi import HTTPException,BackgroundTasks
 from security.hashing import hash_data,verify_hash
 from security.jwt_token import JwtTokenCreation
 from security.uuid_creation import create_unique_id
-from datetime import datetime,timedelta
+from datetime import datetime,timedelta,timezone
 from firebase_db.operations import FirebaseCrud
 import os
+from icecream import ic
 
 JWT_TOKEN_EXPIRY_IN_DAYS=int(os.getenv("JWT_TOKEN_EXPIRY_IN_DAYS"))
 
@@ -30,10 +31,10 @@ class __UserLoginInputs:
         self.password=password
 
 class __UserForgotInputs:
-    def __init__(self,session:AsyncSession,email_or_no:str|EmailStr,hashed_new_password:str):
+    def __init__(self,session:AsyncSession,email_or_no:str|EmailStr,new_password:str):
         self.session=session
         self.email_or_no=email_or_no
-        self.hashed_new_password=hashed_new_password
+        self.new_password=new_password
 
 
 class UserVerification:
@@ -72,7 +73,8 @@ class UserRegisteration(__UserRegisterationInputs):
                     mobile_number=self.mobile_number,
                     email=self.email,
                     role=self.role,
-                    password=await hash_data(self.password)
+                    password=await hash_data(self.password),
+                    created_at=datetime.now(timezone.utc)
                 )
 
                 self.session.add(user)
@@ -82,6 +84,7 @@ class UserRegisteration(__UserRegisterationInputs):
             raise
 
         except Exception as e:
+            ic(f"something went wrong while register user {e}")
             raise HTTPException(
                 status_code=500,
                 detail=f"something went wrong while register user {e}"
@@ -92,21 +95,27 @@ class UserLogin(__UserLoginInputs):
     async def login(self,data):
         try:
             user=await UserVerification(session=self.session).is_user_exists(email_or_no=self.email_or_no)
-            await verify_hash(hashed_data=user.password,plain_data=self.password)
-            data["id"]=user.id
-            user_role=user.role.name
-            print(user_role)
+            is_verified=await verify_hash(hashed_data=user.password,plain_data=self.password)
+            if is_verified:
+                data["id"]=user.id
+                user_role=user.role.name
+                print(user_role)
 
-            jwt_token=JwtTokenCreation(
-                data=data
-            )
+                jwt_token=JwtTokenCreation(
+                    data=data
+                )
 
-            return {
-                "access_token":await jwt_token.access_token(),
-                "refresh_token":await jwt_token.refresh_token(),
-                "role":user_role,
-                "refresh_token_exp_date":str((datetime.now()+timedelta(days=JWT_TOKEN_EXPIRY_IN_DAYS)).date())
-            }
+                return {
+                    "access_token":await jwt_token.access_token(),
+                    "refresh_token":await jwt_token.refresh_token(),
+                    "role":user_role,
+                    "refresh_token_exp_date":str((datetime.now()+timedelta(days=JWT_TOKEN_EXPIRY_IN_DAYS)).date())
+                }
+            else:
+                raise HTTPException(
+                    status_code=422,
+                    detail="invalid email,number, or password".title()
+                )
         
         except HTTPException:
             raise
@@ -124,7 +133,7 @@ class UserForgot(__UserForgotInputs):
                 user_update_query=update(Users).where(
                     or_(Users.email==self.email_or_no,Users.mobile_number==self.email_or_no)
                 ).values(
-                    password=self.hashed_new_password
+                    password=await hash_data(data=self.new_password)
                 )
                 await self.session.execute(user_update_query)
                     

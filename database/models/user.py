@@ -12,7 +12,7 @@ class Users(Base):
     email=Column(String,nullable=False)
     role=Column(Enum(UserRole),default=UserRole.USER,nullable=False)
     password=Column(String,nullable=False)
-    created_at=Column(DateTime,default=datetime.now(timezone.utc))
+    created_at=Column(DateTime(timezone=True))
 
     notify_recvd_user=relationship("NotificationRecivedUsers",back_populates="user",cascade="all, delete-orphan")
     worker=relationship("Workers",back_populates="user",cascade="all, delete-orphan")

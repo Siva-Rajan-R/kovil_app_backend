@@ -697,6 +697,7 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
 
                     await self.session.execute(update(Events).where(Events.id==self.event_id).values(updated_by=user.name,status=backend_enums.EventStatus.COMPLETED))
                     await self.session.execute(delete(EventsPendingCanceledStatus).where(EventsPendingCanceledStatus.event_id==self.event_id))
+                    await self.session.execute(update(EventsAssignments).where(EventsAssignments.event_id==self.event_id).values(is_completed=True))
 
                     workers=[self.archagar,self.abisegam,self.helper,self.poo,self.read,self.prepare]
                     workers_counts=Counter(workers)
@@ -787,7 +788,7 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
             await send_error_notification(
                     user_id=self.user_id,
                     error_title="error updateing event status : 500".title(),
-                    error_body=f"for {event.name} Something went wrong, Please Try Again".title(),
+                    error_body="your recent event Completed status, Something went wrong, Please Try Again".title(),
                     notify_data_payload={
                         "screen":"home_screen"
                     }
