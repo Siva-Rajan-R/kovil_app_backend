@@ -28,3 +28,4 @@ brotli-asgi
 asyncpg
 gunicorn
 uvloop
+jinja2
