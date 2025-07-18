@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Poojai Booking</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg: #f8f4ff;
+      --primary: #7b2cbf;
+      --primary-light: #9d4edd;
+      --accent: #5a189a;
+      --light-purple: #e0aaff;
+      --text: #2b2d42;
+      --text-light: #6c757d;
+      --radius: 10px;
+      --shadow: 0 8px 24px rgba(123, 44, 191, 0.12);
+      --transition: all 0.3s ease;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 1.5rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .form-container {
+      background: white;
+      border-radius: var(--radius);
+      padding: 2rem;
+      width: 100%;
+      max-width: 500px;
+      margin: auto;
+      box-shadow: var(--shadow);
+      position: relative;
+    }
+
+    .form-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 6px;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+    }
+
+    h2 {
+      text-align: center;
+      color: var(--primary);
+      margin-bottom: 1.5rem;
+      font-size: 1.6rem;
+      position: relative;
+    }
+
+    h2::after {
+      content: '';
+      position: absolute;
+      bottom: -6px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 50px;
+      height: 3px;
+      background: var(--light-purple);
+      border-radius: 2px;
+    }
+
+    label {
+      font-weight: 500;
+      display: block;
+      margin-bottom: 0.4rem;
+      font-size: 0.9rem;
+    }
+
+    .input-group {
+      position: relative;
+      margin-bottom: 1.3rem;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      font-size: 0.95rem;
+      border: 2px solid #e9ecef;
+      border-radius: var(--radius);
+      transition: var(--transition);
+      background-color: white;
+      color: var(--text);
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(123, 44, 191, 0.15);
+    }
+
+    input::placeholder {
+      color: var(--text-light);
+    }
+
+    .input-icon {
+      position: absolute;
+      right: 1rem;
+      top: 65%;
+      transform: translateY(-50%);
+      font-size: 0.85rem;
+      color: var(--text-light);
+      pointer-events: none;
+    }
+
+    .row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+
+    .row > div {
+      flex: 1;
+      min-width: 200px;
+    }
+
+    .neivethiyam-row {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      align-items: flex-end;
+    }
+
+    .neivethiyam-row .input-group {
+      flex: 1;
+    }
+
+    .qty-input {
+      width: 100px;
+      min-width: 100px;
+    }
+
+    button {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border: none;
+      width: 100%;
+      padding: 1rem;
+      color: white;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: var(--transition);
+      margin-top: 1rem;
+      letter-spacing: 0.3px;
+      box-shadow: 0 4px 15px rgba(123, 44, 191, 0.3);
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(123, 44, 191, 0.4);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    /* Modern select dropdown */
+    select {
+      appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 1rem center;
+      background-size: 1em;
+    }
+
+    input[type="date"], input[type="time"] {
+      padding-right: 3rem;
+    }
+
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="time"]::-webkit-calendar-picker-indicator {
+      position: absolute;
+      right: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 1rem;
+      }
+
+      .form-container {
+        padding: 1.5rem;
+      }
+
+      .row > div, .neivethiyam-row .input-group {
+        min-width: 100%;
+      }
+
+      .qty-input {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <h2><i class="fas fa-om" style="margin-right: 8px;"></i>Book Your Poojai</h2>
+    <form method="post" action="/client/event/otp/{{ link_id }}">
+      <div class="input-group">
+        <label for="client_name">Full Name</label>
+        <input type="text" id="name" name="client_name" placeholder="Enter your full name" required />
+        
+        <i class="fas fa-user input-icon"></i>
+      </div>
+
+      <div class="input-group">
+        <label for="client_number">Mobile Number</label>
+        <input type="tel" id="number" name="client_number" pattern="[0-9]{10}" placeholder="Enter 10-digit number" required />
+        <i class="fas fa-mobile-alt input-icon"></i>
+      </div>
+
+      <div class="input-group">
+        <label for="client_email">Email Address</label>
+        <input type="email" id="email" name="client_email" placeholder="Enter your email" required />
+        <i class="fas fa-envelope input-icon"></i>
+      </div>
+
+      <div class="input-group">
+        <label for="client_city">City</label>
+        <input type="city" id="city" name="client_city" placeholder="Enter your city" required />
+        <i class="fas fa-envelope input-icon"></i>
+      </div>
+
+      <div class="row">
+        <div class="input-group">
+          <label for="event_date">Poojai Date</label>
+          <input type="date" id="date" name="event_date" required />
+          <i class="fas fa-calendar-day input-icon"></i>
+        </div>
+        <div class="input-group">
+          <label for="event_time">Poojai Time</label>
+          <input type="time" id="time" name="event_time" required />
+          <i class="fas fa-clock input-icon"></i>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label for="event_name">Poojai Type</label>
+        <select id="poojai_name" name="eventinfo" required>
+          <option value="">Select Poojai Type</option>
+          {% for dd_value in dd_values['event_names'] %}
+            <option value='{{ dd_value | tojson | safe}}'>{{ dd_value['name'] }} - ₹{{ dd_value['amount'] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <label>Neivethiyam Offering</label>
+      <div class="neivethiyam-row">
+        <div class="input-group">
+          <select id="neivethiyam" name="neivethiyaminfo" required>
+            
+            <option value="">Select Offering</option>
+            {% for dd_value in dd_values['neivethiyam_names'] %}
+                <option value='{{ dd_value | tojson | safe }}'>{{ dd_value['name'] }} - ₹{{ dd_value['amount'] }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="input-group qty-input">
+          <input type="number" name="neivethiyam_kg" placeholder="Qty (kg)" min="0.1" step="0.1" required />
+        </div>
+      </div>
+
+      <button type="submit">
+        <i class="fas fa-bookmark" style="margin-right: 6px;"></i> Send otp
+      </button>
+    </form>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const dateInput = document.getElementById('date');
+      const timeInput = document.getElementById('time');
+      
+      const today = new Date().toISOString().split('T')[0];
+      dateInput.min = today;
+
+      dateInput.addEventListener('click', function () {
+        this.showPicker();
+      });
+      timeInput.addEventListener('click', function () {
+        this.showPicker();
+      });
+    });
+    
+    function submitForm(){
+        document.querySelector("form").addEventListener("submit", async (e) => {
+        e.preventDefault(); // prevent default form submission
+        const link_id = "{{ link_id }}";
+        console.log(link_id);
+        const form = e.target;
+        const formData = new FormData(form);
+
+        const response = await fetch("/client/event/submit/"+link_id, {
+        method: "POST",
+        body: formData,
+        headers: {
+            "X-Auth-Token": "your-token-here", // 🔥 custom header
+            "Custom-Header": "value123"
+        }
+        });
+
+        const data = await response.json();
+        console.log("Server response:", data);
+    });
+    }
+    
+  </script>
+</body>
+</html>

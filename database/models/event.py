@@ -29,7 +29,8 @@ class Events(Base):
     date=Column(Date,nullable=False)
     start_at=Column(String,nullable=False)
     end_at=Column(String,nullable=False)
-    is_special=Column(Boolean,nullable=True)
+    is_special=Column(Boolean,nullable=False)
+    is_confirmed=Column(Boolean,nullable=False)
 
     client=relationship("Clients",back_populates="event",cascade="all, delete-orphan")
     payment=relationship("Payments",back_populates="event",cascade="all, delete-orphan")
@@ -46,6 +47,7 @@ class EventsNeivethiyam(Base):
     neivethiyam_id=Column(Integer,ForeignKey("neivethiyam_names.id"),nullable=False)
     event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False)
     padi_kg=Column(Float,nullable=False)
+    is_confirmed=Column(Boolean,nullable=False)
 
     event=relationship("Events",back_populates="event_neivethiyam")
 
@@ -55,7 +57,9 @@ class Clients(Base):
     name=Column(String,nullable=False)
     mobile_number=Column(String,nullable=False)
     city=Column(String,nullable=False)
+    email=Column(String,nullable=False)
     event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False)
+    is_confirmed=Column(Boolean,nullable=False)
 
     event=relationship("Events",back_populates="client")
 
@@ -67,6 +71,7 @@ class Payments(Base):
     status=Column(Enum(backend_enums.PaymetStatus),default=backend_enums.PaymetStatus.NOT_PAID,nullable=False)
     mode=Column(Enum(backend_enums.PaymentMode),default=backend_enums.PaymentMode.OFFLINE)
     event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False)
+    is_confirmed=Column(Boolean,nullable=False)
 
     event=relationship("Events",back_populates="payment")
 

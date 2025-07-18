@@ -151,6 +151,7 @@ async def add_event(bgt:BackgroundTasks,add_event_inputs:AddEventSchema,session:
         client_name=add_event_inputs.client_name,
         client_mobile_number=add_event_inputs.client_mobile_number,
         client_city=add_event_inputs.client_city,
+        client_email=add_event_inputs.client_email,
         total_amount=add_event_inputs.total_amount,
         paid_amount=add_event_inputs.paid_amount,
         payment_status=add_event_inputs.payment_status,
@@ -184,6 +185,7 @@ async def update_event(bgt:BackgroundTasks,update_event_inputs:UpdateEventSchema
         client_name=update_event_inputs.client_name,
         client_mobile_number=update_event_inputs.client_mobile_number,
         client_city=update_event_inputs.client_city,
+        client_email=update_event_inputs.client_email,
         total_amount=update_event_inputs.total_amount,
         paid_amount=update_event_inputs.paid_amount,
         payment_status=update_event_inputs.payment_status,
@@ -298,7 +300,7 @@ async def update_event_completed_status(
     )
 
 @router.put("/event/status/pending-canceled")
-async def update_event_pending_canceled_status(status_inp:UpdateEventPendingCanceledStatusSchema,bgt:BackgroundTasks,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
+async def update_event_pending_canceled_status(request:Request,status_inp:UpdateEventPendingCanceledStatusSchema,bgt:BackgroundTasks,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
     asyncio.create_task(
         UpdateEventPendingCanceledStatus(
@@ -307,7 +309,9 @@ async def update_event_pending_canceled_status(status_inp:UpdateEventPendingCanc
             event_id=status_inp.event_id,
             event_status=status_inp.event_status,
             description=status_inp.status_description,
-            bg_task=bgt
+            bg_task=bgt,
+            can_attach_link=status_inp.can_attach_link,
+            request=request
         ).update_event_status()
     )
 

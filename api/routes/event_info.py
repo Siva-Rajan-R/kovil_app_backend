@@ -5,7 +5,7 @@ from database.main import get_db_session
 from api.dependencies.token_verification import verify
 from typing import Optional
 from redis_db.redis_crud import RedisCrud
-from redis_db.redis_etag_keys import DROP_DOWN_ETAG_KEY
+from redis_db.redis_etag_keys import DROP_DOWN_ETAG_KEY,BOOKED_EVENTS
 from icecream import ic
 
 
@@ -35,8 +35,12 @@ async def event_calendar(response:Response,request:Request,month:int=Query(...),
     return ec
 
 @router.get("/event/specific",response_model_exclude_none=True)
-async def event_specific(request:Request,response:Response,date:date=Query(...),event_id:Optional[str]=Query(None),user:dict=Depends(verify),session:AsyncSession=Depends(get_db_session)):
+async def event_specific(request:Request,response:Response,date:date=Query(...),event_id:Optional[str]=Query(None),isfor_booked:Optional[bool]=Query(None),user:dict=Depends(verify),session:AsyncSession=Depends(get_db_session)):
+    
     redis_crud=RedisCrud(key=f"events-{date}-etag")
+    if isfor_booked:
+        ic(isfor_booked)
+        redis_crud=RedisCrud(key=BOOKED_EVENTS)
     redis_etag=await redis_crud.get_etag_from_redis()
     if redis_etag:
         if request.headers.get('if-none-match')==redis_etag:
@@ -48,7 +52,8 @@ async def event_specific(request:Request,response:Response,date:date=Query(...),
         session=session,
         user_id=user['id'],
         event_date=date,
-        event_id=event_id
+        event_id=event_id,
+        isfor_booked=isfor_booked
     ).get_events()
     etag=generate_entity_tag(str(events))
     response.headers['ETag']=etag

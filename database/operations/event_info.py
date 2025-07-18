@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import extract,select,func,cast, Date, Time,desc
+from sqlalchemy import extract,select,func,cast, Date, Time,desc,and_
 from enums import backend_enums
 from database.models.user import Users
 from database.models.event import Events,Clients,Payments,EventsCompletedStatus,EventsPendingCanceledStatus,EventStatusImages,EventsNeivethiyam,NeivethiyamNames,EventsContactDescription,EventsAssignments
@@ -15,6 +15,7 @@ from pydantic import EmailStr
 from typing import Optional
 
 
+
 class __EventsCalendarInputs:
     def __init__(self,session:AsyncSession,user_id:str,month:int,year:int):
         self.session=session
@@ -23,16 +24,19 @@ class __EventsCalendarInputs:
         self.year=year
 
 class __ParticularEventInputs:
-    def __init__(self,session:AsyncSession,user_id:str,event_date:date,event_id:Optional[str]=None):
+    def __init__(self,session:AsyncSession,user_id:str,event_date:date,event_id:Optional[str]=None,isfor_booked:Optional[bool]=None):
         self.session=session
         self.user_id=user_id
         self.event_date=event_date
         self.event_id=event_id
+        self.isfor_booked=isfor_booked
+        
 
 class __EventDropDownValuesInputs:
-    def __init__(self,session:AsyncSession,user_id:str):
+    def __init__(self,session:AsyncSession,user_id:str,isfor_client:Optional[bool]=False):
         self.session=session
         self.user_id=user_id
+        self.isfor_client=isfor_client
 
 class __EventsToEmailInputs:
     def __init__(self,session:AsyncSession,user_id:str,from_date:date,to_date:date,file_type:backend_enums.FileType,to_email:EmailStr):
@@ -54,7 +58,8 @@ class EventCalendar(__EventsCalendarInputs):
                 )
                 .where(
                     extract("month",Events.date)==self.month,
-                    extract("year",Events.date)==self.year
+                    extract("year",Events.date)==self.year,
+                    Events.is_confirmed==True
                 ).group_by(Events.date)
             )).mappings().all()
 
@@ -74,9 +79,16 @@ class ParticularEvent(__ParticularEventInputs):
     async def get_events(self):
         try:
             user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
-            condition=Events.date==self.event_date
-            if self.event_id:
+            condition=and_(Events.date==self.event_date,Events.is_confirmed==True)
+            if self.event_id and not self.isfor_booked:
                 condition=Events.id==self.event_id
+            elif not self.event_id and self.isfor_booked:
+                condition=Events.is_confirmed==False
+            elif self.event_id and self.isfor_booked:
+                raise HTTPException(
+                    status_code=422,
+                    detail="Enter anyone of the query,not all"
+                )
                 
             select_statement_columns=[
                 Events.id.label("event_id"),
@@ -91,6 +103,7 @@ class ParticularEvent(__ParticularEventInputs):
                 Events.updated_by,
                 Clients.name.label("client_name"),
                 Clients.city.label("client_city"),
+                Clients.email.label('client_email'),
                 Clients.mobile_number.label("client_mobile_number"),
                 Payments.status.label("payment_status"),
                 Payments.mode.label("payment_mode"),
@@ -193,13 +206,14 @@ class ParticularEvent(__ParticularEventInputs):
 class EventDropDownValues(__EventDropDownValuesInputs):
     async def get_dropdown_values(self):
         try:
-            event_names=await EventNameAndAmountCrud(session=self.session,user_id=self.user_id).get_event_name_and_amount()
-            neivethiyam_names=await NeivethiyamNameAndAmountCrud(session=self.session,user_id=self.user_id).get_neivethiyam_name_and_amount()
+            event_names=await EventNameAndAmountCrud(session=self.session,user_id=self.user_id,isfor_client=self.isfor_client).get_event_name_and_amount()
+            neivethiyam_names=await NeivethiyamNameAndAmountCrud(session=self.session,user_id=self.user_id,isfor_client=self.isfor_client).get_neivethiyam_name_and_amount()
             return {"event_names":event_names['event_names'],"neivethiyam_names":neivethiyam_names["neivethiyam_names"],"payment_status":[i.value for i in backend_enums.PaymetStatus],"payment_modes":[i.value for i in backend_enums.PaymentMode]}
             
         except HTTPException:
             raise
         except Exception as e:
+            ic(f"something went wrong while getting dropdown values {e}")
             raise HTTPException(
                 status_code=500,
                 detail=f"something went wrong while getting dropdown values {e}"

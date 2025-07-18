@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>OTP Verification</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    :root {
+      --bg: #f8f4ff;
+      --primary: #7b2cbf;
+      --primary-light: #9d4edd;
+      --accent: #5a189a;
+      --text: #2b2d42;
+      --text-light: #6c757d;
+      --radius: 8px;
+      --shadow: 0 4px 15px rgba(123, 44, 191, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      padding: 1rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      line-height: 1.5;
+    }
+
+    .otp-container {
+      background: white;
+      border-radius: var(--radius);
+      padding: 1.5rem;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+
+    h2 {
+      color: var(--primary);
+      margin-bottom: 1rem;
+      font-size: 1.4rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .description {
+      color: var(--text-light);
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .mobile-number {
+      font-weight: 600;
+      color: var(--primary);
+    }
+
+    .otp-inputs {
+      display: flex;
+      justify-content: center;
+      gap: 0.8rem;
+      margin: 1.5rem 0;
+    }
+
+    .otp-input {
+      width: 50px;
+      height: 50px;
+      text-align: center;
+      font-size: 1.2rem;
+      border: 1px solid #e9ecef;
+      border-radius: var(--radius);
+      transition: all 0.2s ease;
+    }
+
+    .otp-input:focus {
+      outline: none;
+      border-color: var(--primary-light);
+      box-shadow: 0 0 0 2px rgba(123, 44, 191, 0.1);
+    }
+
+    .resend {
+      font-size: 0.9rem;
+      color: var(--text-light);
+      margin: 1rem 0;
+    }
+
+    .resend a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .resend a:hover {
+      text-decoration: underline;
+    }
+
+    button {
+      background: var(--primary);
+      border: none;
+      width: 100%;
+      padding: 0.8rem;
+      color: white;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: background 0.2s ease;
+      margin-top: 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    button:hover {
+      background: var(--primary-light);
+    }
+
+    button:disabled {
+      background: #e9ecef;
+      cursor: not-allowed;
+    }
+
+    .timer {
+      color: var(--primary);
+      font-weight: 500;
+    }
+
+    @media (max-width: 480px) {
+      .otp-container {
+        padding: 1.25rem;
+      }
+      
+      .otp-input {
+        width: 45px;
+        height: 45px;
+        font-size: 1.1rem;
+      }
+      
+      .otp-inputs {
+        gap: 0.5rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="success-message" style="
+      display: none;
+      background-color: #d4edda;
+      color: #155724;
+      padding: 1rem;
+      border: 1px solid #c3e6cb;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      font-weight: 500;
+      text-align: center;
+    ">
+      🎉 Your event booked successfully waiting for confirmation,You will get updates on email. Thank you 🙏
+    </div>
+  <div class="otp-container">
+    
+    <h2><i class="fas fa-shield-alt"></i> OTP Verification</h2>
+    <p class="description">We've sent a 6-digit verification code to<br> 
+      <span class="mobile-number">{{ client_email }}</span>
+    </p>
+    
+    <div class="otp-inputs">
+      <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" autofocus />
+      <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" />
+      <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" />
+      <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" />
+      <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" />
+      <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" />
+    </div>
+    
+    <p class="resend">
+      Didn't receive code? <a href="#" id="resend-link">Resend</a>
+      <span id="timer" class="timer">(0:30)</span>
+    </p>
+    
+    <button type="button" id="verify-btn" disabled>
+      <i class="fas fa-check-circle"></i> Verify
+    </button>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const otpInputs = document.querySelectorAll('.otp-input');
+      const verifyBtn = document.getElementById('verify-btn');
+      const resendLink = document.getElementById('resend-link');
+      const timerElement = document.getElementById('timer');
+      
+      let timeLeft = 30;
+      let timerInterval;
+      
+      // Start the countdown timer
+      function startTimer() {
+        resendLink.style.display = 'none';
+        timerElement.style.display = 'inline';
+        timeLeft = 30;
+        
+        timerInterval = setInterval(() => {
+          timeLeft--;
+          timerElement.textContent = `(0:${timeLeft < 10 ? '0' + timeLeft : timeLeft})`;
+          
+          if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            resendLink.style.display = 'inline';
+            timerElement.style.display = 'none';
+          }
+        }, 1000);
+      }
+      
+      // Auto-focus next input when a digit is entered
+      otpInputs.forEach((input, index) => {
+        input.addEventListener('input', (e) => {
+          if (e.target.value.length === 1) {
+            if (index < otpInputs.length - 1) {
+              otpInputs[index + 1].focus();
+            }
+          }
+          
+          checkOTPComplete();
+        });
+        
+        // Handle backspace
+        input.addEventListener('keydown', (e) => {
+          if (e.key === 'Backspace' && e.target.value.length === 0) {
+            if (index > 0) {
+              otpInputs[index - 1].focus();
+            }
+          }
+        });
+      });
+      
+      // Check if all OTP digits are filled
+      function checkOTPComplete() {
+        const otpComplete = Array.from(otpInputs).every(input => input.value.length === 1);
+        verifyBtn.disabled = !otpComplete;
+      }
+      
+      // Resend OTP functionality
+      resendLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        startTimer();
+        
+        // Clear all inputs
+        otpInputs.forEach(input => {
+          input.value = '';
+        });
+        
+        verifyBtn.disabled = true;
+        otpInputs[0].focus();
+
+        location.reload(); 
+      });
+      
+      // Verify button functionality
+      verifyBtn.addEventListener('click', async () => {
+        const otp = Array.from(otpInputs).map(input => input.value).join('');
+        const link_id="{{ link_id }}"
+        const formData = new FormData();
+        formData.append('otp', otp);
+        try {
+          const response = await fetch(`/client/event/book/confirm/${link_id}`, {
+            method: 'POST',
+            body: formData,
+          });
+          const result = await response.json();
+          console.log(response.body,result);
+          
+          if(response.status==200){
+            const otpForm=document.getElementsByClassName("otp-container")[0];
+            const successDiv=document.getElementById("success-message")
+            otpForm.style.display="none";
+            successDiv.style.display="block";
+            
+            // alert("Your event added successfully waiting for confirmation");
+          }
+          else{
+            alert(`OTP verification failed. ${result['detail']}`);
+          }
+          
+        } catch (err) {
+          alert('OTP verification failed.');
+          console.error(err);
+        }
+        // In a real app, you would verify the OTP with your backend here
+      });
+      
+      // Start the timer on page load
+      startTimer();
+    });
+  </script>
+</body>
+</html>

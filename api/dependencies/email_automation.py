@@ -108,3 +108,81 @@ def send_event_report_as_pdf(to_email: EmailStr, pdf_bytes: bytes,pdf_filename:s
     with smtplib.SMTP_SSL(SMTP_SERVER, 465) as smtp:
         smtp.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
         smtp.send_message(msg)
+
+
+def event_booked_successfull_report(name, poojai_type, date, time, temple_name, address,to_email):
+    html_content=email_content.booked_event_successfull_email(name, poojai_type, date, time, temple_name, address,)
+    msg = MIMEMultipart()
+    msg["From"] = EMAIL_ADDRESS
+    msg["To"] = to_email
+    msg["Subject"] = "Your event booked successfully"
+    msg.attach(MIMEText(html_content, "html"))
+
+    # Send email
+    with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+        server.starttls()
+        server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+        server.sendmail(EMAIL_ADDRESS, to_email, msg.as_string())
+
+    print("Email sent successfully!")
+
+def event_booked_canceled_report(name, poojai_type, date, time, reason,temple_name,reschedule_link,to_email):
+    try:
+        print("ulla bro")
+        html_content=email_content.booked_event_canceled_email(customer_name=name,poojai_name=poojai_type,date=date,time=time,reason=reason,temple_name=temple_name,reschedule_link=reschedule_link)
+        msg = MIMEMultipart()
+        msg["From"] = EMAIL_ADDRESS
+        msg["To"] = to_email
+        msg["Subject"] = "Your event booking canceled"
+        msg.attach(MIMEText(html_content, "html"))
+
+        # Send email
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            server.sendmail(EMAIL_ADDRESS, to_email, msg.as_string())
+
+        print("Email sent successfully!")
+    except Exception as e:
+        print(e)
+
+def event_booked_completed_report(name,event_name, date, time, description,temple_name,to_email):
+    try:
+        print("ulla bro")
+        html_content=email_content.booked_event_completed_email(poojai_name=event_name,client_name=name,date=date,time=time,description=description,temple_name=temple_name)
+        msg = MIMEMultipart()
+        msg["From"] = EMAIL_ADDRESS
+        msg["To"] = to_email
+        msg["Subject"] = "Your event booking canceled"
+        msg.attach(MIMEText(html_content, "html"))
+
+        # Send email
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            server.sendmail(EMAIL_ADDRESS, to_email, msg.as_string())
+
+        print("Email sent successfully!")
+    except Exception as e:
+        print(e)
+
+def send_booked_event_otp(temple_name,client_name,otp,to_email):
+    try:
+        print("ulla bro")
+        html_content=email_content.booking_otp_email(temple_name=temple_name,otp=otp,client_name=client_name)
+        msg = MIMEMultipart()
+        msg["From"] = EMAIL_ADDRESS
+        msg["To"] = to_email
+        msg["Subject"] = "Your event booking canceled"
+        msg.attach(MIMEText(html_content, "html"))
+
+        # Send email
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()
+            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            server.sendmail(EMAIL_ADDRESS, to_email, msg.as_string())
+
+        print("Email sent successfully!")
+    except Exception as e:
+        print(e)
+# event_booked_canceled_report("","","","","","","","siva967763@gmail.com")

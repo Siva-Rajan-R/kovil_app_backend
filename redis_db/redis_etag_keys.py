@@ -7,3 +7,4 @@ NEIVETHIYAM_ETAG_KEY="neivethiyam-etag"
 DROP_DOWN_ETAG_KEY="drop-down-etag"
 ASSIGNED_EVENT_ETAG_KEY="assigned-event-etag"
 USER_LEAVE_ALL='user-leave-all-etag'
+BOOKED_EVENTS="events-isfor-booked"

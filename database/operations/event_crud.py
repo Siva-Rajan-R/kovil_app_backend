@@ -22,9 +22,11 @@ from utils.push_notification import PushNotificationCrud
 from utils.error_notification import send_error_notification
 from database.operations.notification import NotificationsCrud
 from redis_db.redis_crud import RedisCrud
-from redis_db.redis_etag_keys import WORKER_ETAG_KEY,WORKER_WITH_USER_ETAG_KEY
+from redis_db.redis_etag_keys import WORKER_ETAG_KEY,WORKER_WITH_USER_ETAG_KEY,BOOKED_EVENTS
+from api.dependencies.email_automation import event_booked_successfull_report,event_booked_canceled_report,event_booked_completed_report
 import asyncio
 from collections import Counter
+from api.temp.temp_variabels import generated_client_links
 
 class __AddEventInputs:
     def __init__(
@@ -40,13 +42,16 @@ class __AddEventInputs:
             client_name:str,
             client_mobile_number:str,
             client_city:str,
+            client_email:EmailStr,
             total_amount:float,
             paid_amount:float,
             payment_status:backend_enums.PaymetStatus,
             payment_mode:backend_enums.PaymentMode,
             neivethiyam_id:Optional[int]=None,
             is_special:Optional[bool]=None,
-            padi_kg:Optional[float]=None
+            padi_kg:Optional[float]=None,
+            is_from_client:Optional[bool]=False,
+            
     ):
         self.user_id=user_id
         self.session=session
@@ -58,6 +63,7 @@ class __AddEventInputs:
         self.client_name=client_name
         self.client_mobile_number=client_mobile_number
         self.client_city=client_city
+        self.client_email=client_email
         self.total_amount=total_amount
         self.paid_amount=paid_amount
         self.payment_status=payment_status
@@ -66,11 +72,14 @@ class __AddEventInputs:
         self.is_special=is_special
         self.padi_kg=padi_kg
         self.bg_task=bg_task
+        self.is_from_client=is_from_client
+
 
 class __EventAndNeivethiyamNameAndAmountCrudInputs:
-    def __init__(self,session:AsyncSession,user_id:str):
+    def __init__(self,session:AsyncSession,user_id:str,isfor_client:Optional[bool]=False):
         self.session=session
         self.user_id=user_id
+        self.isfor_client=isfor_client
 
 class __DeleteEventInputs:
     def __init__(self,session:AsyncSession,user_id:str):
@@ -117,10 +126,13 @@ class __UpdateEventPendingCanceledInputs:
         self,
         session:AsyncSession,
         user_id:str,
+        request:Request,
         event_id:str,
         event_status:backend_enums.EventStatus,
         description:str,
-        bg_task:BackgroundTasks
+        bg_task:BackgroundTasks,
+        can_attach_link:Optional[bool]=False,
+        
     ):
         self.session=session
         self.user_id=user_id
@@ -128,6 +140,8 @@ class __UpdateEventPendingCanceledInputs:
         self.event_status=event_status
         self.description=description
         self.bg_task=bg_task
+        self.can_attach_link=can_attach_link
+        self.request=request
 
 class __ContactDescriptionInputs:
     def __init__(self,session:AsyncSession,user_id:str):
@@ -254,23 +268,29 @@ class EventNameAndAmountCrud(__EventAndNeivethiyamNameAndAmountCrudInputs):
     
     async def get_event_name_and_amount(self):
         try:
-            user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
-            if user.role==backend_enums.UserRole.ADMIN:
-                event_names=(await self.session.execute(
-                    select(
-                        EventNames.id,
-                        EventNames.name,
-                        EventNames.amount,
-                        EventNames.is_special
-                    )
-                    .order_by(desc(EventNames.id))
-                )).mappings().all()
+            ischecked=self.isfor_client
+            if not ischecked:
+                user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
+                if user.role==backend_enums.UserRole.ADMIN:
+                    ischecked=True
+                else:
+                    raise HTTPException(
+                    status_code=401,
+                    detail='you are not allowed to get this information'
+                )
 
-                return {"event_names":event_names}
-            raise HTTPException(
-                status_code=401,
-                detail='you are not allowed to get this information'
-            )
+            event_names=(await self.session.execute(
+                select(
+                    EventNames.id,
+                    EventNames.name,
+                    EventNames.amount,
+                    EventNames.is_special
+                )
+                .order_by(desc(EventNames.id))
+            )).mappings().all()
+
+            return {"event_names":event_names}
+            
         except HTTPException:
             raise
         except Exception as e:
@@ -337,22 +357,27 @@ class NeivethiyamNameAndAmountCrud(__EventAndNeivethiyamNameAndAmountCrudInputs)
     
     async def get_neivethiyam_name_and_amount(self):
         try:
-            user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
-            if user.role==backend_enums.UserRole.ADMIN:
-                neivethiyam_names=(await self.session.execute(
-                    select(
-                        NeivethiyamNames.id,
-                        NeivethiyamNames.name,
-                        NeivethiyamNames.amount
+            ischecked=self.isfor_client
+            if not ischecked:
+                user=await UserVerification(self.session).is_user_exists_by_id(self.user_id)
+                if user.role==backend_enums.UserRole.ADMIN:
+                    ischecked=True
+                else:
+                    raise HTTPException(
+                        status_code=401,
+                        detail='you are not allowed to get this information'
                     )
-                    .order_by(desc(NeivethiyamNames.id))
-                )).mappings().all()
+            neivethiyam_names=(await self.session.execute(
+                select(
+                    NeivethiyamNames.id,
+                    NeivethiyamNames.name,
+                    NeivethiyamNames.amount
+                )
+                .order_by(desc(NeivethiyamNames.id))
+            )).mappings().all()
 
-                return {"neivethiyam_names":neivethiyam_names}
-            raise HTTPException(
-                status_code=401,
-                detail='you are not allowed to get this information'
-            )
+            return {"neivethiyam_names":neivethiyam_names}
+            
         except HTTPException:
             raise
         except Exception as e:
@@ -372,9 +397,11 @@ class AddEvent(__AddEventInputs):
                     is_neivethiyam_name_exists=None
                     if self.neivethiyam_id:
                         await NeivethiyamNameVerification(session=self.session).is_neivethiyam_exists_by_id(self.neivethiyam_id)
+                        is_neivethiyam_name_exists=True
 
                     
                     event_id=await create_unique_id(self.event_name)
+                    is_confirmed=not self.is_from_client
                     event=Events(
                         id=event_id,
                         name=self.event_name,
@@ -385,14 +412,17 @@ class AddEvent(__AddEventInputs):
                         is_special=self.is_special,
                         status=backend_enums.EventStatus.PENDING,
                         added_by=user.name,
-                        updated_by=user.name
+                        updated_by=user.name,
+                        is_confirmed=is_confirmed
                     )
 
                     client=Clients(
                         name=self.client_name,
                         mobile_number=self.client_mobile_number,
+                        email=self.client_email,
                         city=self.client_city,
-                        event_id=event_id
+                        event_id=event_id,
+                        is_confirmed=is_confirmed
                     )
 
                     payment=Payments(
@@ -400,7 +430,8 @@ class AddEvent(__AddEventInputs):
                         paid_amount=self.paid_amount,
                         status=self.payment_status,
                         mode=self.payment_mode,
-                        event_id=event_id
+                        event_id=event_id,
+                        is_confirmed=is_confirmed
                     )
                         
 
@@ -412,7 +443,8 @@ class AddEvent(__AddEventInputs):
                         event_neivethiyam=EventsNeivethiyam(
                             neivethiyam_id=self.neivethiyam_id,
                             event_id=event_id,
-                            padi_kg=self.padi_kg
+                            padi_kg=self.padi_kg,
+                            is_confirmed=is_confirmed
                         )
 
                         combined_event_details.append(event_neivethiyam)
@@ -429,12 +461,16 @@ class AddEvent(__AddEventInputs):
                         ).push_notification_to_all
                     )
                     # for deleting etag from redis
+                    ic("before redis")
                     keys_to_del=[
                         f"event-calendar-{self.event_date.month}-{self.event_date.year}-etag",
-                        f"events-{self.event_date}-etag"
+                        f"events-{self.event_date}-etag",
+                        BOOKED_EVENTS
                     ]
+
                     await RedisCrud(key="").unlink_etag_from_redis(*keys_to_del)
                     # 
+                    ic("after redis")
                     cur_datetime=datetime.now()
                     utc_time=datetime(
                         year=self.event_date.year,
@@ -479,8 +515,9 @@ class UpdateEvent(__AddEventInputs):
             async with self.session.begin():
                 user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
                 if user.role==backend_enums.UserRole.ADMIN:
-                    await EventVerification(session=self.session).is_event_exists_by_id(event_id)
-                    
+                    event=await EventVerification(session=self.session).is_event_exists_by_id(event_id)
+                    is_confirmed=event.is_confirmed
+                    ic("first",is_confirmed)
                     await EventNameVerification(session=self.session).is_event_name_exists_by_name(self.event_name)
                     is_neivethiyam_id_exists=None
                     if self.neivethiyam_id:
@@ -492,20 +529,24 @@ class UpdateEvent(__AddEventInputs):
                         date=self.event_date,
                         start_at=self.event_start_at,
                         end_at=self.event_end_at,
-                        is_special=self.is_special
+                        is_special=self.is_special,
+                        is_confirmed=True
                     )
 
                     update_client=update(Clients).where(Clients.event_id==event_id).values(
                         name=self.client_name,
                         mobile_number=self.client_mobile_number,
-                        city=self.client_city
+                        email=self.client_email,
+                        city=self.client_city,
+                        is_confirmed=True
                     )
 
                     update_payment=update(Payments).where(Payments.event_id==event_id).values(
                         total_amount=self.total_amount,
                         paid_amount=self.paid_amount,
                         mode=self.payment_mode,
-                        status=self.payment_status
+                        status=self.payment_status,
+                        is_confirmed=True
                     )
                     for update_query in [update_event,update_client,update_payment]:
                         await self.session.execute(update_query)
@@ -515,7 +556,8 @@ class UpdateEvent(__AddEventInputs):
                         
                         query_to_update=update(EventsNeivethiyam).where(EventsNeivethiyam.event_id==event_id).values(
                             neivethiyam_id=self.neivethiyam_id,
-                            padi_kg=self.padi_kg
+                            padi_kg=self.padi_kg,
+                            is_confirmed=True
                         ).returning(EventsNeivethiyam.id)
 
                         result=await self.session.execute(query_to_update)
@@ -525,13 +567,32 @@ class UpdateEvent(__AddEventInputs):
                                 EventsNeivethiyam(
                                     neivethiyam_id=self.neivethiyam_id,
                                     event_id=event_id,
-                                    padi_kg=self.padi_kg
+                                    padi_kg=self.padi_kg,
+                                    is_confirmed=True
                                 )
                             )
                     else:
                         await self.session.execute(delete(EventsNeivethiyam).where(EventsNeivethiyam.event_id==event_id))
+                    ic(is_confirmed)
+                    if is_confirmed==False:
+                        self.bg_task.add_task(
+                            event_booked_successfull_report,
+                            name=self.client_name,
+                            poojai_type=f"{self.event_name} - {self.event_description}",
+                            date=self.event_date,
+                            time=f"{self.event_start_at} - {self.event_end_at}",
+                            temple_name="Nanmai tharuvar Kovil (Guruvudhasan)",
+                            address="Madurai,mela masi vethi 3rd street",
+                            to_email=self.client_email
+                        
+                        )
+                        
                     # for deleting redis etag
-                    await RedisCrud(key=f"events-{self.event_date}-etag").unlink_etag_from_redis()
+                    keys_to_del=[
+                        f"events-{self.event_date}-etag",
+                        BOOKED_EVENTS
+                    ]
+                    await RedisCrud(key="").unlink_etag_from_redis(*keys_to_del)
                     return "event details updated successfully"
                 raise HTTPException(
                     status_code=401,
@@ -760,8 +821,16 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                             ).push_notification_to_all(image_url=compressed_image_url)
                         )
 
-                    
-                    
+                    client=(await self.session.execute(select(Clients.name,Clients.email).where(Clients.event_id==self.event_id))).mappings().all()
+                    event_booked_completed_report(
+                        name=client[0]['name'],
+                        event_name=event.name,
+                        date=event.date,
+                        time=f"{event.start_at} - {event.end_at}",
+                        description=event.description,
+                        temple_name="Nanmaitharuvar Kovil (Guruvudhasan)",
+                        to_email=client[0]['email']
+                    )
 
                     return "event completed sts updated successfully"
                 
@@ -815,55 +884,88 @@ class UpdateEventPendingCanceledStatus(__UpdateEventPendingCanceledInputs):
                     if event_sts_del_result.scalar_one_or_none():
                         await self.session.execute(delete(WorkersParticipationLogs).where(WorkersParticipationLogs.event_id==self.event_id,WorkersParticipationLogs.is_reseted==False))
                     ic("vanakam da")
-                    event_pen_canc_sts_toupdate=update(EventsPendingCanceledStatus).where(EventsPendingCanceledStatus.event_id==self.event_id).values(
-                        description=self.description,
-                        updated_at=current_time,
-                        updated_date=current_date
-                    ).returning(EventsPendingCanceledStatus.id)
+                    if self.event_status==backend_enums.EventStatus.CANCELED and event.is_confirmed==False:
+                        event_obj=await self.session.get(Events, event.id)
+                        client=(await self.session.execute(select(Clients.name,Clients.email).where(Clients.event_id==self.event_id))).mappings().all()
+                        ic(client,event_obj.name)
+                        event_name=event_obj.name
+                        client_email=client[0]['email']
+                        client_name=client[0]['name']
+                        event_date=event_obj.date
+                        event_time=f"{event_obj.start_at} - {event_obj.end_at}"
+                        kovil_name="Nanmai tharuvar kovil (Guruvudhasan)"
+                        
+                        await self.session.delete(event_obj)
+                        generated_client_link=""
+                        if self.can_attach_link:
+                            unique_id=await create_unique_id("client")
+                            generated_client_link=f"{self.request.base_url}client/event/book/{unique_id}"
+                            generated_client_links[unique_id]=user.id
 
-                    event_pen_canc_sts_upt_result = await self.session.execute(event_pen_canc_sts_toupdate)
-
-                    if not event_pen_canc_sts_upt_result.scalar_one_or_none():
-                        add_desc=EventsPendingCanceledStatus(
+                        ic(generated_client_link,self.can_attach_link,generated_client_links)
+                        event_booked_canceled_report(
+                            name=client_name,
+                            poojai_type=event_name,
+                            date=event_date,
+                            time=event_time,
+                            reason=self.description,
+                            temple_name=kovil_name,
+                            reschedule_link=generated_client_link,
+                            to_email=client_email
+                        )
+                    else: 
+                        event_pen_canc_sts_toupdate=update(EventsPendingCanceledStatus).where(EventsPendingCanceledStatus.event_id==self.event_id).values(
                             description=self.description,
-                            event_id=self.event_id,
                             updated_at=current_time,
                             updated_date=current_date
+                        ).returning(EventsPendingCanceledStatus.id)
+
+                        event_pen_canc_sts_upt_result = await self.session.execute(event_pen_canc_sts_toupdate)
+
+                        if not event_pen_canc_sts_upt_result.scalar_one_or_none():
+                            add_desc=EventsPendingCanceledStatus(
+                                description=self.description,
+                                event_id=self.event_id,
+                                updated_at=current_time,
+                                updated_date=current_date
+                            )
+
+                            self.session.add(add_desc)
+                    
+                        await self.session.execute(
+                            update(Events)
+                            .where(Events.id==self.event_id)
+                            .values(
+                                status=self.event_status,
+                                updated_by=user.name
+                            )
                         )
 
-                        self.session.add(add_desc)
-                
-                    await self.session.execute(
-                        update(Events)
-                        .where(Events.id==self.event_id)
-                        .values(
-                            status=self.event_status,
-                            updated_by=user.name
+                        await self.session.execute(
+                            update(EventsAssignments)
+                            .where(EventsAssignments.event_id==self.event_id)
+                            .values(
+                                is_completed=False
+                            )
                         )
-                    )
+                        asyncio.create_task(
+                            PushNotificationCrud(
+                                notify_title=f"event status updated - {self.event_status.value}".title(),
+                                notify_body=f"{event.name} on {current_date} at {current_time} updated-by {user.name}".title(),
+                                data_payload={
+                                    "screen":"event_page"
+                                }
+                            ).push_notification_to_all()
+                        )
 
-                    await self.session.execute(
-                        update(EventsAssignments)
-                        .where(EventsAssignments.event_id==self.event_id)
-                        .values(
-                            is_completed=False
-                        )
-                    )
                     etag_to_del=[
                         f"events-{event.date}-etag",
-                        WORKER_WITH_USER_ETAG_KEY
+                        WORKER_WITH_USER_ETAG_KEY,
+                        BOOKED_EVENTS
                     ]
-                    await RedisCrud(key="").unlink_etag_from_redis(*etag_to_del)
+                    await RedisCrud(key='').unlink_etag_from_redis(*etag_to_del)
                     ic(f"successfully event {self.event_status.value} status updated")
-                    asyncio.create_task(
-                        PushNotificationCrud(
-                            notify_title=f"event status updated - {self.event_status.value}".title(),
-                            notify_body=f"{event.name} on {current_date} at {current_time} updated-by {user.name}".title(),
-                            data_payload={
-                                "screen":"event_page"
-                            }
-                        ).push_notification_to_all()
-                    )
+                    
                     return
                 # raise HTTPException(
                 #     status_code=404,

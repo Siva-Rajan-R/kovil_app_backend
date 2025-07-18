@@ -28,6 +28,7 @@ class AddEventSchema(BaseModel):
     client_name:constr(strip_whitespace=True,min_length=1)# type: ignore
     client_mobile_number:constr(strip_whitespace=True,min_length=1)# type: ignore
     client_city:constr(strip_whitespace=True,min_length=1)# type: ignore
+    client_email:EmailStr
     total_amount:float
     paid_amount:float
     payment_status:backend_enums.PaymetStatus=backend_enums.PaymetStatus.NOT_PAID
@@ -53,6 +54,7 @@ class UpdateEventSchema(BaseModel):
     client_name:constr(strip_whitespace=True,min_length=1)# type: ignore
     client_mobile_number:constr(strip_whitespace=True,min_length=1)# type: ignore
     client_city:constr(strip_whitespace=True,min_length=1)# type: ignore
+    client_email:EmailStr
     total_amount:float
     paid_amount:float
     payment_status:backend_enums.PaymetStatus
@@ -64,6 +66,7 @@ class UpdateEventSchema(BaseModel):
 class UpdateEventPendingCanceledStatusSchema(BaseModel):
     status_description:constr(strip_whitespace=True,min_length=5)# type: ignore
     event_id:constr(strip_whitespace=True,min_length=1) # type: ignore
+    can_attach_link:Optional[bool]=False
     event_status:backend_enums.EventStatus
 
 class GetEventsEmailschema(BaseModel):
