@@ -450,15 +450,36 @@ class AddEvent(__AddEventInputs):
                         combined_event_details.append(event_neivethiyam)
                     ic("gee")
                     self.session.add_all(combined_event_details)
-                    
+                    if is_confirmed:
+                        self.bg_task.add_task(
+                            PushNotificationCrud(
+                                notify_title="New Event Added",
+                                notify_body=f"{self.event_name} on {self.event_date} at {self.event_start_at}-{self.event_end_at} added-by {user.name}",
+                                data_payload={
+                                    "screen":"event_page"
+                                }
+                            ).push_notification_to_all
+                        )
+                    else:
+                        self.bg_task.add_task(
+                            PushNotificationCrud(
+                                notify_title="New Event Booked",
+                                notify_body=f"{self.event_name} on {self.event_date} at {self.event_start_at}-{self.event_end_at} link-shared-by {user.name}",
+                                data_payload={
+                                    "screen":"event_page"
+                                }
+                            ).push_notification_to_all
+                        )
+
                     self.bg_task.add_task(
-                        PushNotificationCrud(
-                            notify_title="New Event Added",
-                            notify_body=f"{self.event_name} on {self.event_date} at {self.event_start_at}-{self.event_end_at} added-by {user.name}",
-                            data_payload={
-                                "screen":"event_page"
-                            }
-                        ).push_notification_to_all
+                        func=event_booked_successfull_report,
+                        name=self.client_name,
+                        poojai_type=f"{self.event_name} - {self.event_description}",
+                        date=self.event_date,
+                        time=f"{self.event_start_at} - {self.event_end_at}",
+                        temple_name="Nanmai Tharuvar Kovil (Guruvudhasan)",
+                        address="madurai, mela maasi veethi 3rd street".title(),
+                        to_email=self.client_email
                     )
                     # for deleting etag from redis
                     ic("before redis")
@@ -581,10 +602,19 @@ class UpdateEvent(__AddEventInputs):
                             poojai_type=f"{self.event_name} - {self.event_description}",
                             date=self.event_date,
                             time=f"{self.event_start_at} - {self.event_end_at}",
-                            temple_name="Nanmai tharuvar Kovil (Guruvudhasan)",
-                            address="Madurai,mela masi vethi 3rd street",
+                            temple_name="Nanmai Tharuvar Kovil (Guruvudhasan)",
+                            address="Madurai,mela masi vethi 3rd street".title,
                             to_email=self.client_email
                         
+                        )
+                        self.bg_task.add_task(
+                            PushNotificationCrud(
+                                notify_title="New Event Added",
+                                notify_body=f"{self.event_name} on {self.event_date} at {self.event_start_at}-{self.event_end_at} added-by {user.name}",
+                                data_payload={
+                                    "screen":"event_page"
+                                }
+                            ).push_notification_to_all
                         )
                         
                     # for deleting redis etag
@@ -886,33 +916,9 @@ class UpdateEventPendingCanceledStatus(__UpdateEventPendingCanceledInputs):
                     ic("vanakam da")
                     if self.event_status==backend_enums.EventStatus.CANCELED and event.is_confirmed==False:
                         event_obj=await self.session.get(Events, event.id)
-                        client=(await self.session.execute(select(Clients.name,Clients.email).where(Clients.event_id==self.event_id))).mappings().all()
-                        ic(client,event_obj.name)
-                        event_name=event_obj.name
-                        client_email=client[0]['email']
-                        client_name=client[0]['name']
-                        event_date=event_obj.date
-                        event_time=f"{event_obj.start_at} - {event_obj.end_at}"
-                        kovil_name="Nanmai tharuvar kovil (Guruvudhasan)"
                         
                         await self.session.delete(event_obj)
-                        generated_client_link=""
-                        if self.can_attach_link:
-                            unique_id=await create_unique_id("client")
-                            generated_client_link=f"{self.request.base_url}client/event/book/{unique_id}"
-                            generated_client_links[unique_id]=user.id
-
-                        ic(generated_client_link,self.can_attach_link,generated_client_links)
-                        event_booked_canceled_report(
-                            name=client_name,
-                            poojai_type=event_name,
-                            date=event_date,
-                            time=event_time,
-                            reason=self.description,
-                            temple_name=kovil_name,
-                            reschedule_link=generated_client_link,
-                            to_email=client_email
-                        )
+                        
                     else: 
                         event_pen_canc_sts_toupdate=update(EventsPendingCanceledStatus).where(EventsPendingCanceledStatus.event_id==self.event_id).values(
                             description=self.description,
@@ -956,6 +962,35 @@ class UpdateEventPendingCanceledStatus(__UpdateEventPendingCanceledInputs):
                                     "screen":"event_page"
                                 }
                             ).push_notification_to_all()
+                        )
+                    
+                    if self.event_status==backend_enums.EventStatus.CANCELED:
+                        client=(await self.session.execute(select(Clients.name,Clients.email).where(Clients.event_id==self.event_id))).mappings().all()
+                        ic(client,event.name)
+                        event_name=f"{event.name} - {event.description}"
+                        client_email=client[0]['email']
+                        client_name=client[0]['name']
+                        event_date=event.date
+                        event_time=f"{event.start_at} - {event.end_at}"
+                        kovil_name="Nanmai tharuvar kovil (Guruvudhasan)"
+                        
+                        generated_client_link=""
+                        if self.can_attach_link:
+                            unique_id=await create_unique_id("client")
+                            generated_client_link=f"{self.request.base_url}client/event/book/{unique_id}"
+                            generated_client_links[unique_id]=user.id
+
+                        ic(generated_client_link,self.can_attach_link,generated_client_links)
+                        
+                        event_booked_canceled_report(
+                            name=client_name,
+                            poojai_type=event_name,
+                            date=event_date,
+                            time=event_time,
+                            reason=self.description,
+                            temple_name=kovil_name,
+                            reschedule_link=generated_client_link,
+                            to_email=client_email
                         )
 
                     etag_to_del=[
