@@ -18,3 +18,13 @@ async def get_db_session():
         yield session
     finally:
         await session.close()
+
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def get_db_session_ctx():
+    session = SessionLocal()
+    try:
+        yield session
+    finally:
+        await session.close()

@@ -478,7 +478,7 @@ class AddEvent(__AddEventInputs):
                         date=self.event_date,
                         time=f"{self.event_start_at} - {self.event_end_at}",
                         temple_name="Nanmai Tharuvar Kovil (Guruvudhasan)",
-                        address="madurai, mela maasi veethi 3rd street".title(),
+                        address="15, Arisekara St, Periyar, Madurai Main, Madurai, Tamil Nadu 625001".title(),
                         to_email=self.client_email
                     )
                     # for deleting etag from redis
@@ -826,7 +826,8 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                     # redis etag deletion
                     etag_to_del=[
                         f"events-{event.date}-etag",
-                        WORKER_WITH_USER_ETAG_KEY
+                        WORKER_WITH_USER_ETAG_KEY,
+                        WORKER_ETAG_KEY
                     ]
                     await RedisCrud(key='').unlink_etag_from_redis(*etag_to_del)
                     # 
@@ -862,7 +863,7 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                         to_email=client[0]['email']
                     )
 
-                    return "event completed sts updated successfully"
+                    return "Event completed sts updated successfully"
                 
                 raise HTTPException(
                     status_code=404,

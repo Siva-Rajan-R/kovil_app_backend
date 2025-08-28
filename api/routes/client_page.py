@@ -1,24 +1,20 @@
-from fastapi import APIRouter,Request,Depends,Form,Response,HTTPException,Query,BackgroundTasks
+# blocked this file for client side event booking
+from fastapi import APIRouter,Request,Depends,Form,HTTPException,Query,BackgroundTasks
 from fastapi.responses import HTMLResponse,RedirectResponse
 from fastapi.templating import Jinja2Templates
-from fastapi.staticfiles import StaticFiles
 from pydantic import EmailStr
-from datetime import date,time,datetime
+from datetime import date,datetime
 from typing import Optional
 from database.main import get_db_session
 from database.operations.event_info import EventDropDownValues,AsyncSession
 from api.dependencies.token_verification import verify
 from security.uuid_creation import create_unique_id
-from security.jwt_token import JwtTokenCreation
-from security.syme import encrypt,decrypt
 from utils.generate_otp import generate_otp
 from database.operations.event_crud import AddEvent
 from enums.backend_enums import PaymentMode,PaymetStatus
 import json
 from icecream import ic
-from sqlalchemy import RowMapping
 from api.dependencies.email_automation import send_booked_event_otp
-import textwrap
 from api.temp.temp_variabels import generated_client_links
 
 

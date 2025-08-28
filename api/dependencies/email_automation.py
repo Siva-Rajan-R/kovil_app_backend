@@ -115,7 +115,7 @@ def event_booked_successfull_report(name, poojai_type, date, time, temple_name, 
     msg = MIMEMultipart()
     msg["From"] = EMAIL_ADDRESS
     msg["To"] = to_email
-    msg["Subject"] = "Your event booked successfully"
+    msg["Subject"] = "Your Event booked successfully"
     msg.attach(MIMEText(html_content, "html"))
 
     # Send email
@@ -133,7 +133,7 @@ def event_booked_canceled_report(name, poojai_type, date, time, reason,temple_na
         msg = MIMEMultipart()
         msg["From"] = EMAIL_ADDRESS
         msg["To"] = to_email
-        msg["Subject"] = "Your event booking canceled"
+        msg["Subject"] = "Your Event booking canceled"
         msg.attach(MIMEText(html_content, "html"))
 
         # Send email
@@ -153,7 +153,7 @@ def event_booked_completed_report(name,event_name, date, time, description,templ
         msg = MIMEMultipart()
         msg["From"] = EMAIL_ADDRESS
         msg["To"] = to_email
-        msg["Subject"] = "Your event booking canceled"
+        msg["Subject"] = "Your Event completed successfully"
         msg.attach(MIMEText(html_content, "html"))
 
         # Send email
@@ -173,7 +173,7 @@ def send_booked_event_otp(temple_name,client_name,otp,to_email):
         msg = MIMEMultipart()
         msg["From"] = EMAIL_ADDRESS
         msg["To"] = to_email
-        msg["Subject"] = "Your event booking canceled"
+        msg["Subject"] = "Your Event booking OTP"
         msg.attach(MIMEText(html_content, "html"))
 
         # Send email

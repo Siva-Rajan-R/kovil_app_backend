@@ -8,7 +8,7 @@ from datetime import datetime
 class LeaveManagement(Base):
     __tablename__="leave_management"
     id=Column(Integer,primary_key=True,autoincrement=True)
-    user_id=Column(String,ForeignKey("users.id",ondelete="CASCADE"),nullable=False)
+    user_id=Column(String,ForeignKey("users.id",ondelete="CASCADE"),nullable=False,index=True)
     from_date=Column(Date,nullable=False)
     to_date=Column(Date,nullable=False)
     reason=Column(String,nullable=False)

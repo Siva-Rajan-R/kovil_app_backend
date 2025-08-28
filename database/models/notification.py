@@ -12,13 +12,13 @@ class Notifications(Base):
     image_url=Column(String,nullable=True)
     is_for=Column(String,nullable=False)
     created_by=Column(String,nullable=False)
-    created_at=Column(DateTime(timezone=True),nullable=False)
+    created_at=Column(DateTime(timezone=True),nullable=False,index=True)
 
     notify_image=relationship("NotificationImages",back_populates="notify",cascade="all, delete-orphan")
 
 class NotificationImages(Base):
     __tablename__="notification_images"
-    id=Column(String,primary_key=True)
+    id=Column(String,primary_key=True,index=True)
     image=Column(LargeBinary,nullable=False)
     notify_id=Column(String,ForeignKey("notifications.id",ondelete="CASCADE"))
     created_at=Column(DateTime(timezone=True),nullable=False)
@@ -29,7 +29,7 @@ class NotificationRecivedUsers(Base):
     __tablename__="notification_recived_users"
     id=Column(Integer,primary_key=True,autoincrement=True)
     user_id=Column(String,ForeignKey("users.id",ondelete="CASCADE"))
-    last_checked=Column(DateTime(timezone=True),nullable=False)
+    last_checked=Column(DateTime(timezone=True),nullable=False,index=True)
 
     user=relationship("Users",back_populates="notify_recvd_user")
 

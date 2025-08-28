@@ -15,8 +15,8 @@ class Workers(Base):
 class WorkersParticipationLogs(Base):
     __tablename__ = "workers_participation_logs"
     id = Column(Integer, primary_key=True, autoincrement=True)
-    event_id = Column(String, ForeignKey("events.id", ondelete="CASCADE"), nullable=False)
-    worker_id = Column(Integer, ForeignKey("workers.id", ondelete="CASCADE"), nullable=False)
+    event_id = Column(String, ForeignKey("events.id", ondelete="CASCADE"), nullable=False,index=True)
+    worker_id = Column(Integer, ForeignKey("workers.id", ondelete="CASCADE"), nullable=False,index=True)
     no_of_participation = Column(Integer)
     is_reseted=Column(Boolean,default=False)
 

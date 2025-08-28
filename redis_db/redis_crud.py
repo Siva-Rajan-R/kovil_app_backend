@@ -8,10 +8,10 @@ class RedisCrud:
 
     def __init__(self,key:str,expiry:Optional[int]=604800):
         self.key=key
-        self.expity=expiry
+        self.expiry=expiry
 
     async def store_etag_to_redis(self,etag:str):
-        await redis.set(name=self.key,value=etag,ex=self.expity)
+        await redis.set(name=self.key,value=etag,ex=self.expiry)
 
         ic("succefully stored")
 

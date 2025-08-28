@@ -11,15 +11,14 @@ from security.hashing import hash_data,verify_hash
 from firebase_db.operations import FirebaseCrud
 from utils.push_notification import PushNotificationCrud
 from icecream import ic
-import asyncio
+import asyncio,json
 from redis_db.redis_crud import RedisCrud
 from redis_db.redis_etag_keys import USER_ETAG_KEY
+from redis_db.main import redis
 router=APIRouter(
     tags=["Register,Login,forgot and delete Users"]
 )
 
-registeration_waiting_list={}
-forgot_password_waiting_list={}
 
 @router.post("/register")
 async def register(request:Request,bgt:BackgroundTasks,register_inputs:user_auth.UserRegisterSchema,session:AsyncSession=Depends(get_db_session)):
@@ -28,14 +27,14 @@ async def register(request:Request,bgt:BackgroundTasks,register_inputs:user_auth
     ).is_user_not_exists(email=register_inputs.email,mobile_number=register_inputs.mobile_number)
 
     link_id=await create_unique_id(register_inputs.name)
-
-    registeration_waiting_list[link_id]=register_inputs
+    await redis.set(name=link_id,value=register_inputs.model_dump_json(),ex=3600)
+    # registeration_waiting_list[link_id]=register_inputs
     bgt.add_task(email_automation.accept_or_forgot_email,
         email_subject="registeration accept request",
         name=register_inputs.name,
         email=register_inputs.email,
         number=register_inputs.mobile_number,
-        role=register_inputs.role,
+        role=register_inputs.role.name,
         href=f"{request.base_url}register/accept/{link_id}",
         isforgot=False
     )
@@ -46,42 +45,47 @@ async def register(request:Request,bgt:BackgroundTasks,register_inputs:user_auth
 
 @router.get("/register/accept/{link_id}")
 async def register_accept(link_id:str,bgt:BackgroundTasks,session:AsyncSession=Depends(get_db_session)):
-    registered_user_data=registeration_waiting_list.get(link_id,0)
+    raw_data=await redis.get(link_id)
+    registered_user_data=json.loads(raw_data) if raw_data else None
+    ic(registered_user_data)
+    # registered_user_data=registeration_waiting_list.get(link_id,0)
     if registered_user_data:
         await UserRegisteration(
             session=session,
-            name=registered_user_data.name,
-            email=registered_user_data.email,
-            mobile_number=registered_user_data.mobile_number,
-            role=registered_user_data.role,
-            password=registered_user_data.password
+            name=registered_user_data['name'],
+            email=registered_user_data['email'],
+            mobile_number=registered_user_data['mobile_number'],
+            role=registered_user_data['role'].upper(),
+            password=registered_user_data['password']
         ).register()
-
-        del registeration_waiting_list[link_id]
+        
+        await redis.unlink(link_id)
+        # del registeration_waiting_list[link_id]
         bgt.add_task(
             email_automation.register_or_forgot_successfull_email,
             email_subject="Your Registeration Accepted Successfully",
-            email_body=f"Hi,{registered_user_data.name} Your registeration was confirmed by admin as a role of {registered_user_data.role} by nanmai tharuvar kovil",
-            email=registered_user_data.email
+            email_body=f"Hi,{registered_user_data['name'].title()} Your registeration was confirmed by admin as a role of {registered_user_data['role'].upper()} by Nanmai tharuvar kovil (Guruvudhasan)",
+            email=registered_user_data['email']
         )
-        ic(registered_user_data.fcm_token)
-        if registered_user_data.fcm_token:
+        ic(registered_user_data['fcm_token'])
+        if registered_user_data['fcm_token']:
             asyncio.create_task(
                 PushNotificationCrud(
                     notify_title="Registeration Successfull",
-                    notify_body=f"Hi,{registered_user_data.name.title()} your Registeration Successfully Approved By Admin",
+                    notify_body=f"Hi,{registered_user_data['name'].title()} your Registeration Successfully Approved By Admin",
                     data_payload={
                         "screen":"login_page"
                     }
-                ).push_notifications_individually_by_tokens(fcm_tokens=[registered_user_data.fcm_token])
+                ).push_notifications_individually_by_tokens(fcm_tokens=[registered_user_data['fcm_token']])
                 
             )
         await RedisCrud(key=USER_ETAG_KEY).unlink_etag_from_redis()
         return Response(
-            content=report.register_accept_greet(registered_user_data.name,registered_user_data.email,registered_user_data.mobile_number,registered_user_data.role),
+            content=report.register_accept_greet(registered_user_data['name'].title(),registered_user_data['email'],registered_user_data['mobile_number'],registered_user_data['role'].upper()),
             media_type="text/html",
             status_code=200
         )
+    await redis.unlink(link_id)
     return Response(
         content=report.not_found(),
         status_code=404,
@@ -114,11 +118,12 @@ async def forgot(request:Request,forgot_inputs:user_auth.UserForgotSchema,bgt:Ba
     ic(is_exists)
     if is_exists==False:
         forgot_inputs.new_password=forgot_inputs.new_password
-        forgot_password_waiting_list[link_id]=forgot_inputs
+        await redis.set(name=link_id,value=forgot_inputs.model_dump_json(),ex=300)
+        # forgot_password_waiting_list[link_id]=forgot_inputs
         ic(user.email)
         ic(forgot_inputs.email_or_no)
         bgt.add_task(email_automation.accept_or_forgot_email,
-            email_subject="new password accept request",
+            email_subject="New password accept request",
             name=user.name,
             email=user.email,
             number=user.mobile_number,
@@ -128,7 +133,7 @@ async def forgot(request:Request,forgot_inputs:user_auth.UserForgotSchema,bgt:Ba
         )
         return ORJSONResponse(
             status_code=200,
-            content="new password changed successfully waiting for your conformation"
+            content="New password changed successfully waiting for your conformation"
         )
     raise HTTPException(
         status_code=409,
@@ -138,38 +143,42 @@ async def forgot(request:Request,forgot_inputs:user_auth.UserForgotSchema,bgt:Ba
 
 @router.get("/forgot/accept/{link_id}")
 async def forgot_accept(link_id:str,bgt:BackgroundTasks,session:AsyncSession=Depends(get_db_session)):
-    forgot_password_user_data=forgot_password_waiting_list.get(link_id,0)
+    raw_data=await redis.get(link_id)
+    forgot_password_user_data=json.loads(raw_data) if raw_data else None
+    # forgot_password_user_data=forgot_password_waiting_list.get(link_id,0)
     if forgot_password_user_data:
         await UserForgot(
             session=session,
-            email_or_no=forgot_password_user_data.email_or_no,
-            new_password=forgot_password_user_data.new_password
+            email_or_no=forgot_password_user_data['email_or_no'],
+            new_password=forgot_password_user_data['new_password']
         ).update_user_password()
-        del forgot_password_waiting_list[link_id]
+        await redis.unlink(link_id)
+        # del forgot_password_waiting_list[link_id]
         bgt.add_task(
             email_automation.register_or_forgot_successfull_email,
             email_subject="New password changed Successfully",
-            email_body=f"Hi,{forgot_password_user_data.email_or_no} Your Password Was Changed Now By You for nanmai tharuvar kovil app!",
-            email=forgot_password_user_data.email_or_no
+            email_body=f"Hi,{forgot_password_user_data['email_or_no']} Your password was changed now by you, For Nanmai tharuvar kovil (Guruvudhasan) Application!",
+            email=forgot_password_user_data['email_or_no']
         )
 
-        if forgot_password_user_data.fcm_token:
+        if forgot_password_user_data['fcm_token']:
             asyncio.create_task(
                 PushNotificationCrud(
                     notify_title="Forgot Password",
-                    notify_body=f"Password Changed Successfully For {forgot_password_user_data.email_or_no}",
+                    notify_body=f"Password Changed Successfully For {forgot_password_user_data['email_or_no']}",
                     data_payload={
                         "screen":"login_page"
                     }
-                ).push_notifications_individually_by_tokens(fcm_tokens=[forgot_password_user_data.fcm_token])
+                ).push_notifications_individually_by_tokens(fcm_tokens=[forgot_password_user_data['fcm_token']])
                 
             )
         
         return Response(
-            content=report.forgot_accept_greet(forgot_password_user_data.email_or_no),
+            content=report.forgot_accept_greet(forgot_password_user_data['email_or_no']),
             media_type="text/html",
             status_code=200
         )
+    await redis.unlink(link_id)
     return Response(
         content=report.not_found(),
         status_code=404,

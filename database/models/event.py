@@ -26,7 +26,7 @@ class Events(Base):
     status=Column(Enum(backend_enums.EventStatus),default=backend_enums.EventStatus.PENDING)
     added_by=Column(String,nullable=False)
     updated_by=Column(String,nullable=True)
-    date=Column(Date,nullable=False)
+    date=Column(Date,nullable=False,index=True)
     start_at=Column(String,nullable=False)
     end_at=Column(String,nullable=False)
     is_special=Column(Boolean,nullable=False)
@@ -45,7 +45,7 @@ class EventsNeivethiyam(Base):
     __tablename__="events_neivethiyam"
     id=Column(Integer,primary_key=True,autoincrement=True)
     neivethiyam_id=Column(Integer,ForeignKey("neivethiyam_names.id"),nullable=False)
-    event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False)
+    event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False,index=True)
     padi_kg=Column(Float,nullable=False)
     is_confirmed=Column(Boolean,nullable=False)
 
@@ -58,7 +58,7 @@ class Clients(Base):
     mobile_number=Column(String,nullable=False)
     city=Column(String,nullable=False)
     email=Column(String,nullable=False)
-    event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False)
+    event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False,index=True)
     is_confirmed=Column(Boolean,nullable=False)
 
     event=relationship("Events",back_populates="client")
@@ -70,7 +70,7 @@ class Payments(Base):
     paid_amount=Column(Float,nullable=False)
     status=Column(Enum(backend_enums.PaymetStatus),default=backend_enums.PaymetStatus.NOT_PAID,nullable=False)
     mode=Column(Enum(backend_enums.PaymentMode),default=backend_enums.PaymentMode.OFFLINE)
-    event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False)
+    event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False,index=True)
     is_confirmed=Column(Boolean,nullable=False)
 
     event=relationship("Events",back_populates="payment")
@@ -78,7 +78,7 @@ class Payments(Base):
 class EventsCompletedStatus(Base):
     __tablename__="events_completed_status"
     id=Column(String,primary_key=True)
-    event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False,unique=True)
+    event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False,unique=True,index=True)
     image_url=Column(String)
     feedback=Column(String)
     archagar=Column(String)
@@ -96,7 +96,7 @@ class EventsCompletedStatus(Base):
 class EventsPendingCanceledStatus(Base):
     __tablename__="events_pending_canceled_status"
     id=Column(Integer,autoincrement=True,primary_key=True)
-    event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False,unique=True)
+    event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False,unique=True,index=True)
     description=Column(String)
     updated_date=Column(Date,default=datetime.now().date())
     updated_at=Column(String)
@@ -105,7 +105,7 @@ class EventsPendingCanceledStatus(Base):
 
 class EventStatusImages(Base):
     __tablename__="event_status_images"
-    id=Column(String,primary_key=True)
+    id=Column(String,primary_key=True,index=True)
     image=Column(LargeBinary)
     event_sts_id=Column(String,ForeignKey("events_completed_status.id",ondelete="CASCADE"))
 
@@ -115,7 +115,7 @@ class EventsContactDescription(Base):
     __tablename__="events_contact_description"
     id=Column(Integer,primary_key=True,autoincrement=True)
     description=Column(String,nullable=False)
-    event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False)
+    event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False,index=True)
     updated_by=Column(String,nullable=False)
     updated_at=Column(String,nullable=False)
     updated_date=Column(Date,nullable=False)
@@ -124,8 +124,8 @@ class EventsContactDescription(Base):
 
 class EventsAssignments(Base):
     __tablename__="events_assignments"
-    id=Column(Integer,primary_key=True,autoincrement=True)
-    event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False,unique=True)
+    id=Column(Integer,primary_key=True,autoincrement=True,index=True)
+    event_id=Column(String,ForeignKey("events.id",ondelete="CASCADE"),nullable=False,unique=True,index=True)
     archagar=Column(String)
     abisegam=Column(String)
     helper=Column(String)

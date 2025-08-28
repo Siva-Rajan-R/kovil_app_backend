@@ -6,7 +6,7 @@ from datetime import datetime,timezone
 
 class Users(Base):
     __tablename__="users"
-    id=Column(String,primary_key=True)
+    id=Column(String,primary_key=True,index=True)
     name=Column(String,nullable=False)
     mobile_number=Column(String,nullable=False)
     email=Column(String,nullable=False)

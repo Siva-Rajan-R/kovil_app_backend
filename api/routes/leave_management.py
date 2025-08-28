@@ -19,11 +19,12 @@ import asyncio
 
 
 router = APIRouter(
-    tags=['Leave Management Crud']
+    tags=['Leave Management Crud'],
+    prefix="/user"
 )
 
 
-@router.post('/user/leave')
+@router.post('/leave')
 async def add_user_leave(bgt:BackgroundTasks,leave_inp:LeaveManagementAddSchema,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
     added_leave=await LeaveManagementCrud(
@@ -41,7 +42,7 @@ async def add_user_leave(bgt:BackgroundTasks,leave_inp:LeaveManagementAddSchema,
         status_code=201
     )
 
-@router.put('/user/leave')
+@router.put('/leave')
 async def update_user_leave_details(bgt:BackgroundTasks,leave_inp:LeaveManagementUpdatedetailsSchema,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
     updated_leave=await LeaveManagementCrud(
@@ -58,7 +59,7 @@ async def update_user_leave_details(bgt:BackgroundTasks,leave_inp:LeaveManagemen
         content=updated_leave
     )
 
-@router.put('/user/leave/status')
+@router.put('/leave/status')
 async def updaate_user_leave_status(bgt:BackgroundTasks,leave_inp:LeaveManagementUpdateStatusSchema,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
     asyncio.create_task(
@@ -76,7 +77,7 @@ async def updaate_user_leave_status(bgt:BackgroundTasks,leave_inp:LeaveManagemen
         content="Updating Leave Status..."
     )
 
-@router.delete('/user/leave')
+@router.delete('/leave')
 async def delete_user_leave(bgt:BackgroundTasks,leave_inp:LeaveManagementDeleteSchema,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
     deleted_leave=await LeaveManagementCrud(
@@ -88,7 +89,7 @@ async def delete_user_leave(bgt:BackgroundTasks,leave_inp:LeaveManagementDeleteS
         content=deleted_leave
     )
 
-@router.get("/user/leave")
+@router.get("/leave")
 async def get_user_leaves(request:Request,response:Response,all:Optional[bool]=False,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
     key=f"user-leave-{user_id}-etag"

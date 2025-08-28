@@ -10,10 +10,11 @@ from icecream import ic
 
 
 router=APIRouter(
-    tags=["Get Event Informations"]
+    tags=["Get Event Informations"],
+    prefix="/event"
 )
 
-@router.get("/event/calendar")
+@router.get("/calendar")
 async def event_calendar(response:Response,request:Request,month:int=Query(...),year:int=Query(...),user:dict=Depends(verify),session:AsyncSession=Depends(get_db_session)):
     redis_crud=RedisCrud(key=f"event-calendar-{month}-{year}-etag")
     redis_etag=await redis_crud.get_etag_from_redis()
@@ -34,7 +35,7 @@ async def event_calendar(response:Response,request:Request,month:int=Query(...),
     await redis_crud.store_etag_to_redis(etag=etag)
     return ec
 
-@router.get("/event/specific",response_model_exclude_none=True)
+@router.get("/specific",response_model_exclude_none=True)
 async def event_specific(request:Request,response:Response,date:date=Query(...),event_id:Optional[str]=Query(None),isfor_booked:Optional[bool]=Query(None),user:dict=Depends(verify),session:AsyncSession=Depends(get_db_session)):
     
     redis_crud=RedisCrud(key=f"events-{date}-etag")
@@ -60,7 +61,7 @@ async def event_specific(request:Request,response:Response,date:date=Query(...),
     await redis_crud.store_etag_to_redis(etag=etag)
     return events
 
-@router.get("/event/dropdown-values")
+@router.get("/dropdown-values")
 async def get_event_dropdown_values(request:Request,response:Response,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
     redis_crud=RedisCrud(key=DROP_DOWN_ETAG_KEY)

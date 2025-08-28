@@ -2,7 +2,7 @@ from fastapi import FastAPI,middleware,Request
 from fastapi.responses import ORJSONResponse
 from fastapi.middleware.gzip import GZipMiddleware
 from brotli_asgi import BrotliMiddleware
-from api.routes import dashboard, event_crud, user_auth ,event_info,user_crud,panchagam_calendar,workers_crud,app_version,leave_management,client_page
+from api.routes import dashboard, event_crud, user_auth ,event_info,user_crud,panchagam_calendar,workers_crud,app_version,leave_management
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.jobstores.sqlalchemy import SQLAlchemyJobStore
 from contextlib import asynccontextmanager
@@ -51,7 +51,6 @@ app.include_router(panchagam_calendar.router)
 app.include_router(workers_crud.router)
 app.include_router(app_version.router)
 app.include_router(leave_management.router)
-app.include_router(client_page.router)
 
 # middlewares
 

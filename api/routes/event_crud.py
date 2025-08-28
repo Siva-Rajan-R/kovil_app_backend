@@ -6,18 +6,15 @@ from database.operations.event_info import EventsToEmail
 from database.main import get_db_session
 from api.dependencies.token_verification import verify
 from api.schemas.event_crud import AddEventSchema,UpdateEventSchema,UpdateEventPendingCanceledStatusSchema,DeleteAllEventSchema,DeleteSingleEventSchema,AddEventNameSchema,DeleteEventNameSchema,GetEventsEmailschema,AddNeivethiyamNameSchema,DeleteNeivethiyamNameSchema,AddContactDescriptionSchema,DeleteContactDescriptionSchema,AddEventAssignmentSchema,DeleteEventAssignmentSchema
-from typing import Optional,List
+from typing import Optional
 from database.operations.user_auth import UserVerification
 from security.entity_tag import generate_entity_tag
 from utils.clean_ph_numbers import clean_phone_numbers
-from utils.image_compression import compress_image_to_target_size
-from utils.async_to_sync_bgtask import run_async_in_bg
 from icecream import ic
 from io import BytesIO
 import asyncio
 from redis_db.redis_crud import RedisCrud
-from redis_db.redis_etag_keys import EVENT_NAME_ETAG_KEY,NEIVETHIYAM_ETAG_KEY
-from typing import Literal
+from redis_db.redis_etag_keys import EVENT_NAME_ETAG_KEY,NEIVETHIYAM_ETAG_KEY,DROP_DOWN_ETAG_KEY
 
 router=APIRouter(
     tags=["Add,Update and Delete Events and EventName"]
@@ -59,7 +56,7 @@ async def add_event_name_and_amount(event_name_inp:AddEventNameSchema,session:As
         user_id=user_id
     ).add_event_name_and_amt(event_name=event_name_inp.event_name,event_amount=event_name_inp.event_amount,is_special=event_name_inp.is_special)
     
-    await RedisCrud(key=EVENT_NAME_ETAG_KEY).unlink_etag_from_redis()
+    await RedisCrud(key="").unlink_etag_from_redis(*[EVENT_NAME_ETAG_KEY,DROP_DOWN_ETAG_KEY])
     return ORJSONResponse(
         status_code=201,
         content=added_event_name
@@ -73,7 +70,7 @@ async def delete_event_name_and_amount(en_del_inp:DeleteEventNameSchema,session:
         user_id=user_id
     ).delete_event_name_and_amount(event_name=en_del_inp.event_name)
 
-    await RedisCrud(key=EVENT_NAME_ETAG_KEY).unlink_etag_from_redis()
+    await RedisCrud(key="").unlink_etag_from_redis(*[EVENT_NAME_ETAG_KEY,DROP_DOWN_ETAG_KEY])
     return ORJSONResponse(
         status_code=200,
         content=delete_event_name
@@ -113,7 +110,7 @@ async def add_neivethiyam_name_and_amount(neivethiyam_name_inp:AddNeivethiyamNam
         user_id=user_id
     ).add_neivethiyam_name_and_amt(neivethiyam_name=neivethiyam_name_inp.neivethiyam_name,neivethiyam_amount=neivethiyam_name_inp.neivethiyam_amount)
 
-    await RedisCrud(key=NEIVETHIYAM_ETAG_KEY).unlink_etag_from_redis()
+    await RedisCrud(key="").unlink_etag_from_redis(*[NEIVETHIYAM_ETAG_KEY,DROP_DOWN_ETAG_KEY])
     return ORJSONResponse(
         status_code=201,
         content=added_neivethiyam_name
@@ -126,7 +123,7 @@ async def delete_neivethiyam_name_and_amount(en_del_inp:DeleteNeivethiyamNameSch
         session=session,
         user_id=user_id
     ).delete_neivethiyam_name_and_amount(neivethiyam_name=en_del_inp.neivethiyam_name)
-    await RedisCrud(key=NEIVETHIYAM_ETAG_KEY).unlink_etag_from_redis()
+    await RedisCrud(key="").unlink_etag_from_redis(*[NEIVETHIYAM_ETAG_KEY,DROP_DOWN_ETAG_KEY])
     return ORJSONResponse(
         status_code=200,
         content=deleted_neivethiyam_name

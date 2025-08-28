@@ -1,8 +1,8 @@
-from fastapi import APIRouter,Depends,Query,Request,Response,HTTPException
+from fastapi import APIRouter,Depends,Query,Request,Response,HTTPException,BackgroundTasks
 from security.entity_tag import generate_entity_tag
 from fastapi.responses import ORJSONResponse
 from database.operations.workers_crud import WorkersCrud,AsyncSession,SendWorkerInfoAsEmail
-from database.main import get_db_session
+from database.main import get_db_session,get_db_session_ctx
 from api.dependencies.token_verification import verify
 from api.schemas.workers_crud import AddWorkersSchema,DeleteWorkerSchema,ResetAllWorkersSchema,UpdateWorkerUserIdSchema
 from utils.clean_ph_numbers import clean_phone_numbers
@@ -16,7 +16,6 @@ from redis_db.redis_etag_keys import WORKER_ETAG_KEY,WORKER_WITH_USER_ETAG_KEY
 router=APIRouter(
     tags=["Add,Update and Delete Workers"]
 )
-
 
 
 @router.post("/worker")
@@ -85,31 +84,31 @@ async def reset_worker(request:Request,worker_inp:DeleteWorkerSchema,session:Asy
     )
 
 @router.put("/worker/reset/all")
-async def reset_all_worker(request:Request,worker_inp:ResetAllWorkersSchema,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
+async def reset_all_worker(bgt:BackgroundTasks,request:Request,worker_inp:ResetAllWorkersSchema,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
-    reseted_worker=await WorkersCrud(
+    bgt.add_task(WorkersCrud(
         session=session,
         user_id=user_id,
-    ).reset_all_workers(from_date=worker_inp.from_date,to_date=worker_inp.to_date,amount=worker_inp.amount,to_email=worker_inp.send_to,isfor_reset=True)
+    ).reset_all_workers,from_date=worker_inp.from_date,to_date=worker_inp.to_date,amount=worker_inp.amount,to_email=worker_inp.send_to,isfor_reset=True)
 
-    await RedisCrud(key=WORKER_ETAG_KEY).unlink_etag_from_redis()
+    await RedisCrud(key="").unlink_etag_from_redis(*[WORKER_ETAG_KEY,WORKER_WITH_USER_ETAG_KEY])
     return ORJSONResponse(
         status_code=200,
-        content=reseted_worker
+        content="Restting workers... You will receive an email once it is done."
     )
 
 @router.post("/worker/report/email")
-async def worker_report_email(worker_inp:ResetAllWorkersSchema,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
-    user_id=user['id']
-    email_send=await WorkersCrud(
-        session=session,
-        user_id=user_id,
-    ).reset_all_workers(from_date=worker_inp.from_date,to_date=worker_inp.to_date,amount=worker_inp.amount,to_email=worker_inp.send_to,isfor_reset=False)
+async def worker_report_email(bgt:BackgroundTasks,worker_inp:ResetAllWorkersSchema,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']       
 
+    bgt.add_task(WorkersCrud(
+                session=session,
+                user_id=user_id,
+            ).reset_all_workers,from_date=worker_inp.from_date,to_date=worker_inp.to_date,amount=worker_inp.amount,to_email=worker_inp.send_to,isfor_reset=False)
  
     return ORJSONResponse(
         status_code=200,
-        content=email_send
+        content="Sending Workers report..."
     )
 
 @router.get("/workers")

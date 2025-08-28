@@ -1,5 +1,4 @@
-from fastapi import APIRouter,requests,Depends,Query
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter,Depends,Query
 from database.operations.dashboard import EventDashboard,date,AsyncSession
 from database.main import get_db_session
 from api.dependencies.token_verification import verify

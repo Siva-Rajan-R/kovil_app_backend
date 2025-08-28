@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select,func,desc,or_,exists,delete,update
 from sqlalchemy.exc import IntegrityError
 from enums import backend_enums
-from fastapi.exceptions import HTTPException
+from fastapi import BackgroundTasks, HTTPException
 from database.operations.user_auth import UserVerification
 from icecream import ic
 from typing import Optional

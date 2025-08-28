@@ -26,7 +26,7 @@ import time
 import asyncio
 from redis_db.redis_crud import RedisCrud
 from redis_db.redis_etag_keys import USER_LEAVE_ALL
-
+from database.main import get_db_session_ctx
 
 class LeaveManagementCrud:
     def __init__(self,session:AsyncSession,user_id:str):
@@ -35,23 +35,22 @@ class LeaveManagementCrud:
 
     async def add_leave(self,bg_task:BackgroundTasks,leave_from_date:date,leave_to_date:date,leave_reason:str):
         try: 
-            async def send_leave_notifications():
-                admins_id=(await self.session.execute(select(Users.id).where(Users.role==backend_enums.UserRole.ADMIN))).scalars().all()
-                ic(admins_id)
-                for admin_id in admins_id:
-                    
-                    order_dict=FirebaseCrud(user_id=admin_id).get_fcm_tokens()
-                    if order_dict:
-                        asyncio.create_task(
-                            PushNotificationCrud(
+            async def send_leave_notifications(username:str):
+                ic(username)
+                async with get_db_session_ctx() as new_session:
+                    admins_id=(await new_session.execute(select(Users.id).where(Users.role==backend_enums.UserRole.ADMIN))).scalars().all()
+                    ic(admins_id)
+                    ic(username)
+                    for admin_id in admins_id:
+                        order_dict=FirebaseCrud(user_id=admin_id).get_fcm_tokens()
+                        if order_dict:
+                            await PushNotificationCrud(
                                 notify_title="Requesting Leave",
-                                notify_body=f"{user.name} requesting a leave from {leave_from_date} to {leave_to_date}",
+                                notify_body=f"{username} requesting a leave from {leave_from_date} to {leave_to_date}",
                                 data_payload={
                                     'screen':'leave_screen'
                                 }
                             ).push_notifications_individually(fcm_tokens=order_dict)
-                            
-                        )
 
             async with self.session.begin():
                 user=await UserVerification(session=self.session).is_user_exists_by_id(self.user_id)
@@ -72,7 +71,7 @@ class LeaveManagementCrud:
                     f"user-leave-{self.user_id}-etag"
                 ]
                 await RedisCrud(key='').unlink_etag_from_redis(*etag_to_del)
-                asyncio.create_task(send_leave_notifications())
+                asyncio.create_task(send_leave_notifications(user.name))
                 
                 return "Successfully sumbitted leave request"
         except HTTPException:
@@ -134,7 +133,7 @@ class LeaveManagementCrud:
 
                         # for deleting the user assigned
                         if leave_status==backend_enums.LeaveStatus.ACCEPTED:
-                            events=(await self.session.execute(select(Events.id,Events.name).where(Events.date>=leave_details.from_date,Events.date<=leave_details.to_date))).mappings().all()
+                            events=(await self.session.execute(select(Events.id,Events.name).where(Events.date>=leave_details.from_date,Events.date<=leave_details.to_date,Events.status!=backend_enums.EventStatus.COMPLETED))).mappings().all()
                             user_name=(await self.session.execute(select(Users.name).filter(Users.id==leave_details.user_id))).scalar_one_or_none()
                             if events!=[] and user_name:
                                 for event in events:
