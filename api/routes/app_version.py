@@ -59,7 +59,7 @@ async def get_app_version(request:Request,response:Response):
     # response.headers['ETag']=etag
     return ORJSONResponse(
         content=version,
-        headers={"ETag":etag}
+        headers={"X-Custom-Cache":etag}
     )
 
 
@@ -162,7 +162,7 @@ async def get_app_notifications(response:Response,request:Request,bgt:Background
 
     serialized_data=str(notifications)
     etag = generate_entity_tag(serialized_data)
-    response.headers['ETag']=etag
+    response.headers['X-Custom-Cache']=etag
     await redis_crud.store_etag_to_redis(etag=etag)
     ic(len(serialized_data))
     return notifications

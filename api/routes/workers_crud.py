@@ -135,7 +135,7 @@ async def get_worker(request:Request,response:Response,session:AsyncSession=Depe
 
     etag=generate_entity_tag(data=str(fetched_worker))
     await redis_crud.store_etag_to_redis(etag=etag)
-    response.headers['ETag']=etag
+    response.headers['X-Custom-Cache']=etag
     return fetched_worker
 
 @router.get("/workers/date")

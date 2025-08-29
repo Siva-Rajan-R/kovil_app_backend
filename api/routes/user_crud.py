@@ -51,7 +51,7 @@ async def get_users(request:Request,response:Response,session:AsyncSession=Depen
 
     etag=generate_entity_tag(data=str(users))
     await redis_crud.store_etag_to_redis(etag=etag)
-    response.headers['ETag']=etag
+    response.headers['X-Custom-Cache']=etag
     return users
 
 

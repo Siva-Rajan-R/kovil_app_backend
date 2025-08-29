@@ -108,6 +108,6 @@ async def get_user_leaves(request:Request,response:Response,all:Optional[bool]=F
         user_id=user_id
     ).get_leave_details(all=all)
     etag=generate_entity_tag(str(fetched_leaves))
-    response.headers['ETag']=etag
+    response.headers['X-Custom-Cache']=etag
     await redis_crud.store_etag_to_redis(etag=etag)
     return fetched_leaves

@@ -31,7 +31,7 @@ async def event_calendar(response:Response,request:Request,month:int=Query(...),
         year=year
     ).get_event_calendar()
     etag=generate_entity_tag(str(ec))
-    response.headers['ETag']=etag
+    response.headers['X-Custom-Cache']=etag
     await redis_crud.store_etag_to_redis(etag=etag)
     return ec
 
@@ -57,7 +57,7 @@ async def event_specific(request:Request,response:Response,date:date=Query(...),
         isfor_booked=isfor_booked
     ).get_events()
     etag=generate_entity_tag(str(events))
-    response.headers['ETag']=etag
+    response.headers['X-Custom-Cache']=etag
     await redis_crud.store_etag_to_redis(etag=etag)
     return events
 
