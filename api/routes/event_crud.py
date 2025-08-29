@@ -44,7 +44,7 @@ async def get_event_name_and_amount(request:Request,response:Response,session:As
     etag=generate_entity_tag(data=str(event_names))
 
     await redis_crud.store_etag_to_redis(etag=etag)
-    response.headers['ETag']=etag
+    response.headers['X-Custom-Cache']=etag
 
     return event_names
 
@@ -98,7 +98,7 @@ async def get_neivethiyam_name_and_amount(request:Request,response:Response,sess
 
     etag=generate_entity_tag(data=str(neivethiyam_names))
     await redis_crud.store_etag_to_redis(etag=etag)
-    response.headers['ETag']=etag
+    response.headers['X-Custom-Cache']=etag
 
     return neivethiyam_names
 
