@@ -74,7 +74,7 @@ async def get_event_dropdown_values(request:Request,response:Response,session:As
             )
     event_dd_values=await EventDropDownValues(session=session,user_id=user_id).get_dropdown_values()
     etag=generate_entity_tag(data=str(event_dd_values))
-    response.headers['ETag']=etag
+    response.headers['X-Custom-Cache']=etag
     await redis_crud.store_etag_to_redis(etag=etag)
     return event_dd_values
 
