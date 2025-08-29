@@ -1,5 +1,6 @@
 from fastapi import FastAPI,middleware,Request
 from fastapi.responses import ORJSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from brotli_asgi import BrotliMiddleware
 from api.routes import dashboard, event_crud, user_auth ,event_info,user_crud,panchagam_calendar,workers_crud,app_version,leave_management
@@ -54,6 +55,14 @@ app.include_router(leave_management.router)
 
 # middlewares
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # or your frontend domain
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+    expose_headers=["ETag"],  # <<< important
+)
 app.add_middleware(GZipMiddleware,minimum_size=300,compresslevel=9)
 
 

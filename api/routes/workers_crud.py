@@ -105,7 +105,8 @@ async def worker_report_email(bgt:BackgroundTasks,worker_inp:ResetAllWorkersSche
                 session=session,
                 user_id=user_id,
             ).reset_all_workers,from_date=worker_inp.from_date,to_date=worker_inp.to_date,amount=worker_inp.amount,to_email=worker_inp.send_to,isfor_reset=False)
- 
+    
+
     return ORJSONResponse(
         status_code=200,
         content="Sending Workers report..."
