@@ -63,7 +63,7 @@ app.add_middleware(
     allow_headers=["*"],
     expose_headers=["ETag"],  # <<< important
 )
-# app.add_middleware(GZipMiddleware,minimum_size=300,compresslevel=9)
+app.add_middleware(GZipMiddleware,minimum_size=300,compresslevel=9)
 
 
 @app.middleware("http")
