@@ -265,26 +265,22 @@ async def update_event_completed_status(
                     detail="image should be less than 5 mb"
                 )
             
-            
-        asyncio.create_task(
-            UpdateEventCompletedStatus(
-                session=session,
-                user_id=user_id,
-                event_id=event_id,
-                event_status=event_status,
-                feedback=feedback,
-                archagar=archagar,
-                abisegam=abisegam,
-                helper=helper,
-                poo=poo,
-                read=read,
-                prepare=prepare,
-                image_url_path=str(request.base_url)+"event/status/image/",
-                image=image_bytes,
-                bg_task=bgt,
-                request=request
-            ).update_event_status()
+        await request.app.state.bgTask.enqueue_job('event_completed_status',
+            image_url=str(request.base_url)+"event/status/image/",
+            user_id=user_id,
+            event_id=event_id,
+            event_status=event_status,
+            feedback=feedback,
+            archagar=archagar,
+            abisegam=abisegam,
+            helper=helper,
+            poo=poo,
+            read=read,
+            prepare=prepare,
+            image_bytes=image_bytes,
+            base_url=str(request.base_url)
         )
+
         
         ic("odaney")
         return ORJSONResponse(
@@ -299,17 +295,19 @@ async def update_event_completed_status(
 @router.put("/event/status/pending-canceled")
 async def update_event_pending_canceled_status(request:Request,status_inp:UpdateEventPendingCanceledStatusSchema,bgt:BackgroundTasks,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
-    asyncio.create_task(
-        UpdateEventPendingCanceledStatus(
-            session=session,
-            user_id=user_id,
-            event_id=status_inp.event_id,
-            event_status=status_inp.event_status,
-            description=status_inp.status_description,
-            bg_task=bgt,
-            can_attach_link=status_inp.can_attach_link,
-            request=request
-        ).update_event_status()
+    if status_inp.event_status not in [backend_enums.EventStatus.PENDING,backend_enums.EventStatus.CANCELED]:
+        raise HTTPException(
+            status_code=422,
+            detail="invalid event status, expected pending or canceled"
+        )
+    
+    await request.app.state.bgTask.enqueue_job('event_pending_canceled_status',
+        user_id=user_id,
+        event_id=status_inp.event_id,
+        event_status=status_inp.event_status,
+        description=status_inp.status_description,
+        can_attach_link=status_inp.can_attach_link,
+        base_url=str(request.base_url)
     )
 
     ic("odaneyy")
@@ -336,33 +334,34 @@ async def get_event_status_image(image_id:str,session:AsyncSession=Depends(get_d
 
 
 @router.post("/event/report/email")
-async def get_events_reprot_emails(event_email_inputs:GetEventsEmailschema,bgt:BackgroundTasks,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
+async def get_events_reprot_emails(request:Request,event_email_inputs:GetEventsEmailschema,bgt:BackgroundTasks,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
     user=await UserVerification(session=session).is_user_exists_by_id(id=user_id)
     emails=[user.email]
     if event_email_inputs.send_to!=None:
         emails.append(event_email_inputs.send_to)
     for email in emails:
-        bgt.add_task(
-            EventsToEmail(
-                session=session,
-                user_id=user_id,
-                from_date=event_email_inputs.from_date,
-                to_date=event_email_inputs.to_date,
-                file_type=event_email_inputs.file_type,
-                to_email=email
-            ).get_events_email,
+        await request.app.state.bgTask.enqueue_job(
+            'events_to_email',
+            user_id=user_id,
+            from_date=event_email_inputs.from_date,
+            to_date=event_email_inputs.to_date,
+            file_type=event_email_inputs.file_type,
+            to_email=email,
             user=user
         )
+        # bgt.add_task(
+        #     EventsToEmail(
+        #         session=session,
+        #         user_id=user_id,
+        #         from_date=event_email_inputs.from_date,
+        #         to_date=event_email_inputs.to_date,
+        #         file_type=event_email_inputs.file_type,
+        #         to_email=email
+        #     ).get_events_email,
+        #     user=user
+        # )
 
-    # report=await EventsToEmail(
-    #         session=session,
-    #         user_id=user_id,
-    #         from_date=event_email_inputs.from_date,
-    #         to_date=event_email_inputs.to_date,
-    #         file_type=event_email_inputs.file_type,
-    #         to_email="siva967763@gmail.com"
-    #     ).get_events_email()
     
 
     return "Sending event report..."

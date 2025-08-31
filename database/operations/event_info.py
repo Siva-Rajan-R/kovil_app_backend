@@ -7,7 +7,7 @@ from database.operations.event_crud import EventNameAndAmountCrud,NeivethiyamNam
 from database.operations.user_auth import UserVerification
 from datetime import date
 from fastapi.exceptions import HTTPException
-from utils import document_generator,pdf_fields
+from utils import document_generator,pdf_fields,error_notification
 from icecream import ic
 import pandas as pd
 from api.dependencies import email_automation
@@ -307,10 +307,22 @@ class EventsToEmail(__EventsToEmailInputs):
                     status_code=401,
                     detail="you are not allowed to get this information"
                 )
-        except HTTPException:
-            raise
-        except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail=f"something went wrong while geting events for email : {e}"
+            
+        except HTTPException as httpe:
+            ic(f"error while sending events to email : {httpe.status_code} - {httpe.detail}".title())
+            await error_notification.send_error_notification(
+                user_id=self.user_id,
+                error_title=f"error sending events to email : {httpe.status_code}".title(),
+                error_body=f"{httpe.detail}".title(),
+                notify_data_payload={'screen':'Home screen'}
             )
+
+        except Exception as e:
+            ic(f"something went wrong while geting events for email : {e}")
+            await error_notification.send_error_notification(
+                user_id=self.user_id,
+                error_title="error sending events to email : 500".title(),
+                error_body=f"something went wrong while sending events to email, please try again later ".title(),
+                notify_data_payload={'screen':'Home screen'}
+            )
+

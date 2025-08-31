@@ -29,3 +29,4 @@ asyncpg
 gunicorn
 uvloop
 jinja2
+arq

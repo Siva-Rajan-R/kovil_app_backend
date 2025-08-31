@@ -102,8 +102,7 @@ class __UpdateEventCompletedStatusInputs:
             prepare:int,
             image:Optional[bytes],
             image_url_path:str,
-            bg_task:BackgroundTasks,
-            request:Request
+            base_url:str
         ):
         self.session=session
         self.user_id=user_id
@@ -118,20 +117,19 @@ class __UpdateEventCompletedStatusInputs:
         self.prepare=prepare
         self.image=image
         self.image_url_path=image_url_path
-        self.bg_task=bg_task
-        self.request=request
+        self.base_url=base_url
 
 class __UpdateEventPendingCanceledInputs:
     def __init__(
         self,
         session:AsyncSession,
         user_id:str,
-        request:Request,
         event_id:str,
         event_status:backend_enums.EventStatus,
         description:str,
-        bg_task:BackgroundTasks,
+        base_url:str,
         can_attach_link:Optional[bool]=False,
+        
         
     ):
         self.session=session
@@ -139,9 +137,8 @@ class __UpdateEventPendingCanceledInputs:
         self.event_id=event_id
         self.event_status=event_status
         self.description=description
-        self.bg_task=bg_task
         self.can_attach_link=can_attach_link
-        self.request=request
+        self.base_url=base_url
 
 class __ContactDescriptionInputs:
     def __init__(self,session:AsyncSession,user_id:str):
@@ -708,7 +705,6 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
     async def update_event_status(self):
         try:
             async with self.session.begin():
-
                 if self.event_status==backend_enums.EventStatus.COMPLETED:
                     user=await UserVerification(session=self.session).is_user_exists_by_id(id=self.user_id)
                     event=await EventVerification(session=self.session).is_event_exists_by_id(event_id=self.event_id)
@@ -835,7 +831,7 @@ class UpdateEventCompletedStatus(__UpdateEventCompletedStatusInputs):
                     if self.image:  
                         compressed_image_url=await notification_image_url.get_notification_image_url(
                             session=self.session,
-                            request=self.request,
+                            base_url=self.base_url,
                             notification_title="event status updated - completed",
                             notification_image=self.image,
                             compress_image=True
@@ -978,7 +974,7 @@ class UpdateEventPendingCanceledStatus(__UpdateEventPendingCanceledInputs):
                         generated_client_link=""
                         if self.can_attach_link:
                             unique_id=await create_unique_id("client")
-                            generated_client_link=f"{self.request.base_url}client/event/book/{unique_id}"
+                            generated_client_link=f"{self.base_url}client/event/book/{unique_id}"
                             generated_client_links[unique_id]=user.id
 
                         ic(generated_client_link,self.can_attach_link,generated_client_links)
@@ -1003,35 +999,32 @@ class UpdateEventPendingCanceledStatus(__UpdateEventPendingCanceledInputs):
                     ic(f"successfully event {self.event_status.value} status updated")
                     
                     return
-                # raise HTTPException(
-                #     status_code=404,
-                #     detail=f"invalid event status {self.event_status.value}"
-                # )
-                ic(f"404 : invalid event status {self.event_status.value}")
-                await send_error_notification(
-                    user_id=self.user_id,
-                    error_title="invalid event status".title(),
-                    error_body=f"for {event.name} expected status 'pending or canceled' actual '{self.event_status.value}'".title,
-                    notify_data_payload={
-                        "screen":"home_screen"
-                    }
+                
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"invalid event status {self.event_status.value}"
                 )
 
-
+        except HTTPException as httpe:
+            ic(f"{httpe.status_code}: {httpe.detail}")
+            await send_error_notification(
+                user_id=self.user_id,
+                error_title=f"error updating event status : {httpe.status_code}".title(),
+                error_body=httpe.detail.title(),
+                notify_data_payload={
+                    "screen":"home_screen"
+                }
+            )
         except Exception as e:
-            print(f"something went wrong while updating event {self.event_status.value} status {e}")
+            ic(f"something went wrong while updating event {self.event_status.value} status {e}")
             await send_error_notification(
                     user_id=self.user_id,
                     error_title="error updateing event status : 500".title(),
-                    error_body=f"for {event.name} something went wrong, please try again".title,
+                    error_body=f"for {event.name} something went wrong, please try again".title(),
                     notify_data_payload={
                         "screen":"home_screen"
                     }
                 )
-            # raise HTTPException(
-            #     status_code=500,
-            #     detail=f"something went wrong while updating event {self.event_status.value} status {e}"
-            # )
         
 class GetEventStatusImage:
     def __init__(self,session:AsyncSession,image_id:str):

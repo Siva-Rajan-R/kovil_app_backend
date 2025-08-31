@@ -86,7 +86,7 @@ async def send_app_notify(
         
         image_url=await get_notification_image_url(
             session=session,
-            request=request,
+            base_url=str(request.base_url),
             notification_id=notify_id,
             notification_title=notification_title,
             notification_body=notification_body,

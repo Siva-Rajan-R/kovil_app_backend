@@ -13,6 +13,7 @@ from icecream import ic
 from redis_db.redis_etag_keys import WORKER_ETAG_KEY,WORKER_WITH_USER_ETAG_KEY
 
 
+
 router=APIRouter(
     tags=["Add,Update and Delete Workers"]
 )
@@ -86,10 +87,11 @@ async def reset_worker(request:Request,worker_inp:DeleteWorkerSchema,session:Asy
 @router.put("/worker/reset/all")
 async def reset_all_worker(bgt:BackgroundTasks,request:Request,worker_inp:ResetAllWorkersSchema,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
     user_id=user['id']
-    bgt.add_task(WorkersCrud(
-        session=session,
-        user_id=user_id,
-    ).reset_all_workers,from_date=worker_inp.from_date,to_date=worker_inp.to_date,amount=worker_inp.amount,to_email=worker_inp.send_to,isfor_reset=True)
+    await request.app.state.bgTask.enqueue_job('worker_report',user_id=user_id,from_date=worker_inp.from_date,to_date=worker_inp.to_date,amount=worker_inp.amount,send_to=worker_inp.send_to,isfor_reset=True)
+    # bgt.add_task(WorkersCrud(
+    #     session=session,
+    #     user_id=user_id,
+    # ).reset_all_workers,from_date=worker_inp.from_date,to_date=worker_inp.to_date,amount=worker_inp.amount,to_email=worker_inp.send_to,isfor_reset=True)
 
     await RedisCrud(key="").unlink_etag_from_redis(*[WORKER_ETAG_KEY,WORKER_WITH_USER_ETAG_KEY])
     return ORJSONResponse(
@@ -98,18 +100,18 @@ async def reset_all_worker(bgt:BackgroundTasks,request:Request,worker_inp:ResetA
     )
 
 @router.post("/worker/report/email")
-async def worker_report_email(bgt:BackgroundTasks,worker_inp:ResetAllWorkersSchema,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
-    user_id=user['id']       
-
-    bgt.add_task(WorkersCrud(
-                session=session,
-                user_id=user_id,
-            ).reset_all_workers,from_date=worker_inp.from_date,to_date=worker_inp.to_date,amount=worker_inp.amount,to_email=worker_inp.send_to,isfor_reset=False)
+async def worker_report_email(request:Request,bgt:BackgroundTasks,worker_inp:ResetAllWorkersSchema,session:AsyncSession=Depends(get_db_session),user:dict=Depends(verify)):
+    user_id=user['id']     
+    await request.app.state.bgTask.enqueue_job('worker_report',user_id=user_id,from_date=worker_inp.from_date,to_date=worker_inp.to_date,amount=worker_inp.amount,send_to=worker_inp.send_to,isfor_reset=False)
+    # bgt.add_task(WorkersCrud(
+    #             session=session,
+    #             user_id=user_id,
+    #         ).reset_all_workers,from_date=worker_inp.from_date,to_date=worker_inp.to_date,amount=worker_inp.amount,to_email=worker_inp.send_to,isfor_reset=False)
     
 
     return ORJSONResponse(
         status_code=200,
-        content="Sending Workers report..."
+        content=f"Sending Workers report... You will receive an email once it is done."
     )
 
 @router.get("/workers")

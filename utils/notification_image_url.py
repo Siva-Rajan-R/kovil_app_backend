@@ -12,7 +12,7 @@ from datetime import datetime,timedelta,timezone
 from utils.db_transaction_management import maybe_begin
 import asyncio
 
-async def get_notification_image_url(session:AsyncSession,request:Request,notification_title:str,notification_image:bytes,user_id:Optional[str]=None,notification_id:Optional[str]=None,notification_body:Optional[str]=None,compress_image:Optional[bool]=False):
+async def get_notification_image_url(session:AsyncSession,base_url:str,notification_title:str,notification_image:bytes,user_id:Optional[str]=None,notification_id:Optional[str]=None,notification_body:Optional[str]=None,compress_image:Optional[bool]=False):
     try:
         # ctx = session.begin() if not session.in_transaction() else nullcontext()
         async with maybe_begin(session=session):
@@ -23,7 +23,7 @@ async def get_notification_image_url(session:AsyncSession,request:Request,notifi
 
             image_id=await create_unique_id(notification_title)
             ic(f"hello {len(compressed_bytes)}")
-            image_url=str(request.base_url)+f"notification/image/{image_id}"
+            image_url=base_url+f"notification/image/{image_id}"
             ic(image_url)
 
             if notification_id and notification_body and user_id:

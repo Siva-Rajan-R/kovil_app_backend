@@ -13,6 +13,8 @@ import os,time
 from icecream import ic
 from dotenv import load_dotenv
 load_dotenv()
+from arq import create_pool
+from arq.connections import RedisSettings
 
 # jobstores={"default":SQLAlchemyJobStore(os.getenv("DATABASE_URL"))}
 import sys
@@ -32,6 +34,7 @@ async def lifespan(app: FastAPI):
         scheduler.add_job(delete_expired_notification, "interval", minutes=30,max_instances=4,id="delete_expired_notifications")
         scheduler.start()
         ic("🔄 Scheduler started.")
+        app.state.bgTask=await create_pool(RedisSettings.from_dsn(os.getenv('REDIS_URL')))
         yield  # Run app
     except Exception as e:
         ic(f"❌ Startup failed: {e}")
@@ -39,6 +42,7 @@ async def lifespan(app: FastAPI):
     finally:
         # ASGI lifespan.shutdown
         scheduler.shutdown()
+        app.state.bgTask.close()
         ic("🛑 Scheduler shutdown.")
 
 app=FastAPI(lifespan=lifespan,default_response_class=ORJSONResponse)

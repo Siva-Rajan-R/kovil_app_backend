@@ -1,4 +1,6 @@
 from database.models.workers import Workers,WorkersParticipationLogs
+from database.models.notification import NotificationRecivedUsers
+from database.models.leave_management import LeaveManagement
 from database.models.user import Users
 from database.models.event import Events
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,6 +17,7 @@ from api.dependencies import email_automation
 from typing import List
 from pydantic import EmailStr
 import asyncio
+from utils.error_notification import send_error_notification
 
 
 class __WorkersCrudInputs:
@@ -285,14 +288,23 @@ class WorkersCrud(__WorkersCrudInputs):
                     status_code=401,
                     detail="you are not allowed to make any changes"
                 )
-        except HTTPException:
-            raise
+                    
+        except HTTPException as httpe:
+            ic(f"error while resting all workers : {httpe.status_code} - {httpe.detail}")
+            await send_error_notification(
+                user_id=self.user_id,
+                error_title=f"Error Resting or downloading All Workers : {httpe.status_code}".title(),
+                error_body=httpe.detail,
+                notify_data_payload={"type":"error_notification","source":"reset_all_workers"}
+            )
 
         except Exception as e:
             ic(f"something went wrong while resting all worker {e}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"something went wrong while resting all worker {e}"
+            await send_error_notification(
+                user_id=self.user_id,
+                error_title="Error Resting or downloading All Workers : 500".title(),
+                error_body=f"something went wrong while resting or downloading all worker, Please Try again later".title(),
+                notify_data_payload={"type":"error_notification","source":"reset_all_workers"}
             )
         
     async def get_workers(self,include_users:Optional[str]=None):
